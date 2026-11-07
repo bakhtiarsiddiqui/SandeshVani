@@ -1,0 +1,42 @@
+name: Feature / engineering task
+description: Create a bounded implementation task
+title: "[FEATURE] "
+labels: ["type: feature"]
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Approved source and decisions
+      description: Link PRD, architecture, ADR or API contract sections.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and exclusions
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Observable, testable statements.
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Security, tenant and data implications
+      description: Include RBAC, consent, audit, immutability, idempotency and migrations.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and contracts
