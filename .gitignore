@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Editors
+.vscode/
+.cursor/
+
+# Local data and logs
+*.log
