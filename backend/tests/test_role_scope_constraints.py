@@ -170,11 +170,7 @@ async def test_same_role_name_permitted_across_different_organizations(
     await fk_db_session.flush()
 
     roles = (
-        (
-            await fk_db_session.execute(
-                select(Role).where(Role.id.in_([r1.id, r2.id]))
-            )
-        )
+        (await fk_db_session.execute(select(Role).where(Role.id.in_([r1.id, r2.id]))))
         .scalars()
         .all()
     )
@@ -477,9 +473,7 @@ async def test_role_permission_associations_load_through_sqlalchemy_relationship
 
     # Load from Role side
     stmt_role = (
-        select(Role)
-        .where(Role.id == role.id)
-        .options(selectinload(Role.permissions))
+        select(Role).where(Role.id == role.id).options(selectinload(Role.permissions))
     )
     loaded_role = (await fk_db_session.execute(stmt_role)).scalar_one()
     assert len(loaded_role.permissions) == 1
@@ -530,9 +524,7 @@ async def test_rerunning_seeding_does_not_duplicate_associations(
 
     repo = RoleRepository(fk_db_session)
     await repo.seed_organization_roles(org.id)
-    initial_rps = (
-        (await fk_db_session.execute(select(RolePermission))).scalars().all()
-    )
+    initial_rps = (await fk_db_session.execute(select(RolePermission))).scalars().all()
 
     # Re-run seeding for the same organization
     await repo.seed_organization_roles(org.id)
@@ -564,4 +556,3 @@ async def test_permission_lookup_never_uses_stale_session_tenant_context(
         [admin_role.id], organization_id=org.id
     )
     assert "members:read" in permissions
-

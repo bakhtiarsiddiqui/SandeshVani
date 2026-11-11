@@ -22,10 +22,12 @@ def _production_settings(**overrides: object) -> Settings:
             serialization.PrivateFormat.PKCS8,
             serialization.NoEncryption(),
         ).decode(),
-        "jwt_public_key_pem": private_key.public_key().public_bytes(
+        "jwt_public_key_pem": private_key.public_key()
+        .public_bytes(
             serialization.Encoding.PEM,
             serialization.PublicFormat.SubjectPublicKeyInfo,
-        ).decode(),
+        )
+        .decode(),
         "csrf_secret": "x" * 32,
         "cookie_secure": True,
         "allowed_origins": ["https://app.sandeshvani.in"],

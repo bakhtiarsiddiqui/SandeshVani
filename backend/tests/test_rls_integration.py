@@ -128,9 +128,7 @@ async def pg_setup():
         )
 
         # Create test database owned by the owner role
-        await admin_conn.execute(
-            f"CREATE DATABASE {TEST_DB} OWNER {OWNER_ROLE};"
-        )
+        await admin_conn.execute(f"CREATE DATABASE {TEST_DB} OWNER {OWNER_ROLE};")
     finally:
         await admin_conn.close()
 
@@ -151,9 +149,7 @@ async def pg_setup():
             "membership_roles",
         ]
         for tbl in protected_tables:
-            await admin_test_conn.execute(
-                f"ALTER TABLE {tbl} OWNER TO {OWNER_ROLE};"
-            )
+            await admin_test_conn.execute(f"ALTER TABLE {tbl} OWNER TO {OWNER_ROLE};")
 
         # Grant owner and app role schema usage and table privileges
         await admin_test_conn.execute(
@@ -170,9 +166,7 @@ async def pg_setup():
     yield {
         "admin_dsn": _admin_dsn(PG_TEST_URL, TEST_DB),
         "app_dsn": _build_dsn(PG_TEST_URL, APP_ROLE, APP_ROLE_PASSWORD, TEST_DB),
-        "owner_dsn": _build_dsn(
-            PG_TEST_URL, OWNER_ROLE, OWNER_ROLE_PASSWORD, TEST_DB
-        ),
+        "owner_dsn": _build_dsn(PG_TEST_URL, OWNER_ROLE, OWNER_ROLE_PASSWORD, TEST_DB),
     }
 
     # Teardown: terminate connections, drop test database and roles
@@ -616,14 +610,10 @@ async def seeded(admin_conn, app_conn):
 # Test 1 — Platform roles readable without tenant context
 # ---------------------------------------------------------------------------
 @pytest.mark.asyncio
-async def test_platform_roles_readable_without_tenant_context(
-    app_conn, seeded
-):
+async def test_platform_roles_readable_without_tenant_context(app_conn, seeded):
     """With no tenant context set, platform roles must be visible."""
     async with app_conn.transaction():
-        await app_conn.execute(
-            "SELECT set_config('app.current_org', '', true)"
-        )
+        await app_conn.execute("SELECT set_config('app.current_org', '', true)")
         rows = await app_conn.fetch(
             "SELECT id, scope FROM roles WHERE scope = 'platform'"
         )
@@ -636,17 +626,11 @@ async def test_platform_roles_readable_without_tenant_context(
 # Test 2 — Organization roles inaccessible without tenant context
 # ---------------------------------------------------------------------------
 @pytest.mark.asyncio
-async def test_org_roles_inaccessible_without_tenant_context(
-    app_conn, seeded
-):
+async def test_org_roles_inaccessible_without_tenant_context(app_conn, seeded):
     """Without tenant context, no organization-scoped roles are visible."""
     async with app_conn.transaction():
-        await app_conn.execute(
-            "SELECT set_config('app.current_org', '', true)"
-        )
-        rows = await app_conn.fetch(
-            "SELECT id FROM roles WHERE scope = 'organization'"
-        )
+        await app_conn.execute("SELECT set_config('app.current_org', '', true)")
+        rows = await app_conn.fetch("SELECT id FROM roles WHERE scope = 'organization'")
     assert len(rows) == 0, (
         "Organization roles must not be visible without tenant context"
     )
@@ -714,8 +698,7 @@ async def test_org_a_cannot_read_org_b_roles(app_conn, seeded):
             str(seeded["org_a_id"]),
         )
         rows = await app_conn.fetch(
-            "SELECT id, organization_id FROM roles"
-            " WHERE scope = 'organization'"
+            "SELECT id, organization_id FROM roles WHERE scope = 'organization'"
         )
         # Should only see org A's role
         assert len(rows) == 1
@@ -743,16 +726,12 @@ async def test_transaction_local_context_does_not_leak_on_connection_reuse(
             "SELECT set_config('app.current_org', $1, true)",
             str(seeded["org_a_id"]),
         )
-        rows = await app_conn.fetch(
-            "SELECT id FROM roles WHERE scope = 'organization'"
-        )
+        rows = await app_conn.fetch("SELECT id FROM roles WHERE scope = 'organization'")
         assert [row["id"] for row in rows] == [seeded["org_a_role_id"]]
 
     # The same physical app connection is reused without a context.
     async with app_conn.transaction():
-        rows = await app_conn.fetch(
-            "SELECT id FROM roles WHERE scope = 'organization'"
-        )
+        rows = await app_conn.fetch("SELECT id FROM roles WHERE scope = 'organization'")
         assert rows == []
 
     async with app_conn.transaction():
@@ -760,9 +739,7 @@ async def test_transaction_local_context_does_not_leak_on_connection_reuse(
             "SELECT set_config('app.current_org', $1, true)",
             str(seeded["org_b_id"]),
         )
-        rows = await app_conn.fetch(
-            "SELECT id FROM roles WHERE scope = 'organization'"
-        )
+        rows = await app_conn.fetch("SELECT id FROM roles WHERE scope = 'organization'")
         assert [row["id"] for row in rows] == [seeded["org_b_role_id"]]
 
 
@@ -858,9 +835,7 @@ async def test_app_role_cannot_create_platform_roles(app_conn, seeded):
     # Without tenant context
     with pytest.raises(asyncpg.exceptions.InsufficientPrivilegeError):
         async with app_conn.transaction():
-            await app_conn.execute(
-                "SELECT set_config('app.current_org', '', true)"
-            )
+            await app_conn.execute("SELECT set_config('app.current_org', '', true)")
             await app_conn.execute(
                 """
                 INSERT INTO roles (id, organization_id, scope, name, description)
@@ -880,12 +855,8 @@ async def test_force_rls_is_active_for_owner(owner_conn, seeded):
     to the owner too.
     """
     async with owner_conn.transaction():
-        await owner_conn.execute(
-            "SELECT set_config('app.current_org', '', true)"
-        )
-        rows = await owner_conn.fetch(
-            "SELECT id, scope FROM roles"
-        )
+        await owner_conn.execute("SELECT set_config('app.current_org', '', true)")
+        rows = await owner_conn.fetch("SELECT id, scope FROM roles")
     # Only platform roles should be visible
     scopes = {r["scope"] for r in rows}
     ids = {r["id"] for r in rows}
@@ -924,9 +895,7 @@ async def test_app_role_has_no_elevated_privileges(admin_conn):
         )
         assert row is not None, f"Role {role_name} must exist"
         assert row["rolsuper"] is False, f"Role {role_name} must not be SUPERUSER"
-        assert row["rolbypassrls"] is False, (
-            f"Role {role_name} must not have BYPASSRLS"
-        )
+        assert row["rolbypassrls"] is False, f"Role {role_name} must not have BYPASSRLS"
 
 
 # ---------------------------------------------------------------------------
@@ -946,12 +915,8 @@ async def test_app_role_does_not_own_protected_tables(admin_conn):
             table,
         )
         assert row is not None, f"Table {table} must exist"
-        assert row["tableowner"] != APP_ROLE, (
-            f"App role must not own table {table}"
-        )
-        assert row["tableowner"] == OWNER_ROLE, (
-            f"Owner role must own table {table}"
-        )
+        assert row["tableowner"] != APP_ROLE, f"App role must not own table {table}"
+        assert row["tableowner"] == OWNER_ROLE, f"Owner role must own table {table}"
 
 
 # ---------------------------------------------------------------------------
@@ -983,9 +948,7 @@ async def test_migration_upgrade_downgrade(pg_setup):
         await admin_conn.execute(f"DROP DATABASE IF EXISTS {cycle_db};")
 
         # Ensure sandeshvani_owner role exists and current user can assume it
-        admin_user = (
-            urlsplit(PG_TEST_URL).username or "postgres"
-        )
+        admin_user = urlsplit(PG_TEST_URL).username or "postgres"
         await admin_conn.execute(
             f"""
             DO $$
@@ -1000,9 +963,7 @@ async def test_migration_upgrade_downgrade(pg_setup):
             GRANT sandeshvani_owner TO "{admin_user}";
             """
         )
-        await admin_conn.execute(
-            f"CREATE DATABASE {cycle_db} OWNER sandeshvani_owner;"
-        )
+        await admin_conn.execute(f"CREATE DATABASE {cycle_db} OWNER sandeshvani_owner;")
     finally:
         await admin_conn.close()
 
@@ -1048,8 +1009,7 @@ async def test_migration_upgrade_downgrade(pg_setup):
             ),
         )
         assert result.returncode == 0, (
-            f"Alembic upgrade failed:\nstdout: {result.stdout}\n"
-            f"stderr: {result.stderr}"
+            f"Alembic upgrade failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
         # Verify roles and role_permissions RLS is enabled
@@ -1118,9 +1078,7 @@ async def test_platform_role_permissions_readable_without_tenant_context(
 ):
     """With no tenant context set, platform role permissions must be visible."""
     async with app_conn.transaction():
-        await app_conn.execute(
-            "SELECT set_config('app.current_org', '', true)"
-        )
+        await app_conn.execute("SELECT set_config('app.current_org', '', true)")
         rows = await app_conn.fetch(
             "SELECT role_id, permission_id, role_scope, organization_id "
             "FROM role_permissions WHERE role_scope = 'platform'"
@@ -1141,9 +1099,7 @@ async def test_org_role_permissions_inaccessible_without_tenant_context(
 ):
     """Without tenant context, no organization-scoped role permissions are visible."""
     async with app_conn.transaction():
-        await app_conn.execute(
-            "SELECT set_config('app.current_org', '', true)"
-        )
+        await app_conn.execute("SELECT set_config('app.current_org', '', true)")
         rows = await app_conn.fetch(
             "SELECT role_id, permission_id FROM role_permissions "
             "WHERE role_scope = 'organization'"
@@ -1230,9 +1186,7 @@ async def test_org_a_cannot_insert_role_permission_for_org_b(app_conn, seeded):
     # Without tenant context, inserting an org role permission also fails
     with pytest.raises(asyncpg.exceptions.InsufficientPrivilegeError):
         async with app_conn.transaction():
-            await app_conn.execute(
-                "SELECT set_config('app.current_org', '', true)"
-            )
+            await app_conn.execute("SELECT set_config('app.current_org', '', true)")
             await app_conn.execute(
                 """
                 INSERT INTO role_permissions
@@ -1249,9 +1203,7 @@ async def test_org_a_cannot_insert_role_permission_for_org_b(app_conn, seeded):
 # Test 15 — Organization A cannot UPDATE/DELETE organization B's role permissions
 # ---------------------------------------------------------------------------
 @pytest.mark.asyncio
-async def test_org_a_cannot_mutate_org_b_role_permissions(
-    app_conn, admin_conn, seeded
-):
+async def test_org_a_cannot_mutate_org_b_role_permissions(app_conn, admin_conn, seeded):
     """UPDATE and DELETE against Org B's role permissions must affect 0 rows
     when tenant context is set to Org A.
     """
@@ -1328,9 +1280,7 @@ async def test_app_role_cannot_create_or_mutate_platform_role_permissions(
     # INSERT without tenant context fails RLS WITH CHECK
     with pytest.raises(asyncpg.exceptions.InsufficientPrivilegeError):
         async with app_conn.transaction():
-            await app_conn.execute(
-                "SELECT set_config('app.current_org', '', true)"
-            )
+            await app_conn.execute("SELECT set_config('app.current_org', '', true)")
             await app_conn.execute(
                 """
                 INSERT INTO role_permissions
@@ -1376,17 +1326,13 @@ async def test_app_role_cannot_create_or_mutate_platform_role_permissions(
 # Test 17 — FORCE ROW LEVEL SECURITY applies to owner on role_permissions
 # ---------------------------------------------------------------------------
 @pytest.mark.asyncio
-async def test_force_rls_is_active_for_owner_on_role_permissions(
-    owner_conn, seeded
-):
+async def test_force_rls_is_active_for_owner_on_role_permissions(owner_conn, seeded):
     """A non-superuser table owner has RLS enforced on role_permissions when
     FORCE ROW LEVEL SECURITY is enabled.
     """
     # Without tenant context, owner only sees platform role permissions
     async with owner_conn.transaction():
-        await owner_conn.execute(
-            "SELECT set_config('app.current_org', '', true)"
-        )
+        await owner_conn.execute("SELECT set_config('app.current_org', '', true)")
         rows = await owner_conn.fetch(
             "SELECT role_id, permission_id, role_scope FROM role_permissions"
         )
@@ -1411,4 +1357,3 @@ async def test_force_rls_is_active_for_owner_on_role_permissions(
     assert len(org_a_rows) == 1
     assert org_a_rows[0]["role_id"] == seeded["org_a_role_id"]
     assert org_a_rows[0]["permission_id"] == seeded["perm_org_a_id"]
-

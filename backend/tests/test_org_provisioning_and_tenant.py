@@ -195,12 +195,16 @@ async def test_two_orgs_receive_distinct_org_scoped_system_roles(
     # Role names are identical (same template), but they are independent rows
     names_1 = {r.name for r in roles_1}
     names_2 = {r.name for r in roles_2}
-    assert names_1 == names_2 == {
-        "Organization Administrator",
-        "Campaign Manager",
-        "Communication Team",
-        "Approver",
-    }
+    assert (
+        names_1
+        == names_2
+        == {
+            "Organization Administrator",
+            "Campaign Manager",
+            "Communication Team",
+            "Approver",
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -459,9 +463,7 @@ async def test_failed_provisioning_rolls_back_entirely(api_session: AsyncSession
             )
             assert mail is not None and mail.token is not None
             vtoken = mail.token
-            await client.post(
-                "/api/v1/auth/verify-email", json={"token": vtoken}
-            )
+            await client.post("/api/v1/auth/verify-email", json={"token": vtoken})
             login = await client.post(
                 "/api/v1/auth/login",
                 json={"email": "rollback_test@gov.in", "password": password},

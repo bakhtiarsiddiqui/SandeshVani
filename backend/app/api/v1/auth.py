@@ -352,13 +352,9 @@ async def password_recovery(
     service = AuthService(session)
     token = await service.request_password_reset(data.email)
     await session.commit()
-    _capture_local_auth_message(
-        request, data.email, "password-reset", token, 60 * 60
-    )
+    _capture_local_auth_message(request, data.email, "password-reset", token, 60 * 60)
     return AuthMessageResponse(
-        message=(
-            "If this email exists, password recovery instructions are available."
-        )
+        message=("If this email exists, password recovery instructions are available.")
     )
 
 

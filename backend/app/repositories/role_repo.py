@@ -294,9 +294,7 @@ class RoleRepository:
             # Associate permissions idempotently
             for p_code in allowed_perms:
                 if p_code in perm_map:
-                    await self.assign_permission_to_role(
-                        role, perm_map[p_code].id
-                    )
+                    await self.assign_permission_to_role(role, perm_map[p_code].id)
 
             org_roles[role_name] = role
 

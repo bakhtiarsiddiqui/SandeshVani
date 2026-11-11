@@ -67,4 +67,3 @@ class AuthMeResponse(BaseModel):
     organizations: list[OrganizationResponse] = []
     roles: list[RoleResponse] = []
     permissions: list[str] = []
-

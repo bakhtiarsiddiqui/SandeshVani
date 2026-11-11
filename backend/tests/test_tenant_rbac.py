@@ -209,9 +209,7 @@ async def test_revoked_membership_loses_tenant_access_on_next_request(
 
     membership = (
         await test_db_session.execute(
-            select(Membership).where(
-                Membership.organization_id == uuid.UUID(org["id"])
-            )
+            select(Membership).where(Membership.organization_id == uuid.UUID(org["id"]))
         )
     ).scalar_one()
     membership.status = "revoked"

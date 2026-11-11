@@ -833,4 +833,3 @@ async def test_alembic_migration_0003_upgrade_downgrade_cycle():
             await admin_conn.execute(f"DROP DATABASE IF EXISTS {cycle_db};")
         finally:
             await admin_conn.close()
-

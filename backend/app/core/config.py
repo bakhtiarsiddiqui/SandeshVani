@@ -1,4 +1,3 @@
-
 from functools import lru_cache
 from typing import Literal
 from urllib.parse import urlsplit
@@ -186,9 +185,7 @@ class Settings(BaseSettings):
     def get_migration_database_url(self) -> str:
         """Return the dedicated Alembic migration database URL."""
         if not self.migration_database_url:
-            raise ValueError(
-                "MIGRATION_DATABASE_URL must be configured for Alembic"
-            )
+            raise ValueError("MIGRATION_DATABASE_URL must be configured for Alembic")
 
         return self.migration_database_url
 

@@ -66,4 +66,3 @@ async def test_csrf_token_required_for_member_mutation(
     )
     assert no_csrf_res.status_code == 403
     assert "csrf" in no_csrf_res.json()["detail"].lower()
-

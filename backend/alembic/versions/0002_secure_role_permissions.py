@@ -47,9 +47,7 @@ def upgrade() -> None:
     # 3. Fail clearly if an existing association cannot be matched to exactly one role
     bind = op.get_bind()
     unmatched_count = bind.execute(
-        sa.text(
-            "SELECT count(*) FROM role_permissions WHERE role_scope IS NULL"
-        )
+        sa.text("SELECT count(*) FROM role_permissions WHERE role_scope IS NULL")
     ).scalar()
     if unmatched_count and unmatched_count > 0:
         raise ValueError(
@@ -178,18 +176,10 @@ def upgrade() -> None:
 def downgrade() -> None:
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
-        op.execute(
-            "DROP POLICY IF EXISTS role_permissions_delete ON role_permissions;"
-        )
-        op.execute(
-            "DROP POLICY IF EXISTS role_permissions_update ON role_permissions;"
-        )
-        op.execute(
-            "DROP POLICY IF EXISTS role_permissions_insert ON role_permissions;"
-        )
-        op.execute(
-            "DROP POLICY IF EXISTS role_permissions_select ON role_permissions;"
-        )
+        op.execute("DROP POLICY IF EXISTS role_permissions_delete ON role_permissions;")
+        op.execute("DROP POLICY IF EXISTS role_permissions_update ON role_permissions;")
+        op.execute("DROP POLICY IF EXISTS role_permissions_insert ON role_permissions;")
+        op.execute("DROP POLICY IF EXISTS role_permissions_select ON role_permissions;")
         op.execute("ALTER TABLE role_permissions DISABLE ROW LEVEL SECURITY;")
 
     op.drop_constraint(
@@ -213,4 +203,3 @@ def downgrade() -> None:
     )
     op.drop_column("role_permissions", "organization_id")
     op.drop_column("role_permissions", "role_scope")
-

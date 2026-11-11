@@ -196,9 +196,9 @@ async def test_production_openapi_excludes_development_token_contracts():
     settings = Settings(_env_file=None, app_env="production")
     test_app = create_app(settings)
     schema = test_app.openapi()
-    register_response = schema["paths"]["/api/v1/auth/register"]["post"][
-        "responses"
-    ]["201"]
+    register_response = schema["paths"]["/api/v1/auth/register"]["post"]["responses"][
+        "201"
+    ]
     register_ref = register_response["content"]["application/json"]["schema"]["$ref"]
     register_schema = schema["components"]["schemas"][register_ref.split("/")[-1]]
     assert "dev_verification_token" not in register_schema["properties"]
@@ -501,9 +501,7 @@ async def test_local_mail_tokens_are_recipient_bound_hashed_expiring_and_single_
         )
         assert record is not None
         assert str(record.user_id) == registrations[email]["user_id"]
-        verification_lifetime = (
-            record.expires_at - record.created_at
-        ).total_seconds()
+        verification_lifetime = (record.expires_at - record.created_at).total_seconds()
         assert 23 * 3600 <= verification_lifetime <= 24 * 3600
         assert message.expires_at > datetime.now(UTC)
 
@@ -567,8 +565,7 @@ async def test_local_mail_tokens_are_recipient_bound_hashed_expiring_and_single_
     assert reset_alice.status_code == 200
     bob_reset_record = await test_db_session.scalar(
         select(PasswordResetToken).where(
-            PasswordResetToken.token_hash
-            == hash_token(reset_tokens["bob@example.com"])
+            PasswordResetToken.token_hash == hash_token(reset_tokens["bob@example.com"])
         )
     )
     assert bob_reset_record is not None
@@ -621,9 +618,7 @@ async def test_expired_local_verification_mail_token_is_rejected(
         },
     )
     assert registration.status_code == 201
-    token = _local_mail_token(
-        development_mail_sink, email, "email-verification"
-    )
+    token = _local_mail_token(development_mail_sink, email, "email-verification")
     record = await test_db_session.scalar(
         select(EmailVerificationToken).where(
             EmailVerificationToken.token_hash == hash_token(token)
@@ -802,9 +797,7 @@ async def test_refresh_token_rotation_and_reuse_detection(
         "/api/v1/auth/register",
         json={"email": email, "password": password, "full_name": "District Admin"},
     )
-    token = _local_mail_token(
-        development_mail_sink, email, "email-verification"
-    )
+    token = _local_mail_token(development_mail_sink, email, "email-verification")
     await async_client.post("/api/v1/auth/verify-email", json={"token": token})
 
     # Initial login
@@ -886,9 +879,7 @@ async def test_password_reset_flow(
         json={"email": email, "password": password, "full_name": "Citizen User"},
     )
     assert reg_res.status_code == 201
-    verify_token = _local_mail_token(
-        development_mail_sink, email, "email-verification"
-    )
+    verify_token = _local_mail_token(development_mail_sink, email, "email-verification")
     await async_client.post("/api/v1/auth/verify-email", json={"token": verify_token})
 
     # Request password recovery
@@ -897,9 +888,7 @@ async def test_password_reset_flow(
     )
     assert req_res.status_code == 200
     assert "dev_token" not in req_res.json()
-    reset_token = _local_mail_token(
-        development_mail_sink, email, "password-reset"
-    )
+    reset_token = _local_mail_token(development_mail_sink, email, "password-reset")
     assert reset_token is not None
 
     # Confirm password reset
@@ -941,9 +930,7 @@ async def test_suspended_user_rejection(
         json={"email": email, "password": password, "full_name": "Suspended Officer"},
     )
     assert reg_res.status_code == 201
-    verify_token = _local_mail_token(
-        development_mail_sink, email, "email-verification"
-    )
+    verify_token = _local_mail_token(development_mail_sink, email, "email-verification")
     await async_client.post("/api/v1/auth/verify-email", json={"token": verify_token})
 
     # Suspend user directly in DB

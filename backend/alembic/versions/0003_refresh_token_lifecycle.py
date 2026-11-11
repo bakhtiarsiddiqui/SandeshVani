@@ -17,12 +17,8 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "refresh_tokens", sa.Column("rotated_at", sa.DateTime(timezone=True))
-    )
-    op.add_column(
-        "refresh_tokens", sa.Column("revoked_at", sa.DateTime(timezone=True))
-    )
+    op.add_column("refresh_tokens", sa.Column("rotated_at", sa.DateTime(timezone=True)))
+    op.add_column("refresh_tokens", sa.Column("revoked_at", sa.DateTime(timezone=True)))
     op.add_column(
         "refresh_tokens", sa.Column("replaced_by_id", sa.UUID(), nullable=True)
     )

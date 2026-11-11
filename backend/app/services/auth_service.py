@@ -185,10 +185,8 @@ class AuthService:
                     r = await self.role_repo.get_role_by_id(r_id)
                     if r:
                         active_roles.append(r)
-                effective_permissions = (
-                    await self.role_repo.get_permissions_for_roles(
-                        role_ids, organization_id=active_org.id
-                    )
+                effective_permissions = await self.role_repo.get_permissions_for_roles(
+                    role_ids, organization_id=active_org.id
                 )
 
         # Create JWT access token with 10-minute lifetime
