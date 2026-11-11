@@ -73,3 +73,30 @@ Do not introduce Kafka, Kubernetes, microservices, advanced ML targeting or AI-b
 
 ## Required final report
 Summary; files changed; decisions/assumptions; exact tests and outcomes; security/tenant considerations; migration impact; limitations; branch/PR reference.
+# SandeshVani — Agent Instructions
+
+## Project
+SandeshVani is a multi-tenant communication platform. Follow the current five-day Milestone 1 plan in `MILESTONE.md`.
+
+## Stack
+- Frontend: React, JavaScript, Vite, Tailwind CSS, DaisyUI
+- Backend: FastAPI, SQLAlchemy async, Pydantic Settings
+- Database: PostgreSQL, Alembic
+- Tests/lint: pytest, Ruff
+
+## Rules
+1. Inspect existing code before implementing anything. Reuse working code and free tools; do not rebuild standard functionality unnecessarily.
+2. Work on one milestone task at a time.
+3. Preserve the existing architecture and UI unless a change is necessary.
+4. Preserve tenant isolation, RBAC, PostgreSQL RLS and database integrity.
+5. Never expose secrets or copy credentials into documentation.
+6. Never drop/reset the development database.
+7. Never stage, commit, reset or stash Git changes unless explicitly authorized.
+8. Never rewrite existing migrations 0001 or 0002. Create a new migration for subsequent schema changes.
+9. Do not overwrite or discard existing uncommitted changes.
+10. Do not claim completion without test evidence.
+11. Use exact repository paths and existing project commands.
+12. After each task, update `HANDOFF.md` with verified results and the next action.
+
+## Workflow
+Read `HANDOFF.md` and `MILESTONE.md`, inspect `git status --short`, then inspect only the files relevant to the task. Make the smallest safe change, run targeted tests, and report files changed, commands, results and remaining issues.
