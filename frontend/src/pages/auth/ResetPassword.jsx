@@ -46,12 +46,12 @@ const ResetPassword = ({ initialToken = "", onNavigateLogin }) => {
 
   if (isSuccess) {
     return (
-      <div className="max-w-md w-full mx-auto my-12 bg-white border border-slate-200 rounded-lg p-8 shadow-sm text-center">
-        <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+      <div className="glow max-w-md w-full mx-auto my-12 bg-base-100/90 backdrop-blur-sm border border-base-300 rounded-lg p-8 shadow-sm text-center">
+        <div className="w-12 h-12 bg-success/15 text-success rounded-full flex items-center justify-center mx-auto mb-4">
           ✓
         </div>
-        <h2 className="text-xl font-bold text-slate-900 mb-2">Password Reset Complete</h2>
-        <p className="text-sm text-slate-600 mb-6">
+        <h2 className="text-xl font-bold text-base-content mb-2">Password Reset Complete</h2>
+        <p className="text-sm text-base-content/70 mb-6">
           Your password has been securely updated and all previous sessions have been revoked.
         </p>
         <Button variant="primary" onClick={onNavigateLogin} className="w-full">
@@ -62,11 +62,11 @@ const ResetPassword = ({ initialToken = "", onNavigateLogin }) => {
   }
 
   return (
-    <div className="max-w-md w-full mx-auto my-12 bg-white border border-slate-200 rounded-lg p-8 shadow-sm">
+    <div className="glow max-w-md w-full mx-auto my-12 bg-base-100/90 backdrop-blur-sm border border-base-300 rounded-lg p-8 shadow-sm">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">SandeshVani</h1>
-        <h2 className="text-lg font-semibold text-slate-800 mt-2">Set New Password</h2>
-        <p className="text-xs text-slate-500 mt-1">
+        <h1 className="text-2xl font-bold text-base-content tracking-tight">SandeshVani</h1>
+        <h2 className="text-lg font-semibold text-base-content mt-2">Set New Password</h2>
+        <p className="text-xs text-base-content/60 mt-1">
           Enter your recovery token and new password.
         </p>
       </div>
@@ -123,7 +123,7 @@ const ResetPassword = ({ initialToken = "", onNavigateLogin }) => {
         </Button>
       </form>
 
-      <div className="mt-6 pt-6 border-t border-slate-100 text-center">
+      <div className="mt-6 pt-6 border-t border-base-300 text-center">
         <button
           type="button"
           onClick={onNavigateLogin}
@@ -137,4 +137,5 @@ const ResetPassword = ({ initialToken = "", onNavigateLogin }) => {
 };
 
 export default ResetPassword;
+
 

@@ -89,19 +89,19 @@ export default function SidebarNavigation({
 
   return (
     <aside
-      className={`w-64 bg-base-300/80 border-r border-base-300 flex flex-col shrink-0 min-h-screen ${className}`.trim()}
+      className={`w-64 bg-secondary text-secondary-content border-r border-neutral/40 flex flex-col shrink-0 min-h-screen ${className}`.trim()}
       aria-label="Sidebar Navigation"
     >
-      <div className="p-4 border-b border-base-300/60">
+      <div className="p-4 border-b border-secondary-content/15">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-bold text-base shadow-xs">
+          <div className="w-8 h-8 rounded-lg bg-neutral text-primary flex items-center justify-center font-bold text-base shadow-xs">
             S
           </div>
           <div>
-            <h2 className="text-sm font-bold tracking-tight text-base-content leading-none">
+            <h2 className="text-sm font-bold tracking-tight text-secondary-content leading-none">
               SandeshVani
             </h2>
-            <p className="text-[10px] text-base-content/60 font-medium tracking-wide uppercase mt-1">
+            <p className="text-[10px] text-secondary-content/70 font-medium tracking-wide uppercase mt-1">
               संदेशवाणी · MVP
             </p>
           </div>
@@ -109,7 +109,7 @@ export default function SidebarNavigation({
       </div>
 
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto" aria-label="Main Navigation">
-        <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-base-content/50">
+        <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-secondary-content/60">
           Platform Workspace
         </p>
 
@@ -123,11 +123,11 @@ export default function SidebarNavigation({
               aria-current={isActive ? 'page' : undefined}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium transition-colors text-left focus-visible:outline-2 focus-visible:outline-primary ${
                 isActive
-                  ? 'bg-primary/10 text-primary font-semibold border-l-4 border-primary pl-2'
-                  : 'text-base-content/80 hover:bg-base-200 hover:text-base-content'
+                  ? 'bg-neutral text-primary font-semibold border-l-4 border-primary pl-2'
+                  : 'text-secondary-content/85 hover:bg-secondary-content/10 hover:text-secondary-content'
               }`}
             >
-              <span className={isActive ? 'text-primary' : 'text-base-content/50'}>
+              <span className={isActive ? 'text-primary' : 'text-secondary-content/55'}>
                 {item.icon}
               </span>
               <span className="truncate">{item.label}</span>
@@ -136,13 +136,14 @@ export default function SidebarNavigation({
         })}
       </nav>
 
-      <div className="p-3 border-t border-base-300/60 text-xs text-base-content/60">
-        <div className="px-3 py-1.5 rounded-md bg-base-200 text-[11px] font-medium flex items-center justify-between">
+      <div className="p-3 border-t border-secondary-content/15 text-xs text-secondary-content/70">
+        <div className="px-3 py-1.5 rounded-md bg-secondary-content/10 text-[11px] font-medium flex items-center justify-between">
           <span>Active Org:</span>
-          <span className="text-secondary font-semibold">Demo Tenant</span>
+          <span className="text-secondary-content font-semibold">Demo Tenant</span>
         </div>
       </div>
     </aside>
   );
 }
+
 

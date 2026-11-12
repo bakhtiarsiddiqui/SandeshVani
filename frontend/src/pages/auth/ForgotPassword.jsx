@@ -25,10 +25,10 @@ const ForgotPassword = ({ onNavigateLogin }) => {
 
   if (isSubmitted) {
     return (
-      <div className="max-w-md w-full mx-auto my-12 bg-white border border-slate-200 rounded-lg p-8 shadow-sm text-center">
-        <h2 className="text-xl font-bold text-slate-900 mb-2">Password Recovery Dispatched</h2>
-        <p className="text-sm text-slate-600 mb-6">
-          If an account exists for <strong className="text-slate-800">{email}</strong>, recovery instructions are available.
+      <div className="glow max-w-md w-full mx-auto my-12 bg-base-100/90 backdrop-blur-sm border border-base-300 rounded-lg p-8 shadow-sm text-center">
+        <h2 className="text-xl font-bold text-base-content mb-2">Password Recovery Dispatched</h2>
+        <p className="text-sm text-base-content/70 mb-6">
+          If an account exists for <strong className="text-base-content">{email}</strong>, recovery instructions are available.
         </p>
 
         <div className="space-y-3">
@@ -41,11 +41,11 @@ const ForgotPassword = ({ onNavigateLogin }) => {
   }
 
   return (
-    <div className="max-w-md w-full mx-auto my-12 bg-white border border-slate-200 rounded-lg p-8 shadow-sm">
+    <div className="glow max-w-md w-full mx-auto my-12 bg-base-100/90 backdrop-blur-sm border border-base-300 rounded-lg p-8 shadow-sm">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">SandeshVani</h1>
-        <h2 className="text-lg font-semibold text-slate-800 mt-2">Recover Password</h2>
-        <p className="text-xs text-slate-500 mt-1">
+        <h1 className="text-2xl font-bold text-base-content tracking-tight">SandeshVani</h1>
+        <h2 className="text-lg font-semibold text-base-content mt-2">Recover Password</h2>
+        <p className="text-xs text-base-content/60 mt-1">
           Enter your registered institutional email address.
         </p>
       </div>
@@ -73,7 +73,7 @@ const ForgotPassword = ({ onNavigateLogin }) => {
         </Button>
       </form>
 
-      <div className="mt-6 pt-6 border-t border-slate-100 text-center">
+      <div className="mt-6 pt-6 border-t border-base-300 text-center">
         <button
           type="button"
           onClick={onNavigateLogin}
@@ -87,4 +87,5 @@ const ForgotPassword = ({ onNavigateLogin }) => {
 };
 
 export default ForgotPassword;
+
 

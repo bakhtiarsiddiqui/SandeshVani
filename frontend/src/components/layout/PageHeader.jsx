@@ -9,7 +9,7 @@ export default function PageHeader({
   return (
     <header className={`space-y-3 pb-6 border-b border-base-300 ${className}`.trim()}>
       {breadcrumbs.length > 0 && (
-        <nav className="text-xs breadcrumbs text-base-content/60" aria-label="Breadcrumb">
+        <nav className="text-xs text-base-content/60" aria-label="Breadcrumb">
           <ul className="flex items-center gap-1.5 flex-wrap">
             {breadcrumbs.map((crumb, idx) => (
               <li key={idx} className="flex items-center gap-1.5">
@@ -47,4 +47,5 @@ export default function PageHeader({
     </header>
   );
 }
+
 

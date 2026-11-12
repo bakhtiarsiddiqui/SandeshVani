@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+:root { color-scheme: dark; }
+
 html,
 body,
 #root {
@@ -10,28 +12,55 @@ body,
 
 body {
   margin: 0;
-  background-color: #f8fafc;
-  color: #0f172a;
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Devanagari", sans-serif;
+  background-color: #222833; /* gunmetal 900 = base-200 */
+  color: #e8e4dc;
+  font-family: "Mukta", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Devanagari", sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Global focus-visible styling (WCAG 2.2 AA compliant 2px focus ring) */
+/* Saffron focus ring, 2px, visible on both gunmetal and concrete surfaces */
 :focus-visible {
-  outline: 2px solid #1d4ed8;
+  outline: 2px solid #1B2029;
   outline-offset: 2px;
+  box-shadow: 0 0 0 4px #FFB800;
 }
 
-/* Context-calibrated Devanagari / Hindi typography */
+/* Devanagari / Hindi typography */
 .lang-hi,
 [lang="hi"],
 .font-devanagari {
-  font-family: "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Mukta", "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
   line-height: 1.875;
 }
 
-/* Accessible reduced-motion handling */
+/* Cursor spotlight: PointerGlow.jsx writes --x / --y on any .glow element */
+.glow {
+  position: relative;
+  isolation: isolate;
+}
+.glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: radial-gradient(420px circle at var(--x, 50%) var(--y, 0%), rgb(255 184 0 / 0.12), transparent 65%);
+}
+.glow:hover::before {
+  opacity: 1;
+}
+
+/* Magnetic buttons: transform is set from JS, eased here */
+.magnetic {
+  transition-property: background-color, border-color, box-shadow, transform;
+  transition-duration: 0.25s;
+  transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
@@ -42,3 +71,4 @@ body {
     scroll-behavior: auto !important;
   }
 }
+

@@ -15,11 +15,12 @@ export default function Button({
     lg: 'btn-lg text-base',
   };
 
+  // Saffron is the live accent: primary actions glow, everything else stays quiet.
   const variantClasses = {
-    primary: 'btn-primary text-white shadow-sm hover:brightness-95',
-    secondary: 'bg-base-300 hover:bg-base-200 text-neutral border-base-300',
-    accent: 'btn-secondary text-white shadow-sm',
-    danger: 'btn-error text-white shadow-sm',
+    primary: 'btn-primary magnetic font-semibold hover:shadow-[0_0_24px_-4px_rgb(255_184_0/0.6)]',
+    secondary: 'bg-base-300 hover:bg-base-300/70 text-base-content border-base-300',
+    accent: 'btn-secondary',
+    danger: 'btn-error',
     outline: 'btn-outline btn-primary',
     ghost: 'btn-ghost text-base-content hover:bg-base-300',
   };
@@ -37,10 +38,7 @@ export default function Button({
       {...props}
     >
       {isLoading && (
-        <span
-          className="loading loading-spinner loading-xs mr-2"
-          aria-hidden="true"
-        />
+        <span className="loading loading-spinner loading-xs mr-2" aria-hidden="true" />
       )}
       {children}
     </button>
