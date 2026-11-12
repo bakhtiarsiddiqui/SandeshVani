@@ -4,12 +4,17 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import func, select
 
+from app.db.session import set_tenant_context
+
 from app.core.config import Settings, get_settings
 from app.models.audience_import_job import AudienceImportJob
 from app.models.audience_import_job_error import AudienceImportJobError
 from app.models.audience_member import AudienceMember
 from app.models.outbox_event import OutboxEvent
-from app.workers.audience_imports import process_import_job_in_session
+from app.workers.audience_imports import (
+    _persist_chunk,
+    process_import_job_in_session,
+)
 
 PASSWORD = "CommonPassword123!"
 
@@ -101,7 +106,46 @@ async def test_import_worker_processes_chunks_and_safe_row_errors(
     job_id = uuid.UUID(uploaded.json()["id"])
     organization_id = uuid.UUID(organization["id"])
 
-    await test_db_session.commit()
+    # Simulate a worker interruption after the first chunk committed.
+    async with test_db_session.begin():
+        await set_tenant_context(test_db_session, organization_id)
+        job = await test_db_session.scalar(
+            select(AudienceImportJob)
+            .where(AudienceImportJob.id == job_id)
+            .with_for_update()
+        )
+        assert job is not None
+        job.status = "processing"
+
+    first_chunk_saved = await _persist_chunk(
+        test_db_session,
+        organization_id=organization_id,
+        job_id=job_id,
+        expected_processed_rows=0,
+        chunk=[
+            (
+                2,
+                {
+                    "full_name": "Asha Sharma",
+                    "email": "asha@example.org",
+                    "phone": "",
+                    "preferred_language": "hi",
+                    "district": "Meerut",
+                },
+            ),
+            (
+                3,
+                {
+                    "full_name": "Bad Email",
+                    "email": "not-an-email",
+                    "phone": "",
+                    "preferred_language": "hi",
+                    "district": "Agra",
+                },
+            ),
+        ],
+    )
+    assert first_chunk_saved
     await process_import_job_in_session(
         test_db_session,
         organization_id=organization_id,
