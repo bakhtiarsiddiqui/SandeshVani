@@ -137,7 +137,12 @@ async def register(
     )
     await session.commit()
     await _capture_local_auth_message(
-        request, settings, data.email, "email-verification", verification_token, 24 * 60 * 60
+        request,
+        settings,
+        data.email,
+        "email-verification",
+        verification_token,
+        24 * 60 * 60,
     )
     return RegisterResponse(
         message="Registration successful. Please verify your email.",
