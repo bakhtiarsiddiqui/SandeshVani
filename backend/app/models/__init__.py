@@ -1,5 +1,5 @@
-from app.models.auth_session import AuthSession
 from app.models.audience_member import AudienceMember
+from app.models.auth_session import AuthSession
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.membership import Membership
 from app.models.organization import Organization
