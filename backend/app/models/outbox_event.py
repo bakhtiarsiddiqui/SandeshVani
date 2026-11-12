@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
-    ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     JSON,
@@ -30,7 +30,11 @@ class OutboxEvent(Base, UUIDPrimaryKeyMixin):
             "attempt_count >= 0",
             name="ck_outbox_events_attempt_count",
         ),
-        ForeignKey("organizations.id", ondelete="CASCADE"),
+        ForeignKeyConstraint(
+            ["organization_id"],
+            ["organizations.id"],
+            ondelete="CASCADE",
+        ),
         UniqueConstraint(
             "organization_id",
             "id",

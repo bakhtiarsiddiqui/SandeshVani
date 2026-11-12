@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     audience_import_storage_dir: Path = Path("./var/private/audience-imports")
     audience_import_max_bytes: int = Field(default=25 * 1024 * 1024, gt=0)
     audience_import_max_rows: int = Field(default=100_000, gt=0)
+    audience_import_chunk_size: int = Field(default=500, gt=0, le=5000)
+    audience_import_worker_lease_seconds: int = Field(default=120, gt=0, le=3600)
     api_v1_prefix: str = "/api/v1"
     version: str = "0.1.0"
 
@@ -87,7 +89,7 @@ class Settings(BaseSettings):
         self.jwt_algorithm = self.jwt_algorithm.upper()
         self.cookie_samesite = self.cookie_samesite.lower()
         if self.jwt_algorithm not in {"RS256", "EDDSA"}:
-            raise ValueError("JWT_ALGORITHM must be RS256 or EdDSA")
+            raise ValueError("JWT_ALGORITHM must be RS256 or EDDSA")
         if self.cookie_samesite not in {"lax", "strict", "none"}:
             raise ValueError("COOKIE_SAMESITE must be lax, strict, or none")
         if self.cookie_samesite == "none" and not self.cookie_secure:
