@@ -12,6 +12,7 @@ from fastapi import HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
+from app.db.session import set_tenant_context
 from app.models.audience_import_upload import AudienceImportUpload
 from app.models.audience_import_job import AudienceImportJob
 from app.models.outbox_event import OutboxEvent
@@ -261,5 +262,8 @@ class AudienceImportService:
                 )
             raise
 
+        # The commit clears transaction-local RLS context. Re-establish it
+        # before refreshing the tenant-owned job in the new transaction.
+        await set_tenant_context(self.session, self.organization_id)
         await self.session.refresh(job)
         return job
