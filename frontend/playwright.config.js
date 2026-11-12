@@ -5,6 +5,7 @@ const isCI = Boolean(process.env.CI);
 
 export default defineConfig({
   testDir: './e2e',
+  testMatch: '**/*.e2e.js',
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
