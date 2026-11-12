@@ -1072,7 +1072,13 @@ async def test_migration_upgrade_downgrade(pg_setup):
 
             # The audience tables must be owned by the migration role, not
             # by the ordinary runtime application role.
-            for table in ("audience_members", "audience_import_uploads"):
+            for table in (
+                "audience_members",
+                "audience_import_uploads",
+                "audience_import_jobs",
+                "audience_import_job_errors",
+                "outbox_events",
+            ):
                 ownership = await verify_conn.fetchrow(
                     """
                     SELECT tableowner
