@@ -6,35 +6,15 @@ import DispatchGauge from './DispatchGauge';
 const fmt = (n) => Math.round(n).toLocaleString('en-IN');
 
 export default function DispatchPanel({ title, subtitle, channels = [] }) {
-  const [delivered, setDelivered] = useState(() =>
-    Object.fromEntries(channels.map((channel) => [channel.id, channel.delivered ?? 0])),
+  const initialDelivered = Object.fromEntries(
+    channels.map((channel) => [channel.id, channel.delivered ?? 0]),
   );
+  const [delivered, setDelivered] = useState(initialDelivered);
+  const deliveredRef = useRef(initialDelivered);
   const [running, setRunning] = useState(false);
   const timer = useRef(null);
 
-  useEffect(() => {
-    clearInterval(timer.current);
-    setRunning(false);
-    setDelivered(
-      Object.fromEntries(channels.map((channel) => [channel.id, channel.delivered ?? 0])),
-    );
-    return () => clearInterval(timer.current);
-  }, [channels]);
-
   useEffect(() => () => clearInterval(timer.current), []);
-
-  // Keep completion handling outside the functional state updater. React may invoke
-  // updater functions more than once in development to detect impure updates.
-  useEffect(() => {
-    if (!running) return;
-    const complete = channels.every(
-      (channel) => (delivered[channel.id] ?? 0) >= channel.total,
-    );
-    if (complete) {
-      clearInterval(timer.current);
-      setRunning(false);
-    }
-  }, [channels, delivered, running]);
 
   const runSimulation = () => {
     clearInterval(timer.current);
@@ -42,19 +22,32 @@ export default function DispatchPanel({ title, subtitle, channels = [] }) {
     const speed = Object.fromEntries(
       channels.map((channel) => [channel.id, 0.02 + Math.random() * 0.035]),
     );
+    deliveredRef.current = zero;
     setDelivered(zero);
     setRunning(true);
+
     timer.current = setInterval(() => {
-      setDelivered((previous) => {
-        const next = {};
-        for (const channel of channels) {
-          next[channel.id] = Math.min(
-            channel.total,
-            (previous[channel.id] ?? 0) + channel.total * speed[channel.id],
-          );
-        }
-        return next;
-      });
+      const previous = deliveredRef.current;
+      const next = {};
+      let complete = true;
+
+      for (const channel of channels) {
+        const count = Math.min(
+          channel.total,
+          (previous[channel.id] ?? 0) + channel.total * speed[channel.id],
+        );
+        next[channel.id] = count;
+        if (count < channel.total) complete = false;
+      }
+
+      // Compute outside a state updater so the updater remains pure under Strict Mode.
+      deliveredRef.current = next;
+      setDelivered(next);
+
+      if (complete) {
+        clearInterval(timer.current);
+        setRunning(false);
+      }
     }, 150);
   };
 
