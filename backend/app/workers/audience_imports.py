@@ -341,7 +341,9 @@ async def process_import_job_in_session(
                 seen_nonblank_rows += 1
                 if seen_nonblank_rows <= processed_rows:
                     continue
-                chunk.append((reader.line_num, raw_row))
+                # Use logical CSV record numbers, not physical line numbers;
+                # quoted cells may contain embedded newlines.
+                chunk.append((seen_nonblank_rows + 1, raw_row))
                 if len(chunk) >= settings.audience_import_chunk_size:
                     persisted = await _persist_chunk(
                         session,
