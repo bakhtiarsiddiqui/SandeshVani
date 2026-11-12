@@ -161,7 +161,11 @@ async def test_csv_upload_rejects_invalid_structure_and_encoding(
             b"full_name,email,unsupported\nAsha,asha@example.org,x\n",
             "text/csv",
         ),
-        ("contacts.csv", b"full_name,email\nAsha,asha@example.org\n", "application/pdf"),
+        (
+            "contacts.csv",
+            b"full_name,email\nAsha,asha@example.org\n",
+            "application/pdf",
+        ),
     ]
 
     for filename, content, media_type in invalid_files:

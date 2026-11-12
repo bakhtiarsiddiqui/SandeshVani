@@ -62,6 +62,8 @@ the transaction-local `app.current_org` value with `set_config(..., true)` and
 apply `ENABLE ROW LEVEL SECURITY` plus `FORCE ROW LEVEL SECURITY` to the
 tenant-owned tables. Missing tenant context denies organization-owned rows;
 platform roles and permissions are a deliberately separate global scope.
+Composite foreign keys prevent a membership role or role permission from
+referencing a role in another organization.
 
 Run Alembic with `MIGRATION_DATABASE_URL` set to a dedicated migration-owner
 connection. `MIGRATION_DATABASE_ROLE` is optional and only used for a validated
