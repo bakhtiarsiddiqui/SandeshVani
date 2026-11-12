@@ -904,14 +904,7 @@ async def test_app_role_has_no_elevated_privileges(admin_conn):
 @pytest.mark.asyncio
 async def test_app_role_does_not_own_protected_tables(admin_conn):
     """The application role must not own the tenant-protected tables."""
-    protected = (
-        "roles",
-        "role_permissions",
-        "memberships",
-        "membership_roles",
-        "audience_members",
-        "audience_import_uploads",
-    )
+    protected = ("roles", "role_permissions", "memberships", "membership_roles")
     for table in protected:
         row = await admin_conn.fetchrow(
             """
@@ -992,6 +985,7 @@ async def test_migration_upgrade_downgrade(pg_setup):
         **os.environ,
         "DATABASE_URL": sa_url,
         "MIGRATION_DATABASE_URL": sa_url,
+        "MIGRATION_DATABASE_ROLE": "sandeshvani_owner",
         "PYTHONPATH": "backend",
     }
 
@@ -1066,6 +1060,22 @@ async def test_migration_upgrade_downgrade(pg_setup):
                     policy["with_check"] is not None
                     and "app.current_org" in policy["with_check"]
                 ), f"tenant_isolation WITH CHECK clause must scope {table}"
+
+            # The audience tables must be owned by the migration role, not
+            # by the ordinary runtime application role.
+            for table in ("audience_members", "audience_import_uploads"):
+                ownership = await verify_conn.fetchrow(
+                    """
+                    SELECT tableowner
+                    FROM pg_catalog.pg_tables
+                    WHERE schemaname = 'public' AND tablename = $1;
+                    """,
+                    table,
+                )
+                assert ownership is not None, f"Table {table} must exist"
+                assert ownership["tableowner"] == "sandeshvani_owner", (
+                    f"Migration role must own table {table}"
+                )
         finally:
             await verify_conn.close()
 
