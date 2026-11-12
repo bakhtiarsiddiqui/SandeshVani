@@ -87,14 +87,40 @@ are not implemented yet. When they are, each job must receive a verified
 organization ID and establish transaction-local tenant context before accessing
 tenant-owned data.
 
-## Local Authentication Mail Sink
+## Local Authentication Email
 
-The example local settings opt in to an in-memory development mail sink with
-`DEPLOYMENT_ENVIRONMENT=development`, exact `APP_ENV=local`, and
-`ENABLE_LOCAL_MAIL_SINK=true`. Verification and recovery
-messages are captured on the FastAPI app instance and can be inspected by the
-backend test harness through `app.state.development_mail_sink.messages`.
-There is deliberately no HTTP mailbox or token-retrieval endpoint. The sink is
-process-local, is cleared on restart, is disabled by default, and is not an email
-provider. Production configuration must not enable the local sink.
+Local registration, verification resend, and password-recovery messages are
+captured by the in-memory development mail sink for deterministic backend
+tests. To inspect messages during interactive development, use Mailpit:
+
+```bash
+docker run -d --name sandeshvani-mailpit --restart unless-stopped \
+  -p 127.0.0.1:8025:8025 -p 127.0.0.1:1025:1025 axllent/mailpit:latest
+```
+
+Set these values in the untracked local `.env` file:
+
+```dotenv
+DEPLOYMENT_ENVIRONMENT=development
+APP_ENV=local
+ENABLE_LOCAL_MAIL_SINK=true
+DEV_MAIL_SMTP_HOST=127.0.0.1
+DEV_MAIL_SMTP_PORT=1025
+DEV_MAIL_SMTP_STARTTLS=false
+DEV_MAIL_SMTP_USERNAME=
+DEV_MAIL_SMTP_PASSWORD=
+DEV_MAIL_FROM=no-reply@sandeshvani.local
+```
+
+Open the Mailpit inbox at http://127.0.0.1:8025. Mailpit receives local
+verification and password-reset emails over SMTP. Its SMTP and UI ports are
+bound to loopback only. The in-memory sink remains available to the test harness
+through `app.state.development_mail_sink.messages`; no HTTP endpoint exposes
+raw development tokens. The sink is process-local and is cleared on backend
+restart. This development transport is not a production email provider.
+
+Production configuration must not enable the local sink or Mailpit transport.
+A production transactional email provider, sender-domain verification (SPF,
+DKIM, and DMARC), retry handling, and delivery monitoring remain a separate
+production-readiness task.
 

@@ -26,6 +26,13 @@ class Settings(BaseSettings):
     app_env: str = "production"
     deployment_environment: Literal["development", "production"] = "production"
     enable_local_mail_sink: bool = False
+    # Local-only SMTP delivery for the Mailpit development inbox
+    dev_mail_smtp_host: str = ""
+    dev_mail_smtp_port: int = Field(default=1025, gt=0, le=65535)
+    dev_mail_smtp_starttls: bool = False
+    dev_mail_smtp_username: str = ""
+    dev_mail_smtp_password: str = ""
+    dev_mail_from: str = "no-reply@sandeshvani.local"
     auth_recovery_email_limit: int = Field(default=5, gt=0)
     auth_recovery_ip_limit: int = Field(default=30, gt=0)
     auth_recovery_rate_window_seconds: int = Field(default=900, gt=0)
