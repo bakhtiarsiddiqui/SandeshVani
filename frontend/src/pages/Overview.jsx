@@ -92,7 +92,12 @@ export default function Overview({
       ) : (
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <DispatchPanel title={resolvedDispatch.title} subtitle={resolvedDispatch.subtitle} channels={resolvedDispatch.channels} />
+            <DispatchPanel
+              key={resolvedDispatch.channels.map((channel) => `${channel.id}:${channel.total}:${channel.delivered}`).join('|')}
+              title={resolvedDispatch.title}
+              subtitle={resolvedDispatch.subtitle}
+              channels={resolvedDispatch.channels}
+            />
           </div>
           <ApprovalQueue items={resolvedApprovals} onApprove={onApprove} onReject={onReject} />
         </div>
