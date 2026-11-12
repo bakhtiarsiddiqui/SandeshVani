@@ -1,7 +1,7 @@
 import uuid
 
-import pytest
 from httpx import AsyncClient
+from pytest import mark
 
 
 PASSWORD = "CommonPassword123!"
@@ -59,7 +59,7 @@ def _tenant_headers(
     return headers
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_audience_crud_and_filters(
     async_client: AsyncClient,
     development_mail_sink,
@@ -135,7 +135,7 @@ async def test_audience_crud_and_filters(
     assert updated.json()["status"] == "inactive"
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_audience_contact_validation_and_patch_cannot_remove_last_contact(
     async_client: AsyncClient,
     development_mail_sink,
@@ -181,7 +181,7 @@ async def test_audience_contact_validation_and_patch_cannot_remove_last_contact(
     assert unchanged.json()["phone"] == "+919876543210"
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_audience_cursor_pagination_is_stable(
     async_client: AsyncClient,
     development_mail_sink,
@@ -230,7 +230,7 @@ async def test_audience_cursor_pagination_is_stable(
     assert len(seen) == len(set(seen)) == 3
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_audience_access_is_tenant_scoped(
     async_client: AsyncClient,
     development_mail_sink,
@@ -271,7 +271,7 @@ async def test_audience_access_is_tenant_scoped(
     assert own_list.json()["data"] == []
 
 
-@pytest.mark.asyncio
+@mark.asyncio
 async def test_audience_permissions_are_enforced(
     async_client: AsyncClient,
     development_mail_sink,
