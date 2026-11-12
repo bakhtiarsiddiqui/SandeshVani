@@ -7,15 +7,15 @@ export default function Alert({
 }) {
   const configs = {
     info: {
-      container: 'bg-blue-50 text-blue-900 border-blue-200',
+      container: 'bg-info/15 text-base-content border-info/40',
       icon: (
-        <svg className="w-5 h-5 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <svg className="w-5 h-5 text-info shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
     },
     success: {
-      container: 'bg-green-50 text-green-900 border-green-200',
+      container: 'bg-success/15 text-base-content border-success/40',
       icon: (
         <svg className="w-5 h-5 text-success shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -23,7 +23,7 @@ export default function Alert({
       ),
     },
     warning: {
-      container: 'bg-amber-50 text-amber-900 border-amber-200',
+      container: 'bg-warning/15 text-base-content border-warning/40',
       icon: (
         <svg className="w-5 h-5 text-warning shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -31,7 +31,7 @@ export default function Alert({
       ),
     },
     error: {
-      container: 'bg-red-50 text-red-900 border-red-200',
+      container: 'bg-error/15 text-base-content border-error/40',
       icon: (
         <svg className="w-5 h-5 text-error shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -39,9 +39,9 @@ export default function Alert({
       ),
     },
     sandbox_notice: {
-      container: 'bg-amber-100 text-amber-950 border-amber-300 font-medium',
+      container: 'bg-primary/15 text-base-content border-primary/40 font-medium',
       icon: (
-        <svg className="w-5 h-5 text-amber-800 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <svg className="w-5 h-5 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
       ),
@@ -76,4 +76,5 @@ export default function Alert({
     </div>
   );
 }
+
 

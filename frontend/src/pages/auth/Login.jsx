@@ -41,13 +41,13 @@ const Login = ({ onNavigateRegister, onNavigateForgot, onNavigateVerify, onSucce
   };
 
   return (
-    <div className="max-w-md w-full mx-auto my-12 bg-white border border-slate-200 rounded-lg p-8 shadow-sm">
+    <div className="glow max-w-md w-full mx-auto my-12 bg-base-100/90 backdrop-blur-sm border border-base-300 rounded-lg p-8 shadow-sm">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">SandeshVani</h1>
-        <p className="text-xs text-slate-500 font-medium mt-1">
+        <h1 className="text-2xl font-bold text-base-content tracking-tight">SandeshVani</h1>
+        <p className="text-xs text-base-content/60 font-medium mt-1">
           Har zaroori baat, har zaroori insaan tak.
         </p>
-        <h2 className="text-lg font-semibold text-slate-800 mt-4">Institutional Sign In</h2>
+        <h2 className="text-lg font-semibold text-base-content mt-4">Institutional Sign In</h2>
       </div>
 
       {errorMessage && (
@@ -115,7 +115,7 @@ const Login = ({ onNavigateRegister, onNavigateForgot, onNavigateVerify, onSucce
         </Button>
       </form>
 
-      <div className="mt-6 pt-6 border-t border-slate-100 text-center text-xs text-slate-600">
+      <div className="mt-6 pt-6 border-t border-base-300 text-center text-xs text-base-content/70">
         New to SandeshVani?{" "}
         <button
           type="button"
@@ -130,4 +130,5 @@ const Login = ({ onNavigateRegister, onNavigateForgot, onNavigateVerify, onSucce
 };
 
 export default Login;
+
 

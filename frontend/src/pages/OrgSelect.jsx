@@ -63,10 +63,10 @@ const OrgSelect = ({ onSelectComplete }) => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto my-8 p-6 bg-white border border-slate-200 rounded-lg shadow-sm space-y-6">
+    <div className="glow max-w-2xl mx-auto my-8 p-6 bg-base-100/90 backdrop-blur-sm border border-base-300 rounded-lg shadow-sm space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-slate-900">Institutional Organizations</h1>
-        <p className="text-sm text-slate-600 mt-1">
+        <h1 className="text-xl font-bold text-base-content">Institutional Organizations</h1>
+        <p className="text-sm text-base-content/70 mt-1">
           Select an active tenant context to manage campaigns, audiences, and dispatch.
         </p>
       </div>
@@ -77,9 +77,9 @@ const OrgSelect = ({ onSelectComplete }) => {
 
       <div className="space-y-3">
         {organizations.length === 0 ? (
-          <div className="p-8 text-center bg-slate-50 border border-slate-200 rounded-lg text-slate-600 space-y-3">
+          <div className="p-8 text-center bg-base-200/60 border border-base-300 rounded-lg text-base-content/70 space-y-3">
             <p className="text-sm">You are not currently an active member of any organization.</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-base-content/60">
               Provision an institutional tenant below or ask your department administrator for an invitation.
             </p>
           </div>
@@ -91,14 +91,14 @@ const OrgSelect = ({ onSelectComplete }) => {
                 key={org.id}
                 className={`flex items-center justify-between p-4 border rounded-lg transition-colors ${
                   isActive
-                    ? "border-primary bg-blue-50/40"
-                    : "border-slate-200 hover:border-slate-300 bg-white"
+                    ? "border-primary bg-primary/10"
+                    : "border-base-300 hover:border-primary/50 bg-base-100/90 backdrop-blur-sm"
                 }`}
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-900">{org.name}</span>
-                    <span className="text-xs font-mono text-slate-500">({org.slug})</span>
+                    <span className="font-semibold text-base-content">{org.name}</span>
+                    <span className="text-xs font-mono text-base-content/60">({org.slug})</span>
                     {isActive && (
                       <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">
                         Active Context
@@ -132,7 +132,7 @@ const OrgSelect = ({ onSelectComplete }) => {
         )}
       </div>
 
-      <div className="pt-4 border-t border-slate-200">
+      <div className="pt-4 border-t border-base-300">
         {!showCreateForm ? (
           <Button
             variant="outline"
@@ -142,8 +142,8 @@ const OrgSelect = ({ onSelectComplete }) => {
             + Provision New Organization
           </Button>
         ) : (
-          <form onSubmit={handleCreateOrg} className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-4">
-            <h3 className="font-semibold text-sm text-slate-900">Provision Organization</h3>
+          <form onSubmit={handleCreateOrg} className="p-4 bg-base-200/60 border border-base-300 rounded-lg space-y-4">
+            <h3 className="font-semibold text-sm text-base-content">Provision Organization</h3>
             <FormField label="Department / Institution Name" required>
               <Input
                 placeholder="e.g. Department of Public Health"
@@ -190,4 +190,5 @@ const OrgSelect = ({ onSelectComplete }) => {
 };
 
 export default OrgSelect;
+
 

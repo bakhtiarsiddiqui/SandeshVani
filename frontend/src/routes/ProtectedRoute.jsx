@@ -14,16 +14,16 @@ const ProtectedRoute = ({
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center p-8 space-y-4">
         <LoadingSkeleton type="card" count={1} />
-        <p className="text-sm text-slate-500">Authenticating institutional session...</p>
+        <p className="text-sm text-base-content/60">Authenticating institutional session...</p>
       </div>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <div className="max-w-md mx-auto my-12 p-6 bg-white border border-slate-200 rounded-lg shadow-sm text-center space-y-4">
-        <h2 className="text-xl font-semibold text-slate-900">Authentication Required</h2>
-        <p className="text-sm text-slate-600">
+      <div className="max-w-md mx-auto my-12 p-6 bg-base-100/90 backdrop-blur-sm border border-base-300 rounded-lg shadow-sm text-center space-y-4">
+        <h2 className="text-xl font-semibold text-base-content">Authentication Required</h2>
+        <p className="text-sm text-base-content/70">
           You must be signed in with an active institutional account to access this resource.
         </p>
         <Button variant="primary" onClick={onNavigateToLogin} className="w-full">
@@ -53,4 +53,5 @@ const ProtectedRoute = ({
 };
 
 export default ProtectedRoute;
+
 

@@ -7,7 +7,7 @@ export default function Input({
   className = '',
   ...props
 }) {
-  const baseInput = 'input input-bordered w-full bg-base-100 text-base-content placeholder:text-base-content/40 transition-colors focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-1';
+  const baseInput = 'input input-bordered w-full bg-base-200 text-base-content placeholder:text-base-content/70 transition-colors focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-1';
   const errorClass = hasError ? 'input-error focus-visible:outline-error border-error' : 'border-base-300 focus-visible:border-primary';
 
   return (
@@ -22,4 +22,5 @@ export default function Input({
     />
   );
 }
+
 

@@ -4,7 +4,7 @@ export default function StatusBadge({ status, label, className = '' }) {
   const configs = {
     draft: {
       defaultLabel: 'Draft',
-      className: 'bg-base-300 text-neutral border-base-300',
+      className: 'bg-base-300 text-base-content/80 border-base-300',
       icon: (
         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -13,7 +13,7 @@ export default function StatusBadge({ status, label, className = '' }) {
     },
     pending: {
       defaultLabel: 'Pending Approval',
-      className: 'bg-amber-50 text-amber-800 border-amber-200',
+      className: 'bg-warning/15 text-warning border-warning/40',
       icon: (
         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -22,7 +22,7 @@ export default function StatusBadge({ status, label, className = '' }) {
     },
     approved: {
       defaultLabel: 'Approved',
-      className: 'bg-blue-50 text-blue-800 border-blue-200',
+      className: 'bg-info/15 text-info border-info/40',
       icon: (
         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -31,7 +31,7 @@ export default function StatusBadge({ status, label, className = '' }) {
     },
     delivered: {
       defaultLabel: 'Delivered',
-      className: 'bg-green-50 text-green-800 border-green-200',
+      className: 'bg-success/15 text-success border-success/40',
       icon: (
         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
@@ -40,7 +40,7 @@ export default function StatusBadge({ status, label, className = '' }) {
     },
     rejected: {
       defaultLabel: 'Rejected',
-      className: 'bg-red-50 text-red-800 border-red-200',
+      className: 'bg-error/15 text-error border-error/40',
       icon: (
         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -49,7 +49,7 @@ export default function StatusBadge({ status, label, className = '' }) {
     },
     mock_sandbox: {
       defaultLabel: 'Sandbox Mode',
-      className: 'bg-purple-50 text-purple-800 border-purple-200',
+      className: 'bg-primary/15 text-primary border-primary/40',
       icon: (
         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
@@ -71,4 +71,5 @@ export default function StatusBadge({ status, label, className = '' }) {
     </span>
   );
 }
+
 

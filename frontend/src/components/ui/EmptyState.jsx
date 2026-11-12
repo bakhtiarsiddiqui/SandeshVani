@@ -7,7 +7,7 @@ export default function EmptyState({
 }) {
   return (
     <div
-      className={`flex flex-col items-center justify-center text-center p-8 sm:p-12 rounded-xl border border-dashed border-base-300 bg-base-100 ${className}`.trim()}
+      className={`flex flex-col items-center justify-center text-center p-8 sm:p-12 rounded-xl border glow border-dashed border-base-300 bg-base-100 ${className}`.trim()}
     >
       <div className="w-12 h-12 rounded-full bg-base-200 flex items-center justify-center text-base-content/50 mb-4">
         {icon || (
@@ -29,4 +29,5 @@ export default function EmptyState({
     </div>
   );
 }
+
 

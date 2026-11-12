@@ -55,12 +55,12 @@ const VerifyEmail = ({ initialEmail = "", initialToken = "", onNavigateLogin }) 
 
   if (isVerified) {
     return (
-      <div className="max-w-md w-full mx-auto my-12 bg-white border border-slate-200 rounded-lg p-8 shadow-sm text-center">
-        <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+      <div className="glow max-w-md w-full mx-auto my-12 bg-base-100/90 backdrop-blur-sm border border-base-300 rounded-lg p-8 shadow-sm text-center">
+        <div className="w-12 h-12 bg-success/15 text-success rounded-full flex items-center justify-center mx-auto mb-4">
           ✓
         </div>
-        <h2 className="text-xl font-bold text-slate-900 mb-2">Email Verified Successfully</h2>
-        <p className="text-sm text-slate-600 mb-6">
+        <h2 className="text-xl font-bold text-base-content mb-2">Email Verified Successfully</h2>
+        <p className="text-sm text-base-content/70 mb-6">
           Your account has been activated. You may now sign in to SandeshVani.
         </p>
         <Button variant="primary" onClick={onNavigateLogin} className="w-full">
@@ -71,11 +71,11 @@ const VerifyEmail = ({ initialEmail = "", initialToken = "", onNavigateLogin }) 
   }
 
   return (
-    <div className="max-w-md w-full mx-auto my-12 bg-white border border-slate-200 rounded-lg p-8 shadow-sm">
+    <div className="glow max-w-md w-full mx-auto my-12 bg-base-100/90 backdrop-blur-sm border border-base-300 rounded-lg p-8 shadow-sm">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">SandeshVani</h1>
-        <h2 className="text-lg font-semibold text-slate-800 mt-2">Verify Email Address</h2>
-        <p className="text-xs text-slate-500 mt-1">
+        <h1 className="text-2xl font-bold text-base-content tracking-tight">SandeshVani</h1>
+        <h2 className="text-lg font-semibold text-base-content mt-2">Verify Email Address</h2>
+        <p className="text-xs text-base-content/60 mt-1">
           Enter the verification token sent to your email address.
         </p>
       </div>
@@ -114,8 +114,8 @@ const VerifyEmail = ({ initialEmail = "", initialToken = "", onNavigateLogin }) 
         </Button>
       </form>
 
-      <div className="mt-6 pt-6 border-t border-slate-100 space-y-4">
-        <div className="text-xs text-slate-600">
+      <div className="mt-6 pt-6 border-t border-base-300 space-y-4">
+        <div className="text-xs text-base-content/70">
           <p className="mb-2 font-medium">Didn't receive the token?</p>
           <div className="flex gap-2">
             <Input
@@ -151,4 +151,5 @@ const VerifyEmail = ({ initialEmail = "", initialToken = "", onNavigateLogin }) 
 };
 
 export default VerifyEmail;
+
 

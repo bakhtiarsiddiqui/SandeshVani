@@ -12,10 +12,10 @@ export default function AppShell({
       <div
         role="region"
         aria-label="Sandbox Environment Banner"
-        className="bg-amber-100 text-amber-950 px-4 py-1.5 text-xs font-semibold border-b border-amber-300 flex items-center justify-between shadow-xs shrink-0"
+        className="bg-primary/15 text-primary px-4 py-1.5 text-xs font-semibold border-b border-primary/40 flex items-center justify-between shadow-xs shrink-0"
       >
         <div className="flex items-center gap-2 mx-auto">
-          <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse" aria-hidden="true" />
+          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" aria-hidden="true" />
           <span>
             SANDBOX / MOCK MODE — Simulated messaging channels only. No real SMS, Email, WhatsApp, or Push dispatches.
           </span>
@@ -59,4 +59,5 @@ export default function AppShell({
     </div>
   );
 }
+
 

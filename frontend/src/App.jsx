@@ -1,9 +1,7 @@
 import { useState, useCallback } from "react";
 import { AuthProvider, useAuth } from "./context";
 import AppShell from "./components/layout/AppShell";
-import PageHeader from "./components/layout/PageHeader";
 import Button from "./components/ui/Button";
-import StatusBadge from "./components/ui/StatusBadge";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
@@ -11,6 +9,8 @@ import VerifyEmail from "./pages/auth/VerifyEmail";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import OrgSelect from "./pages/OrgSelect";
+import Overview from "./pages/Overview";
+import AuthLayout from "./components/fx/AuthLayout";
 
 // ---------------------------------------------------------------------------
 // Route constants
@@ -29,17 +29,14 @@ const ROUTES = {
 // Dashboard placeholder — rendered when authenticated and org context is active
 // ---------------------------------------------------------------------------
 function Dashboard({ onNavigateOrgSelect }) {
-  const { user, activeOrg, logout } = useAuth();
+  const { activeOrg, logout } = useAuth();
 
   return (
     <AppShell
       activeNav="overview"
       organizationName={activeOrg?.name || "No Organization Selected"}
     >
-      <PageHeader
-        title="Har zaroori baat, har zaroori insaan tak."
-        subtitle="Your public communication workspace is active."
-        badge={<StatusBadge status="active" label="Authenticated" />}
+      <Overview
         actions={
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={onNavigateOrgSelect}>
@@ -51,30 +48,6 @@ function Dashboard({ onNavigateOrgSelect }) {
           </div>
         }
       />
-
-      <section className="rounded-xl bg-base-100 p-8 shadow-xs border border-base-300">
-        <p className="text-sm font-semibold text-primary">SANDESHVANI</p>
-        <p className="mt-2 text-sm text-base-content/60">
-          Signed in as{" "}
-          <span className="font-medium text-base-content">{user?.email}</span>
-        </p>
-
-        <p className="mt-4 text-sm text-base-content/80 leading-relaxed max-w-2xl">
-          Multi-tenant public-awareness and institutional communication infrastructure.
-          Direction C (Blue-Teal Hybrid) tokens, DaisyUI custom theme, authentication
-          foundation, and tenant-scoped RBAC are active.
-        </p>
-
-        {activeOrg && (
-          <div className="mt-6 p-4 bg-teal-50 border border-teal-200 rounded-lg text-sm">
-            <p className="font-semibold text-teal-800">Active Organization Context</p>
-            <p className="text-teal-700 mt-1">
-              {activeOrg.name}{" "}
-              <span className="font-mono text-xs text-teal-600">({activeOrg.slug})</span>
-            </p>
-          </div>
-        )}
-      </section>
     </AppShell>
   );
 }
@@ -109,10 +82,10 @@ function AppRouter() {
   // Auth is loading — show nothing (AuthProvider shows loading state via isLoading)
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-base-200">
         <div className="text-center space-y-3">
           <div className="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-slate-500 font-medium">
+          <p className="text-sm text-base-content/60 font-medium">
             Authenticating institutional session…
           </p>
         </div>
@@ -124,7 +97,7 @@ function AppRouter() {
   if (isAuthenticated) {
     if (route === ROUTES.ORG_SELECT || !activeOrg) {
       return (
-        <div className="min-h-screen bg-slate-50 py-8">
+        <div className="min-h-screen bg-base-200 py-8">
           <OrgSelect onSelectComplete={() => navigate(ROUTES.DASHBOARD)} />
         </div>
       );
@@ -139,7 +112,7 @@ function AppRouter() {
 
   // Unauthenticated — render auth screens
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <AuthLayout>
       {route === ROUTES.REGISTER && (
         <Register
           onNavigateLogin={() => navigate(ROUTES.LOGIN)}
@@ -185,7 +158,7 @@ function AppRouter() {
           onSuccess={() => navigate(ROUTES.DASHBOARD)}
         />
       )}
-    </div>
+    </AuthLayout>
   );
 }
 
@@ -201,3 +174,4 @@ function App() {
 }
 
 export default App;
+
