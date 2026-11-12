@@ -1,12 +1,8 @@
 from starlette.responses import JSONResponse
 
 
-class _RequestBodyTooLarge(Exception):
-    pass
-
-
 class AudienceUploadBodyLimitMiddleware:
-    """Bound multipart request bytes before Starlette spools uploaded files."""
+    """Bound and buffer upload requests before Starlette parses multipart data."""
 
     def __init__(self, app, upload_path: str, max_body_bytes: int):
         self.app = app
@@ -37,22 +33,37 @@ class AudienceUploadBodyLimitMiddleware:
                 await response(scope, receive, send)
                 return
 
+        # Consume the body before calling Starlette's multipart parser. Raising
+        # from receive() is not reliable here: Starlette may translate parser
+        # exceptions into HTTP 400. This bounded buffer makes the limit apply
+        # consistently to both Content-Length and chunked requests.
+        buffered_messages = []
         received_bytes = 0
-
-        async def limited_receive():
-            nonlocal received_bytes
+        while True:
             message = await receive()
-            if message["type"] == "http.request":
-                received_bytes += len(message.get("body", b""))
-                if received_bytes > self.max_body_bytes:
-                    raise _RequestBodyTooLarge
-            return message
+            if message["type"] == "http.disconnect":
+                buffered_messages.append(message)
+                break
+            if message["type"] != "http.request":
+                buffered_messages.append(message)
+                continue
 
-        try:
-            await self.app(scope, limited_receive, send)
-        except _RequestBodyTooLarge:
-            response = JSONResponse(
-                {"detail": "Audience upload request exceeds the configured limit"},
-                status_code=413,
-            )
-            await response(scope, receive, send)
+            received_bytes += len(message.get("body", b""))
+            if received_bytes > self.max_body_bytes:
+                response = JSONResponse(
+                    {"detail": "Audience upload request exceeds the configured limit"},
+                    status_code=413,
+                )
+                await response(scope, receive, send)
+                return
+
+            buffered_messages.append(message)
+            if not message.get("more_body", False):
+                break
+
+        async def replay_receive():
+            if buffered_messages:
+                return buffered_messages.pop(0)
+            return {"type": "http.disconnect"}
+
+        await self.app(scope, replay_receive, send)
