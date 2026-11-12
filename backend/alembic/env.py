@@ -47,18 +47,68 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+def _quote_role_identifier(role_name: str) -> str:
+    """Quote a simple PostgreSQL role identifier after validating its shape."""
+    if (
+        not role_name
+        or not role_name.replace("_", "").isalnum()
+        or role_name[0].isdigit()
+    ):
+        raise ValueError("Database role names must contain only letters, digits and underscores")
+    return f'"{role_name}"'
+
+
 def do_run_migrations(connection: Connection) -> None:
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
     )
 
+    runtime_role = make_url(get_settings().get_database_url()).username
+    owner_role = migration_role or migration_url.username
+
     with context.begin_transaction():
         # Migration credentials may already be the owner. When role switching is
         # required, use an explicitly configured and validated owner role rather
         # than a hard-coded deployment-specific account name.
         if migration_role:
-            connection.execute(text(f'SET LOCAL ROLE "{migration_role}"'))
+            connection.execute(text(f"SET LOCAL ROLE {_quote_role_identifier(migration_role)}"))
+
+        # The runtime role is deliberately not the table owner. Grant it the
+        # application DML privileges on existing tables and set default
+        # privileges for objects created by the migration owner.
+        if runtime_role and owner_role and runtime_role != owner_role:
+            runtime_sql = _quote_role_identifier(runtime_role)
+            owner_sql = _quote_role_identifier(owner_role)
+            connection.execute(
+                text(f"GRANT USAGE ON SCHEMA public TO {runtime_sql}")
+            )
+            connection.execute(
+                text(
+                    "GRANT SELECT, INSERT, UPDATE, DELETE "
+                    f"ON ALL TABLES IN SCHEMA public TO {runtime_sql}"
+                )
+            )
+            connection.execute(
+                text(
+                    "GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public "
+                    f"TO {runtime_sql}"
+                )
+            )
+            connection.execute(
+                text(
+                    "ALTER DEFAULT PRIVILEGES FOR ROLE "
+                    f"{owner_sql} IN SCHEMA public GRANT "
+                    f"SELECT, INSERT, UPDATE, DELETE ON TABLES TO {runtime_sql}"
+                )
+            )
+            connection.execute(
+                text(
+                    "ALTER DEFAULT PRIVILEGES FOR ROLE "
+                    f"{owner_sql} IN SCHEMA public GRANT "
+                    f"USAGE, SELECT ON SEQUENCES TO {runtime_sql}"
+                )
+            )
 
         context.run_migrations()
 
