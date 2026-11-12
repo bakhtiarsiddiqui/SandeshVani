@@ -62,8 +62,6 @@ the transaction-local `app.current_org` value with `set_config(..., true)` and
 apply `ENABLE ROW LEVEL SECURITY` plus `FORCE ROW LEVEL SECURITY` to the
 tenant-owned tables. Missing tenant context denies organization-owned rows;
 platform roles and permissions are a deliberately separate global scope.
-Composite foreign keys prevent a membership role or role permission from
-referencing a role in another organization.
 
 Run Alembic with `MIGRATION_DATABASE_URL` set to a dedicated migration-owner
 connection. `MIGRATION_DATABASE_ROLE` is optional and only used for a validated
@@ -86,6 +84,22 @@ roles; never point it at a development or production database. Background jobs
 are not implemented yet. When they are, each job must receive a verified
 organization ID and establish transaction-local tenant context before accessing
 tenant-owned data.
+
+## Private audience CSV uploads
+
+Audience CSV uploads are stored as opaque UUID-named files under
+`AUDIENCE_IMPORT_STORAGE_DIR` (default: `./var/private/audience-imports`).
+The directory is created with mode `0700`; stored files use mode `0600`.
+Configure this path as a private persistent volume outside any static/web-served
+directory in deployed environments. Do not expose it through FastAPI static files
+or a reverse-proxy alias.
+
+The default limits are 25 MiB and 100,000 nonblank data rows. Override them with
+`AUDIENCE_IMPORT_MAX_BYTES` and `AUDIENCE_IMPORT_MAX_ROWS`. The upload endpoint
+checks the UTF-8 CSV structure and an allowlisted header set, then records the
+tenant, uploader, size, row count and SHA-256 checksum. It does not parse rows
+into audience contacts or start an import worker; those are separate tasks.
+The original client filename and filesystem path are not persisted or returned.
 
 ## Local Authentication Email
 
@@ -123,4 +137,3 @@ Production configuration must not enable the local sink or Mailpit transport.
 A production transactional email provider, sender-domain verification (SPF,
 DKIM, and DMARC), retry handling, and delivery monitoring remain a separate
 production-readiness task.
-
