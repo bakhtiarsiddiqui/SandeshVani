@@ -63,7 +63,8 @@ apply `ENABLE ROW LEVEL SECURITY` plus `FORCE ROW LEVEL SECURITY` to the
 tenant-owned tables. Missing tenant context denies organization-owned rows;
 platform roles and permissions are a deliberately separate global scope.
 Composite foreign keys prevent a membership role or role permission from
-referencing a role in another organization.
+referencing a role in another organization. Import jobs, row errors, outbox
+events, uploads and audience members also use tenant-scoped forced RLS policies.
 
 Run Alembic with `MIGRATION_DATABASE_URL` set to a dedicated migration-owner
 connection. `MIGRATION_DATABASE_ROLE` is optional and only used for a validated
@@ -82,10 +83,9 @@ SANDESHVANI_PG_TEST_URL="$SANDESHVANI_PG_TEST_URL" \
 ```
 
 The suite creates and removes a dedicated test database and temporary test
-roles; never point it at a development or production database. Background jobs
-are not implemented yet. When they are, each job must receive a verified
-organization ID and establish transaction-local tenant context before accessing
-tenant-owned data.
+roles; never point it at a development or production database. Worker tasks
+receive only organization and job identifiers, then re-establish transaction-local
+tenant context before every tenant-scoped transaction.
 
 ## Private audience CSV uploads
 
@@ -98,10 +98,45 @@ or a reverse-proxy alias.
 
 The default limits are 25 MiB and 100,000 nonblank data rows. Override them with
 `AUDIENCE_IMPORT_MAX_BYTES` and `AUDIENCE_IMPORT_MAX_ROWS`. The upload endpoint
-checks the UTF-8 CSV structure and an allowlisted header set, then records the
-tenant, uploader, size, row count and SHA-256 checksum. It does not parse rows
-into audience contacts or start an import worker; those are separate tasks.
+checks the UTF-8 CSV structure and an allowlisted header set, then writes upload
+metadata, a queued import job and an outbox event in one PostgreSQL transaction.
 The original client filename and filesystem path are not persisted or returned.
+
+## Asynchronous audience CSV imports
+
+Set `REDIS_URL` and `AUDIENCE_IMPORT_CHUNK_SIZE` (default 500). The API and
+worker must use the same private persistent `AUDIENCE_IMPORT_STORAGE_DIR`
+volume. For local development, start Redis:
+
+```bash
+docker run -d --name sandeshvani-redis --restart unless-stopped \
+  -p 127.0.0.1:6379:6379 redis:7-alpine
+```
+
+From the backend directory, run Celery worker and Beat:
+
+```bash
+celery -A app.workers.celery_app:celery_app worker --beat \
+  --loglevel=INFO -Q default,audience-imports
+```
+
+PostgreSQL is authoritative for import state and outbox events. A periodic
+publisher sends pending events to Redis/Celery and re-dispatches events whose
+workers have not completed. Workers use a PostgreSQL advisory lock per job,
+verify the staged file checksum, and commit bounded chunks. Each chunk stores
+valid contacts, safe row errors and progress counters in the same transaction.
+A redelivered job resumes from its last committed row count.
+
+- `GET /api/v1/audiences/imports/{import_id}` returns state and progress.
+- `GET /api/v1/audiences/imports/{import_id}/errors` returns cursor-paginated
+  row number, allowlisted field and stable error code.
+- Row errors never contain rejected cell values or raw validation messages.
+- Duplicate identity matching is intentionally not performed; it belongs to
+  AUD-04 and remains a separate product-policy decision.
+
+For production, run Beat as a separate process from workers, monitor Redis and
+outbox lag, and mount the same private storage volume at the configured path
+for API and worker processes. No live communication provider is used by imports.
 
 ## Local Authentication Email
 

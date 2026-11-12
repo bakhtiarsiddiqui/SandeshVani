@@ -58,8 +58,10 @@ Proposed: `id`, `organization_id`, normalized invitee identifier, token hash, in
 ### `segments`
 `id`, `organization_id`, `name`, `filter_definition` JSONB, `created_by`, timestamps. Grammar is allowlisted and type-checked; never compile user JSON into arbitrary SQL.
 
-### `import_jobs` / `import_job_errors`
-Import job stores tenant, creator, file reference, status, row counts and timestamps. Error rows store row number, safe field/error code and recovery metadata; avoid copying unnecessary PII into logs/errors.
+### `audience_import_jobs` / `audience_import_job_errors`
+An import job references one same-tenant upload and stores creator, status, total/processed/imported/rejected row counts, safe failure code and lifecycle timestamps. Error rows store source row number, allowlisted field name and stable error code only; never store rejected cell values or raw validation messages.
+
+The generic `outbox_events` table stores tenant, aggregate identity, event type, validated JSON payload, status, dispatch attempts and retry timestamps. The import outbox event is inserted in the same transaction as the job. PostgreSQL remains authoritative; Redis/Celery is transport and execution infrastructure.
 
 ## 4. Campaign and localization entities
 

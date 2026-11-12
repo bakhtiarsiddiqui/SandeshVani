@@ -112,7 +112,22 @@ Example audience:
 - Upload metadata (tenant, uploader, byte size, row count, SHA-256 and creation time) is stored in a tenant-owned database table protected by PostgreSQL RLS.
 - The endpoint requires authenticated organization membership, `audiences:create`, and the existing CSRF and trusted-origin checks.
 
-The 202 response contains the upload UUID, organization UUID, byte size, row count, SHA-256 and creation time. This stage validates and retains the upload only: it does not create audience contacts, queue a worker, report per-row semantic validation errors, or apply duplicate matching. Those are AUD-03/AUD-04 scope.
+The 202 response contains the import job UUID, upload UUID, organization UUID, status and initial row counters. Upload metadata, the queued job and an `audience_import.requested` outbox event are persisted in one PostgreSQL transaction.
+
+### AUD-03 — Asynchronous import processing
+
+- PostgreSQL is authoritative for job and outbox state. A periodic Celery Beat publisher dispatches pending outbox events to Redis; Redis is transport, not the system of record.
+- Workers receive organization/job identifiers, re-establish transaction-local tenant context, and acquire a PostgreSQL advisory lock for the job before processing.
+- The worker verifies the stored file checksum and headers, then reads the CSV in bounded chunks. The default chunk size is 500 rows and is configurable through `AUDIENCE_IMPORT_CHUNK_SIZE`.
+- Each chunk inserts valid audience members, inserts PII-minimized row errors and updates progress counters in one tenant-scoped transaction. A redelivered worker resumes from the last committed `processed_rows` count.
+- Job states: `queued`, `processing`, `completed`, `completed_with_errors`, `failed`.
+- `GET /audiences/imports/{import_id}` requires `audiences:read` and returns state, total/processed/imported/rejected counts and a safe failure code.
+- `GET /audiences/imports/{import_id}/errors` requires `audiences:read`, supports cursor pagination and returns only row number, allowlisted field name and stable error code. Rejected values and raw validation messages are never persisted or returned.
+- File corruption, checksum mismatch or missing staged files fail the job with a stable failure code. Transient worker exceptions use bounded Celery retry; the outbox re-dispatches unfinished jobs.
+- Blank optional email/phone/district fields are normalized to null; blank language defaults to English. Remaining values are validated using the existing audience-contact schema.
+- Duplicate identity matching is not performed. Its policy and tests remain AUD-04 scope.
+
+The API and worker must share the private upload storage volume. R1 import processing creates audience contacts only; it does not dispatch messages or call external communication providers.
 
 Segment filters use an allowlisted, type-checked grammar. Never accept raw SQL.
 
