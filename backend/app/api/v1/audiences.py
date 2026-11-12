@@ -2,6 +2,7 @@ import uuid
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
@@ -22,7 +23,15 @@ from app.schemas.audience import (
     AudienceMemberUpdate,
     AudiencePagination,
 )
-from app.schemas.audience_import import AudienceImportUploadResponse
+from app.models.audience_import_job import AudienceImportJob
+from app.models.audience_import_job_error import AudienceImportJobError
+from app.schemas.audience_import import (
+    AudienceImportErrorsPagination,
+    AudienceImportErrorsResponse,
+    AudienceImportJobResponse,
+    AudienceImportRowErrorResponse,
+    AudienceImportUploadResponse,
+)
 from app.services.audience_import_service import AudienceImportService
 from app.services.audience_service import AudienceService
 
@@ -95,8 +104,97 @@ async def upload_audience_csv(
         actor_user_id=auth_ctx.user.id,
         settings=settings,
     )
-    upload = await service.upload_csv(file)
-    return AudienceImportUploadResponse.model_validate(upload)
+    upload, job = await service.upload_csv(file)
+    return AudienceImportUploadResponse(
+        id=upload.id,
+        organization_id=upload.organization_id,
+        byte_size=upload.byte_size,
+        row_count=upload.row_count,
+        sha256=upload.sha256,
+        created_at=upload.created_at,
+        job_id=job.id,
+        status=job.status,
+        total_rows=job.total_rows,
+        processed_rows=job.processed_rows,
+        imported_rows=job.imported_rows,
+        error_rows=job.error_rows,
+    )
+
+
+@router.get("/imports/{job_id}", response_model=AudienceImportJobResponse)
+async def get_audience_import_job(
+    job_id: uuid.UUID,
+    tenant_ctx: Annotated[
+        TenantContext, Depends(require_permissions("audiences:read"))
+    ],
+    session: Annotated[AsyncSession, Depends(get_db)],
+):
+    job = await session.scalar(
+        select(AudienceImportJob).where(
+            AudienceImportJob.organization_id == tenant_ctx.organization.id,
+            AudienceImportJob.id == job_id,
+        )
+    )
+    if job is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Audience import job not found",
+        )
+    return AudienceImportJobResponse.model_validate(job)
+
+
+@router.get("/imports/{job_id}/errors", response_model=AudienceImportErrorsResponse)
+async def list_audience_import_errors(
+    job_id: uuid.UUID,
+    tenant_ctx: Annotated[
+        TenantContext, Depends(require_permissions("audiences:read"))
+    ],
+    session: Annotated[AsyncSession, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    after_row_number: Annotated[int | None, Query(ge=2)] = None,
+):
+    organization_id = tenant_ctx.organization.id
+    job = await session.scalar(
+        select(AudienceImportJob).where(
+            AudienceImportJob.organization_id == organization_id,
+            AudienceImportJob.id == job_id,
+        )
+    )
+    if job is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Audience import job not found",
+        )
+
+    statement = select(AudienceImportJobError).where(
+        AudienceImportJobError.organization_id == organization_id,
+        AudienceImportJobError.job_id == job_id,
+    )
+    if after_row_number is not None:
+        statement = statement.where(
+            AudienceImportJobError.row_number > after_row_number
+        )
+    result = await session.scalars(
+        statement.order_by(AudienceImportJobError.row_number).limit(limit + 1)
+    )
+    errors = list(result.all())
+    has_more = len(errors) > limit
+    if has_more:
+        errors = errors[:limit]
+
+    next_after_row_number = errors[-1].row_number if has_more and errors else None
+    return AudienceImportErrorsResponse(
+        job_id=job_id,
+        data=[
+            AudienceImportRowErrorResponse.model_validate(error)
+            for error in errors
+        ],
+        pagination=AudienceImportErrorsPagination(
+            next_after_row_number=next_after_row_number,
+            has_more=has_more,
+            limit=limit,
+        ),
+    )
 
 
 @router.post(
