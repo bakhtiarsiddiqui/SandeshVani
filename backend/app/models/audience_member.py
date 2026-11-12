@@ -33,9 +33,7 @@ class AudienceMember(Base, UUIDPrimaryKeyMixin, TimestampMixin):
             "preferred_language IN ('en', 'hi')",
             name="ck_audience_members_language",
         ),
-        UniqueConstraint(
-            "organization_id", "id", name="uq_audience_members_org_id"
-        ),
+        UniqueConstraint("organization_id", "id", name="uq_audience_members_org_id"),
         Index(
             "ix_audience_members_org_created",
             "organization_id",

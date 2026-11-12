@@ -97,9 +97,7 @@ async def test_audience_crud_and_filters(
     assert "created_by" not in member
 
     stored = await test_db_session.scalar(
-        select(AudienceMember).where(
-            AudienceMember.id == uuid.UUID(member["id"])
-        )
+        select(AudienceMember).where(AudienceMember.id == uuid.UUID(member["id"]))
     )
     assert stored is not None
     assert stored.created_by == stored.updated_by

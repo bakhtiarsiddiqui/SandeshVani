@@ -56,9 +56,7 @@ class AudienceRepository:
         self.session = session
         self.organization_id = organization_id
 
-    async def create(
-        self, *, values: dict, actor_user_id: uuid.UUID
-    ) -> AudienceMember:
+    async def create(self, *, values: dict, actor_user_id: uuid.UUID) -> AudienceMember:
         member = AudienceMember(
             organization_id=self.organization_id,
             created_by=actor_user_id,
@@ -130,10 +128,9 @@ class AudienceRepository:
                 )
             )
 
-        stmt = (
-            stmt.order_by(AudienceMember.created_at.desc(), AudienceMember.id.desc())
-            .limit(limit + 1)
-        )
+        stmt = stmt.order_by(
+            AudienceMember.created_at.desc(), AudienceMember.id.desc()
+        ).limit(limit + 1)
         result = await self.session.execute(stmt)
         members = list(result.scalars().all())
         has_more = len(members) > limit
