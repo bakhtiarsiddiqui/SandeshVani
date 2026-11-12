@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import AuthContext, get_current_user, verify_origin
 from app.core.config import Settings, get_settings
+from app.core.dev_mail_delivery import LocalEmailDeliveryError, deliver_local_auth_email
 from app.db.session import get_db
 from app.schemas.auth import (
     AuthMeResponse,
@@ -38,8 +39,9 @@ def require_local_auth_token_delivery(
         )
 
 
-def _capture_local_auth_message(
+async def _capture_local_auth_message(
     request: Request,
+    settings: Settings,
     recipient: str,
     purpose: str,
     token: str | None,
@@ -57,6 +59,26 @@ def _capture_local_auth_message(
         token=token,
         lifetime_seconds=lifetime_seconds,
     )
+
+    # Keep the in-memory sink for deterministic backend tests. When local SMTP
+    # is configured, deliver the same message to Mailpit for browser inspection.
+    if settings.dev_mail_smtp_host:
+        try:
+            await deliver_local_auth_email(
+                settings=settings,
+                recipient=recipient,
+                purpose=purpose,
+                token=token,
+                lifetime_seconds=lifetime_seconds,
+            )
+        except LocalEmailDeliveryError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    "The account operation was saved, but local email delivery "
+                    "failed. Check that Mailpit is running and try resending."
+                ),
+            ) from exc
 
 
 def _enforce_auth_recovery_rate_limit(request: Request, email: str) -> None:
@@ -105,6 +127,7 @@ async def register(
     data: RegisterRequest,
     request: Request,
     session: Annotated[AsyncSession, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ):
     service = AuthService(session)
     user, verification_token = await service.register(
@@ -113,8 +136,13 @@ async def register(
         full_name=data.full_name,
     )
     await session.commit()
-    _capture_local_auth_message(
-        request, data.email, "email-verification", verification_token, 24 * 60 * 60
+    await _capture_local_auth_message(
+        request,
+        settings,
+        data.email,
+        "email-verification",
+        verification_token,
+        24 * 60 * 60,
     )
     return RegisterResponse(
         message="Registration successful. Please verify your email.",
@@ -146,13 +174,14 @@ async def resend_verification(
     data: ResendVerificationRequest,
     request: Request,
     session: Annotated[AsyncSession, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ):
     _enforce_auth_recovery_rate_limit(request, data.email)
     service = AuthService(session)
     token = await service.resend_verification(email=data.email)
     await session.commit()
-    _capture_local_auth_message(
-        request, data.email, "email-verification", token, 24 * 60 * 60
+    await _capture_local_auth_message(
+        request, settings, data.email, "email-verification", token, 24 * 60 * 60
     )
     return AuthMessageResponse(
         message=(
@@ -347,12 +376,15 @@ async def password_recovery(
     data: PasswordRecoveryRequest,
     request: Request,
     session: Annotated[AsyncSession, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ):
     _enforce_auth_recovery_rate_limit(request, data.email)
     service = AuthService(session)
     token = await service.request_password_reset(data.email)
     await session.commit()
-    _capture_local_auth_message(request, data.email, "password-reset", token, 60 * 60)
+    await _capture_local_auth_message(
+        request, settings, data.email, "password-reset", token, 60 * 60
+    )
     return AuthMessageResponse(
         message=("If this email exists, password recovery instructions are available.")
     )
