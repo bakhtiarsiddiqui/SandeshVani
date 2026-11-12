@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     audience_import_storage_dir: Path = Path("./var/private/audience-imports")
     audience_import_max_bytes: int = Field(default=25 * 1024 * 1024, gt=0)
     audience_import_max_rows: int = Field(default=100_000, gt=0)
+    audience_import_chunk_size: int = Field(default=500, ge=1, le=5_000)
     api_v1_prefix: str = "/api/v1"
     version: str = "0.1.0"
 
