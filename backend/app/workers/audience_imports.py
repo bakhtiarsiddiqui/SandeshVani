@@ -8,11 +8,9 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
-import asyncpg
 from celery import Task
 from pydantic import ValidationError
 from sqlalchemy import or_, select, text
-from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -439,61 +437,58 @@ async def _execute_import_task(
     job_id: uuid.UUID,
     settings: Settings,
 ) -> None:
-    # Hold a dedicated PostgreSQL session-level advisory lock across commits.
-    # A separate asyncpg connection avoids releasing the lock when SQLAlchemy
-    # returns a NullPool connection after a transaction.
-    db_url = make_url(settings.get_database_url()).set(drivername="postgresql")
-    lock_connection = await asyncpg.connect(
-        db_url.render_as_string(hide_password=False)
+    engine = create_async_engine(
+        settings.get_database_url(),
+        poolclass=NullPool,
+        pool_pre_ping=True,
     )
     lock_key = _advisory_lock_key(job_id)
-    lock_acquired = False
-    engine = None
     try:
-        lock_acquired = bool(
-            await lock_connection.fetchval(
-                "SELECT pg_try_advisory_lock($1)",
-                lock_key,
-            )
-        )
-        if not lock_acquired:
-            return
+        if engine.dialect.name != "postgresql":
+            raise RuntimeError("Audience import workers require PostgreSQL")
 
-        engine = create_async_engine(
-            settings.get_database_url(),
-            poolclass=NullPool,
-            pool_pre_ping=True,
-        )
-        factory = async_sessionmaker(
-            bind=engine,
-            class_=AsyncSession,
-            expire_on_commit=False,
-            autoflush=False,
-        )
-        async with factory() as session:
-            await process_import_job_in_session(
-                session,
-                organization_id=organization_id,
-                job_id=job_id,
-                settings=settings,
+        # Keep this dedicated SQLAlchemy connection checked out for the task's
+        # lifetime. A session-level advisory lock survives transaction commits
+        # while this physical connection remains open.
+        async with engine.connect() as lock_connection:
+            lock_acquired = bool(
+                await lock_connection.scalar(
+                    text("SELECT pg_try_advisory_lock(:lock_key)"),
+                    {"lock_key": lock_key},
+                )
             )
-    finally:
-        try:
-            if lock_acquired:
+            await lock_connection.commit()
+            if not lock_acquired:
+                return
+
+            factory = async_sessionmaker(
+                bind=engine,
+                class_=AsyncSession,
+                expire_on_commit=False,
+                autoflush=False,
+            )
+            try:
+                async with factory() as session:
+                    await process_import_job_in_session(
+                        session,
+                        organization_id=organization_id,
+                        job_id=job_id,
+                        settings=settings,
+                    )
+            finally:
                 try:
                     await lock_connection.execute(
-                        "SELECT pg_advisory_unlock($1)",
-                        lock_key,
+                        text("SELECT pg_advisory_unlock(:lock_key)"),
+                        {"lock_key": lock_key},
                     )
+                    await lock_connection.commit()
                 except Exception:
                     logger.warning(
                         "Unable to explicitly release audience import lock for job %s",
                         job_id,
                     )
-        finally:
-            await lock_connection.close()
-            if engine is not None:
-                await engine.dispose()
+    finally:
+        await engine.dispose()
 
 
 async def _mark_task_failed(
