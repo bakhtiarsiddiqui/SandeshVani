@@ -37,10 +37,11 @@ test('verification and reset-token URLs render the correct forms', async ({ page
   await page.goto('/?reset_token=browser-smoke-token');
   await expect(page.getByRole('heading', { name: 'Set New Password' })).toBeVisible();
   await expect(page.getByLabel(/Recovery Token/)).toHaveValue('browser-smoke-token');
-  await expect(page.getByLabel(/New Password/)).toBeVisible();
+  await expect(page.getByLabel(/^New Password/)).toBeVisible();
 });
 
-test('keyboard navigation exposes the visible focus indicator', async ({ page }) => {
+test('keyboard navigation exposes the visible focus indicator', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === 'mobile-chromium', 'Keyboard-only focus is checked in desktop Chromium.');
   await page.goto('/');
   await page.keyboard.press('Tab');
 
