@@ -1,4 +1,5 @@
 from app.models.auth_session import AuthSession
+from app.models.audience_member import AudienceMember
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.membership import Membership
 from app.models.organization import Organization
@@ -18,6 +19,7 @@ from app.models.user import User
 
 __all__ = [
     "AuthSession",
+    "AudienceMember",
     "Base",
     "EmailVerificationToken",
     "Membership",
