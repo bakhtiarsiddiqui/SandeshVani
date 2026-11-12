@@ -106,6 +106,9 @@ async def test_import_worker_processes_chunks_and_safe_row_errors(
     job_id = uuid.UUID(uploaded.json()["id"])
     organization_id = uuid.UUID(organization["id"])
 
+    # Close the request/refresh transaction before opening the worker transaction.
+    await test_db_session.commit()
+
     # Simulate a worker interruption after the first chunk committed.
     async with test_db_session.begin():
         await set_tenant_context(test_db_session, organization_id)
