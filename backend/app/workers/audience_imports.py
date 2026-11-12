@@ -476,14 +476,22 @@ async def _execute_import_task(
                 settings=settings,
             )
     finally:
-        if lock_acquired:
-            await lock_connection.execute(
-                "SELECT pg_advisory_unlock($1)",
-                lock_key,
-            )
-        await lock_connection.close()
-        if engine is not None:
-            await engine.dispose()
+        try:
+            if lock_acquired:
+                try:
+                    await lock_connection.execute(
+                        "SELECT pg_advisory_unlock($1)",
+                        lock_key,
+                    )
+                except Exception:
+                    logger.warning(
+                        "Unable to explicitly release audience import lock for job %s",
+                        job_id,
+                    )
+        finally:
+            await lock_connection.close()
+            if engine is not None:
+                await engine.dispose()
 
 
 async def _mark_task_failed(
