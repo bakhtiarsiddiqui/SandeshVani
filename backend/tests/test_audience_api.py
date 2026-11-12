@@ -1,7 +1,11 @@
 import uuid
 
+import pytest
 from httpx import AsyncClient
-from pytest import mark
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.audience_member import AudienceMember
 
 
 PASSWORD = "CommonPassword123!"
@@ -59,10 +63,11 @@ def _tenant_headers(
     return headers
 
 
-@mark.asyncio
+@pytest.mark.asyncio
 async def test_audience_crud_and_filters(
     async_client: AsyncClient,
     development_mail_sink,
+    test_db_session: AsyncSession,
 ):
     token, csrf = await _register_login(
         async_client, "audience-admin@example.org", development_mail_sink
@@ -89,6 +94,14 @@ async def test_audience_crud_and_filters(
     assert member["preferred_language"] == "hi"
     assert member["organization_id"] == org["id"]
     assert "created_by" not in member
+
+    stored = await test_db_session.scalar(
+        select(AudienceMember).where(
+            AudienceMember.id == uuid.UUID(member["id"])
+        )
+    )
+    assert stored is not None
+    assert stored.created_by == stored.updated_by
 
     listed = await async_client.get(
         "/api/v1/audiences",
@@ -135,7 +148,7 @@ async def test_audience_crud_and_filters(
     assert updated.json()["status"] == "inactive"
 
 
-@mark.asyncio
+@pytest.mark.asyncio
 async def test_audience_contact_validation_and_patch_cannot_remove_last_contact(
     async_client: AsyncClient,
     development_mail_sink,
@@ -181,7 +194,7 @@ async def test_audience_contact_validation_and_patch_cannot_remove_last_contact(
     assert unchanged.json()["phone"] == "+919876543210"
 
 
-@mark.asyncio
+@pytest.mark.asyncio
 async def test_audience_cursor_pagination_is_stable(
     async_client: AsyncClient,
     development_mail_sink,
@@ -230,7 +243,7 @@ async def test_audience_cursor_pagination_is_stable(
     assert len(seen) == len(set(seen)) == 3
 
 
-@mark.asyncio
+@pytest.mark.asyncio
 async def test_audience_access_is_tenant_scoped(
     async_client: AsyncClient,
     development_mail_sink,
@@ -271,7 +284,7 @@ async def test_audience_access_is_tenant_scoped(
     assert own_list.json()["data"] == []
 
 
-@mark.asyncio
+@pytest.mark.asyncio
 async def test_audience_permissions_are_enforced(
     async_client: AsyncClient,
     development_mail_sink,
