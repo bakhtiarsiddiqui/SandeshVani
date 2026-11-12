@@ -1,12 +1,14 @@
-import httpx
+import uuid
+
 import pytest
+from httpx import AsyncClient
 
 
 PASSWORD = "CommonPassword123!"
 
 
 async def _register_login(
-    client: httpx.AsyncClient,
+    client: AsyncClient,
     email: str,
     development_mail_sink,
 ) -> tuple[str, str]:
@@ -35,7 +37,7 @@ async def _register_login(
     return result["access_token"], result["csrf_token"]
 
 
-async def _create_org(client: httpx.AsyncClient, token: str, slug: str) -> dict:
+async def _create_org(client: AsyncClient, token: str, slug: str) -> dict:
     response = await client.post(
         "/api/v1/organizations",
         headers={"Authorization": f"Bearer {token}"},
@@ -45,7 +47,9 @@ async def _create_org(client: httpx.AsyncClient, token: str, slug: str) -> dict:
     return response.json()
 
 
-def _tenant_headers(token: str, org_id: str, csrf: str | None = None) -> dict:
+def _tenant_headers(
+    token: str, org_id: str | uuid.UUID, csrf: str | None = None
+) -> dict:
     headers = {
         "Authorization": f"Bearer {token}",
         "X-Organization-ID": org_id,
@@ -57,7 +61,7 @@ def _tenant_headers(token: str, org_id: str, csrf: str | None = None) -> dict:
 
 @pytest.mark.asyncio
 async def test_audience_crud_and_filters(
-    async_client: httpx.AsyncClient,
+    async_client: AsyncClient,
     development_mail_sink,
 ):
     token, csrf = await _register_login(
@@ -133,7 +137,7 @@ async def test_audience_crud_and_filters(
 
 @pytest.mark.asyncio
 async def test_audience_contact_validation_and_patch_cannot_remove_last_contact(
-    async_client: httpx.AsyncClient,
+    async_client: AsyncClient,
     development_mail_sink,
 ):
     token, csrf = await _register_login(
@@ -179,7 +183,7 @@ async def test_audience_contact_validation_and_patch_cannot_remove_last_contact(
 
 @pytest.mark.asyncio
 async def test_audience_cursor_pagination_is_stable(
-    async_client: httpx.AsyncClient,
+    async_client: AsyncClient,
     development_mail_sink,
 ):
     token, csrf = await _register_login(
@@ -228,7 +232,7 @@ async def test_audience_cursor_pagination_is_stable(
 
 @pytest.mark.asyncio
 async def test_audience_access_is_tenant_scoped(
-    async_client: httpx.AsyncClient,
+    async_client: AsyncClient,
     development_mail_sink,
 ):
     token_a, csrf_a = await _register_login(
@@ -269,7 +273,7 @@ async def test_audience_access_is_tenant_scoped(
 
 @pytest.mark.asyncio
 async def test_audience_permissions_are_enforced(
-    async_client: httpx.AsyncClient,
+    async_client: AsyncClient,
     development_mail_sink,
 ):
     admin_token, admin_csrf = await _register_login(
