@@ -22,8 +22,12 @@ from app.schemas.audience import (
     AudienceMemberUpdate,
     AudiencePagination,
 )
-from app.schemas.audience_import import AudienceImportUploadResponse
+from app.schemas.audience_import import (
+    AudienceImportJobErrorListResponse,
+    AudienceImportJobResponse,
+)
 from app.services.audience_import_service import AudienceImportService
+from app.services.audience_import_job_service import AudienceImportJobService
 from app.services.audience_service import AudienceService
 
 router = APIRouter(prefix="/audiences", tags=["Audiences"])
@@ -76,7 +80,7 @@ async def list_audience_members(
 
 @router.post(
     "/imports",
-    response_model=AudienceImportUploadResponse,
+    response_model=AudienceImportJobResponse,
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[Depends(verify_origin), Depends(verify_csrf)],
 )
@@ -96,7 +100,53 @@ async def upload_audience_csv(
         settings=settings,
     )
     upload = await service.upload_csv(file)
-    return AudienceImportUploadResponse.model_validate(upload)
+    return AudienceImportJobResponse.model_validate(upload)
+
+
+
+@router.get(
+    "/imports/{import_id}/errors",
+    response_model=AudienceImportJobErrorListResponse,
+)
+async def list_audience_import_errors(
+    import_id: uuid.UUID,
+    tenant_ctx: Annotated[
+        TenantContext, Depends(require_permissions("audiences:read"))
+    ],
+    session: Annotated[AsyncSession, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    cursor: Annotated[str | None, Query(max_length=512)] = None,
+):
+    service = AudienceImportJobService(session, tenant_ctx.organization.id)
+    errors, has_more, next_cursor = await service.list_errors(
+        job_id=import_id,
+        limit=limit,
+        cursor=cursor,
+    )
+    return AudienceImportJobErrorListResponse(
+        data=errors,
+        pagination={
+            "next_cursor": next_cursor,
+            "has_more": has_more,
+            "limit": limit,
+        },
+    )
+
+
+@router.get(
+    "/imports/{import_id}",
+    response_model=AudienceImportJobResponse,
+)
+async def get_audience_import(
+    import_id: uuid.UUID,
+    tenant_ctx: Annotated[
+        TenantContext, Depends(require_permissions("audiences:read"))
+    ],
+    session: Annotated[AsyncSession, Depends(get_db)],
+):
+    service = AudienceImportJobService(session, tenant_ctx.organization.id)
+    job = await service.get_job(import_id)
+    return AudienceImportJobResponse.model_validate(job)
 
 
 @router.post(
