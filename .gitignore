@@ -29,3 +29,5 @@ dist/
 
 # Local data and logs
 *.log
+/backend/var/private/audience-imports/
+/var/private/audience-imports/

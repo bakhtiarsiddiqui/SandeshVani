@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
 
@@ -36,6 +37,9 @@ class Settings(BaseSettings):
     auth_recovery_email_limit: int = Field(default=5, gt=0)
     auth_recovery_ip_limit: int = Field(default=30, gt=0)
     auth_recovery_rate_window_seconds: int = Field(default=900, gt=0)
+    audience_import_storage_dir: Path = Path("./var/private/audience-imports")
+    audience_import_max_bytes: int = Field(default=25 * 1024 * 1024, gt=0)
+    audience_import_max_rows: int = Field(default=100_000, gt=0)
     api_v1_prefix: str = "/api/v1"
     version: str = "0.1.0"
 

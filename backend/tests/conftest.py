@@ -32,6 +32,12 @@ app.dependency_overrides[get_settings] = lambda: TEST_SETTINGS
 
 
 @pytest.fixture
+def test_app():
+    """Expose the exact FastAPI instance used by the shared test clients."""
+    return app
+
+
+@pytest.fixture
 def client() -> TestClient:
     return TestClient(app)
 

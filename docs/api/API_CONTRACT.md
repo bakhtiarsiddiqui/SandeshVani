@@ -101,6 +101,19 @@ Example audience:
 }
 ```
 
+### AUD-02 — CSV upload validation and controlled storage
+
+- `POST /audiences/imports` accepts one multipart file in the `file` field and returns HTTP 202 after file-level validation and durable private storage.
+- The filename must have a `.csv` extension. The content is parsed as UTF-8 (an optional UTF-8 BOM is accepted); a declared media type, when present, must be CSV-compatible.
+- Headers are case-insensitive after trimming and must be unique and drawn from `full_name`, `email`, `phone`, `preferred_language`, and `district`. `full_name` is required, and at least one of `email` or `phone` must be present.
+- CSV quoting and row structure are checked. Blank rows are ignored. Each nonblank row must have the same number of fields as the header.
+- Default limits are 25 MiB and 100,000 nonblank data rows; both are configurable with `AUDIENCE_IMPORT_MAX_BYTES` and `AUDIENCE_IMPORT_MAX_ROWS`.
+- The backend stores files outside the frontend static tree, under `AUDIENCE_IMPORT_STORAGE_DIR`. It generates the stored filename from a UUID, creates private directories/files (0700/0600), and does not persist or return the supplied filename or a filesystem path.
+- Upload metadata (tenant, uploader, byte size, row count, SHA-256 and creation time) is stored in a tenant-owned database table protected by PostgreSQL RLS.
+- The endpoint requires authenticated organization membership, `audiences:create`, and the existing CSRF and trusted-origin checks.
+
+The 202 response contains the upload UUID, organization UUID, byte size, row count, SHA-256 and creation time. This stage validates and retains the upload only: it does not create audience contacts, queue a worker, report per-row semantic validation errors, or apply duplicate matching. Those are AUD-03/AUD-04 scope.
+
 Segment filters use an allowlisted, type-checked grammar. Never accept raw SQL.
 
 ## 5. Campaigns, templates and localization

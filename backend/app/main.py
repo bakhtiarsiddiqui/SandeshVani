@@ -5,6 +5,7 @@ from app.api.router import create_api_v1_router
 from app.core.config import Settings, get_settings
 from app.core.dev_mail import DevelopmentMailSink
 from app.core.rate_limit import AuthRecoveryRateLimiter
+from app.core.upload_limits import AudienceUploadBodyLimitMiddleware
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -17,6 +18,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         redoc_url=f"{settings.api_v1_prefix}/redoc",
     )
 
+    application.add_middleware(
+        AudienceUploadBodyLimitMiddleware,
+        upload_path=f"{settings.api_v1_prefix}/audiences/imports",
+        max_body_bytes=settings.audience_import_max_bytes + 65_536,
+    )
     application.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,

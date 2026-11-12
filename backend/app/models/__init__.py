@@ -1,3 +1,4 @@
+from app.models.audience_import_upload import AudienceImportUpload
 from app.models.audience_member import AudienceMember
 from app.models.auth_session import AuthSession
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -18,8 +19,9 @@ from app.models.token import (
 from app.models.user import User
 
 __all__ = [
-    "AuthSession",
+    "AudienceImportUpload",
     "AudienceMember",
+    "AuthSession",
     "Base",
     "EmailVerificationToken",
     "Membership",

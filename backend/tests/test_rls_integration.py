@@ -985,6 +985,7 @@ async def test_migration_upgrade_downgrade(pg_setup):
         **os.environ,
         "DATABASE_URL": sa_url,
         "MIGRATION_DATABASE_URL": sa_url,
+        "MIGRATION_DATABASE_ROLE": "sandeshvani_owner",
         "PYTHONPATH": "backend",
     }
 
@@ -1012,20 +1013,68 @@ async def test_migration_upgrade_downgrade(pg_setup):
             f"Alembic upgrade failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
-        # Verify roles and role_permissions RLS is enabled
+        # Verify RLS is enabled and forced on all protected tenant tables.
         verify_conn = await asyncpg.connect(cycle_dsn)
         try:
-            for table in ("roles", "role_permissions"):
+            protected_tables = (
+                "roles",
+                "role_permissions",
+                "audience_members",
+                "audience_import_uploads",
+            )
+            for table in protected_tables:
                 row = await verify_conn.fetchrow(
-                    f"""
-                    SELECT relrowsecurity, relforcerowsecurity
-                    FROM pg_class WHERE relname = '{table}';
                     """
+                    SELECT c.relrowsecurity, c.relforcerowsecurity
+                    FROM pg_class AS c
+                    JOIN pg_namespace AS n ON n.oid = c.relnamespace
+                    WHERE n.nspname = 'public' AND c.relname = $1;
+                    """,
+                    table,
                 )
                 assert row is not None, f"Table {table} not found in pg_class"
                 assert row["relrowsecurity"] is True, f"RLS not enabled on {table}"
                 assert row["relforcerowsecurity"] is True, (
                     f"FORCE RLS not enabled on {table}"
+                )
+
+            for table in ("audience_members", "audience_import_uploads"):
+                policy = await verify_conn.fetchrow(
+                    """
+                    SELECT policyname, cmd, qual, with_check
+                    FROM pg_policies
+                    WHERE schemaname = 'public'
+                      AND tablename = $1
+                      AND policyname = 'tenant_isolation';
+                    """,
+                    table,
+                )
+                assert policy is not None, f"tenant_isolation policy missing on {table}"
+                assert policy["cmd"] == "ALL", (
+                    f"tenant_isolation must cover all commands on {table}"
+                )
+                assert policy["qual"] and "app.current_org" in policy["qual"], (
+                    f"tenant_isolation USING clause must scope {table}"
+                )
+                assert (
+                    policy["with_check"] is not None
+                    and "app.current_org" in policy["with_check"]
+                ), f"tenant_isolation WITH CHECK clause must scope {table}"
+
+            # The audience tables must be owned by the migration role, not
+            # by the ordinary runtime application role.
+            for table in ("audience_members", "audience_import_uploads"):
+                ownership = await verify_conn.fetchrow(
+                    """
+                    SELECT tableowner
+                    FROM pg_catalog.pg_tables
+                    WHERE schemaname = 'public' AND tablename = $1;
+                    """,
+                    table,
+                )
+                assert ownership is not None, f"Table {table} must exist"
+                assert ownership["tableowner"] == "sandeshvani_owner", (
+                    f"Migration role must own table {table}"
                 )
         finally:
             await verify_conn.close()
