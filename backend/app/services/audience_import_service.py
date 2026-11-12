@@ -239,8 +239,12 @@ class AudienceImportService:
             event_type="audience_import.requested",
             payload={"job_id": str(job.id)},
         )
-        self.session.add_all([upload_record, job, outbox_event])
         try:
+            self.session.add(upload_record)
+            await self.session.flush()
+            self.session.add(job)
+            await self.session.flush()
+            self.session.add(outbox_event)
             await self.session.commit()
         except Exception:
             await self.session.rollback()
