@@ -43,6 +43,8 @@ def _decode_error_cursor(cursor: str) -> tuple[int, uuid.UUID]:
         TypeError,
         KeyError,
         UnicodeDecodeError,
+        UnicodeEncodeError,
+        AttributeError,
         json.JSONDecodeError,
         binascii.Error,
     ) as err:
