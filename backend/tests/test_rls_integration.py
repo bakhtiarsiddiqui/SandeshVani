@@ -1055,17 +1055,16 @@ async def test_migration_upgrade_downgrade(pg_setup):
                     """,
                     table,
                 )
-                assert policy is not None, (
-                    f"tenant_isolation policy missing on {table}"
-                )
+                assert policy is not None, f"tenant_isolation policy missing on {table}"
                 assert policy["cmd"] == "ALL", (
                     f"tenant_isolation must cover all commands on {table}"
                 )
                 assert policy["qual"] and "app.current_org" in policy["qual"], (
                     f"tenant_isolation USING clause must scope {table}"
                 )
-                assert policy["with_check"] and "app.current_org" in (
-                    policy["with_check"]
+                assert (
+                    policy["with_check"] is not None
+                    and "app.current_org" in policy["with_check"]
                 ), f"tenant_isolation WITH CHECK clause must scope {table}"
         finally:
             await verify_conn.close()
