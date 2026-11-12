@@ -69,12 +69,8 @@ def upgrade() -> None:
 
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
-        op.execute(
-            "ALTER TABLE audience_import_uploads ENABLE ROW LEVEL SECURITY;"
-        )
-        op.execute(
-            "ALTER TABLE audience_import_uploads FORCE ROW LEVEL SECURITY;"
-        )
+        op.execute("ALTER TABLE audience_import_uploads ENABLE ROW LEVEL SECURITY;")
+        op.execute("ALTER TABLE audience_import_uploads FORCE ROW LEVEL SECURITY;")
         op.execute(
             """
             CREATE POLICY tenant_isolation ON audience_import_uploads
@@ -95,12 +91,8 @@ def upgrade() -> None:
 def downgrade() -> None:
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
-        op.execute(
-            "DROP POLICY IF EXISTS tenant_isolation ON audience_import_uploads;"
-        )
-        op.execute(
-            "ALTER TABLE audience_import_uploads DISABLE ROW LEVEL SECURITY;"
-        )
+        op.execute("DROP POLICY IF EXISTS tenant_isolation ON audience_import_uploads;")
+        op.execute("ALTER TABLE audience_import_uploads DISABLE ROW LEVEL SECURITY;")
 
     op.drop_index(
         "ix_audience_import_uploads_org_created",

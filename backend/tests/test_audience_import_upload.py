@@ -147,7 +147,7 @@ async def test_csv_upload_rejects_invalid_structure_and_encoding(
         ),
         (
             "contacts.csv",
-            b"full_name,email\n\"Unclosed,asha@example.org\n",
+            b'full_name,email\n"Unclosed,asha@example.org\n',
             "text/csv",
         ),
         (
@@ -234,11 +234,7 @@ async def test_csv_upload_enforces_file_and_row_limits(
         files={
             "file": (
                 "contacts.csv",
-                (
-                    b"full_name,email\n"
-                    b"Asha,asha@example.org\n"
-                    b"Rahul,rahul@example.org\n"
-                ),
+                (b"full_name,email\nAsha,asha@example.org\nRahul,rahul@example.org\n"),
                 "text/csv",
             )
         },
@@ -260,9 +256,7 @@ async def test_csv_upload_rejects_cross_tenant_request(
     token_b, csrf_b = await _register_login(
         async_client, "csv-tenant-b@example.org", development_mail_sink
     )
-    organization_a = await _create_org(
-        async_client, token_a, "csv-tenant-a-org"
-    )
+    organization_a = await _create_org(async_client, token_a, "csv-tenant-a-org")
 
     response = await async_client.post(
         "/api/v1/audiences/imports",
@@ -292,10 +286,14 @@ async def test_upload_body_limit_applies_to_chunked_multipart_requests():
     transport = ASGITransport(app=limited_app)
     boundary = "sandeshvani-test-boundary"
     body = (
-        f"--{boundary}\r\n"
-        'Content-Disposition: form-data; name="file"; filename="contacts.csv"\r\n'
-        "Content-Type: text/csv\r\n\r\n"
-    ).encode() + (b"x" * 70_000) + f"\r\n--{boundary}--\r\n".encode()
+        (
+            f"--{boundary}\r\n"
+            'Content-Disposition: form-data; name="file"; filename="contacts.csv"\r\n'
+            "Content-Type: text/csv\r\n\r\n"
+        ).encode()
+        + (b"x" * 70_000)
+        + f"\r\n--{boundary}--\r\n".encode()
+    )
 
     async def body_stream():
         yield body[:4096]
