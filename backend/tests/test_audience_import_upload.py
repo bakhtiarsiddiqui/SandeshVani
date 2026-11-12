@@ -9,7 +9,9 @@ from sqlalchemy import select
 
 from app.core.config import Settings, get_settings
 from app.main import create_app
+from app.models.audience_import_job import AudienceImportJob
 from app.models.audience_import_upload import AudienceImportUpload
+from app.models.outbox_event import OutboxEvent
 
 PASSWORD = "CommonPassword123!"
 
@@ -119,6 +121,46 @@ async def test_csv_upload_is_tenant_scoped_and_stored_privately(
     assert payload["row_count"] == 2
     assert payload["sha256"] == hashlib.sha256(csv_content).hexdigest()
     assert payload["created_at"]
+    assert payload["status"] == "queued"
+    assert payload["total_rows"] == 2
+    assert payload["processed_rows"] == 0
+    assert payload["imported_rows"] == 0
+    assert payload["error_rows"] == 0
+
+    job_id = uuid.UUID(payload["job_id"])
+    job = await test_db_session.scalar(
+        select(AudienceImportJob).where(AudienceImportJob.id == job_id)
+    )
+    assert job is not None
+    assert job.organization_id == uuid.UUID(organization["id"])
+    assert job.upload_id == upload_id
+    assert job.status == "queued"
+    assert job.chunk_size == 500
+
+    outbox_event = await test_db_session.scalar(
+        select(OutboxEvent).where(
+            OutboxEvent.organization_id == uuid.UUID(organization["id"]),
+            OutboxEvent.aggregate_id == job_id,
+        )
+    )
+    assert outbox_event is not None
+    assert outbox_event.status == "pending"
+    assert outbox_event.event_type == "audience_import.queued"
+
+    status_response = await async_client.get(
+        f"/api/v1/audiences/imports/{job_id}",
+        headers=_tenant_headers(token, organization["id"], csrf),
+    )
+    assert status_response.status_code == 200, status_response.text
+    assert status_response.json()["status"] == "queued"
+
+    errors_response = await async_client.get(
+        f"/api/v1/audiences/imports/{job_id}/errors",
+        headers=_tenant_headers(token, organization["id"], csrf),
+    )
+    assert errors_response.status_code == 200, errors_response.text
+    assert errors_response.json()["data"] == []
+    assert errors_response.json()["pagination"]["has_more"] is False
 
     stored_path = tmp_path / f"{upload_id.hex}.csv"
     assert stored_path.is_file()
