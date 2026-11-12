@@ -126,11 +126,12 @@ async def test_csv_upload_is_tenant_scoped_and_stored_privately(
 @pytest.mark.asyncio
 async def test_csv_upload_rejects_invalid_structure_and_encoding(
     async_client,
+    test_app,
     development_mail_sink,
     tmp_path,
     monkeypatch,
 ):
-    _override_upload_settings(monkeypatch, tmp_path)
+    _override_upload_settings(monkeypatch, tmp_path, test_app)
     token, csrf = await _register_login(
         async_client, "csv-invalid@example.org", development_mail_sink
     )
@@ -186,6 +187,7 @@ async def test_csv_upload_rejects_invalid_structure_and_encoding(
 @pytest.mark.asyncio
 async def test_csv_upload_enforces_file_and_row_limits(
     async_client,
+    test_app,
     development_mail_sink,
     tmp_path,
     monkeypatch,
@@ -247,11 +249,12 @@ async def test_csv_upload_enforces_file_and_row_limits(
 @pytest.mark.asyncio
 async def test_csv_upload_rejects_cross_tenant_request(
     async_client,
+    test_app,
     development_mail_sink,
     tmp_path,
     monkeypatch,
 ):
-    _override_upload_settings(monkeypatch, tmp_path)
+    _override_upload_settings(monkeypatch, tmp_path, test_app)
     token_a, _ = await _register_login(
         async_client, "csv-tenant-a@example.org", development_mail_sink
     )
