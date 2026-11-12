@@ -1,4 +1,3 @@
-import re
 import uuid
 from datetime import datetime
 from typing import Literal
@@ -13,15 +12,17 @@ from pydantic import (
 )
 
 
-_PHONE_RE = re.compile(r"^\+[1-9]\d{7,14}$")
-
-
 class AudienceMemberCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     full_name: str = Field(min_length=1, max_length=255)
     email: EmailStr | None = None
-    phone: str | None = Field(default=None, min_length=9, max_length=16)
+    phone: str | None = Field(
+        default=None,
+        min_length=9,
+        max_length=16,
+        pattern=r"^\+[1-9]\d{7,14}$",
+    )
     preferred_language: Literal["en", "hi"] = "en"
     district: str | None = Field(default=None, max_length=150)
 
@@ -40,14 +41,11 @@ class AudienceMemberCreate(BaseModel):
             return None
         return str(value).strip().lower()
 
-    @field_validator("phone")
+    @field_validator("phone", mode="before")
     @classmethod
-    def validate_phone(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        value = value.strip()
-        if not _PHONE_RE.fullmatch(value):
-            raise ValueError("phone must use E.164 format, for example +919876543210")
+    def normalize_phone(cls, value):
+        if isinstance(value, str):
+            return value.strip()
         return value
 
     @field_validator("district")
@@ -70,7 +68,12 @@ class AudienceMemberUpdate(BaseModel):
 
     full_name: str | None = Field(default=None, min_length=1, max_length=255)
     email: EmailStr | None = None
-    phone: str | None = Field(default=None, min_length=9, max_length=16)
+    phone: str | None = Field(
+        default=None,
+        min_length=9,
+        max_length=16,
+        pattern=r"^\+[1-9]\d{7,14}$",
+    )
     preferred_language: Literal["en", "hi"] | None = None
     district: str | None = Field(default=None, max_length=150)
     status: Literal["active", "inactive"] | None = None
@@ -92,14 +95,11 @@ class AudienceMemberUpdate(BaseModel):
             return None
         return str(value).strip().lower()
 
-    @field_validator("phone")
+    @field_validator("phone", mode="before")
     @classmethod
-    def validate_phone(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        value = value.strip()
-        if not _PHONE_RE.fullmatch(value):
-            raise ValueError("phone must use E.164 format, for example +919876543210")
+    def normalize_phone(cls, value):
+        if isinstance(value, str):
+            return value.strip()
         return value
 
     @field_validator("district")
