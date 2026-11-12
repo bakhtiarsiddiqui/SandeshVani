@@ -62,7 +62,9 @@ def _tenant_headers(token: str, organization_id: str, csrf: str) -> dict:
     }
 
 
-def _override_upload_settings(monkeypatch, directory, application, **overrides) -> Settings:
+def _override_upload_settings(
+    monkeypatch, directory, application, **overrides
+) -> Settings:
     settings = Settings(
         _env_file=None,
         app_env="local",
@@ -71,7 +73,9 @@ def _override_upload_settings(monkeypatch, directory, application, **overrides) 
         audience_import_storage_dir=directory,
         **overrides,
     )
-    monkeypatch.setitem(application.dependency_overrides, get_settings, lambda: settings)
+    monkeypatch.setitem(
+        application.dependency_overrides, get_settings, lambda: settings
+    )
     return settings
 
 
