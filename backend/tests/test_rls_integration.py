@@ -904,7 +904,14 @@ async def test_app_role_has_no_elevated_privileges(admin_conn):
 @pytest.mark.asyncio
 async def test_app_role_does_not_own_protected_tables(admin_conn):
     """The application role must not own the tenant-protected tables."""
-    protected = ("roles", "role_permissions", "memberships", "membership_roles")
+    protected = (
+        "roles",
+        "role_permissions",
+        "memberships",
+        "membership_roles",
+        "audience_members",
+        "audience_import_uploads",
+    )
     for table in protected:
         row = await admin_conn.fetchrow(
             """
