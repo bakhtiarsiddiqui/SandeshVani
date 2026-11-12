@@ -149,10 +149,13 @@ class AudienceImportWorker:
             )
             if job is None or job.status in _TERMINAL_STATUSES:
                 return None
+            lease_expires_at = job.lease_expires_at
+            if lease_expires_at is not None and lease_expires_at.tzinfo is None:
+                lease_expires_at = lease_expires_at.replace(tzinfo=UTC)
             if (
                 job.status == "processing"
-                and job.lease_expires_at is not None
-                and job.lease_expires_at > now
+                and lease_expires_at is not None
+                and lease_expires_at > now
             ):
                 return None
 
@@ -166,6 +169,8 @@ class AudienceImportWorker:
                 job.status = "failed"
                 job.last_error_code = "UPLOAD_METADATA_MISSING"
                 job.completed_at = now
+                job.worker_token = None
+                job.lease_expires_at = None
                 return None
 
             token = uuid.uuid4()

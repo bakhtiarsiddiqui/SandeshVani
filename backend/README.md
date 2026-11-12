@@ -83,9 +83,9 @@ SANDESHVANI_PG_TEST_URL="$SANDESHVANI_PG_TEST_URL" \
 
 The suite creates and removes a dedicated test database and temporary test
 roles; never point it at a development or production database. Background jobs
-are not implemented yet. When they are, each job must receive a verified
-organization ID and establish transaction-local tenant context before accessing
-tenant-owned data.
+must receive a verified organization ID and establish transaction-local tenant
+context before accessing tenant-owned data. Audience imports use Celery/Redis and
+the PostgreSQL transactional outbox.
 
 ## Private audience CSV uploads
 
@@ -102,6 +102,44 @@ checks the UTF-8 CSV structure and an allowlisted header set, then records the
 tenant, uploader, size, row count and SHA-256 checksum. It does not parse rows
 into audience contacts or start an import worker; those are separate tasks.
 The original client filename and filesystem path are not persisted or returned.
+
+## Asynchronous audience imports (AUD-03)
+
+A validated upload creates upload metadata, a queued import job, and a
+transactional outbox event in one PostgreSQL transaction. PostgreSQL is the
+source of truth; the outbox publisher sends only job and tenant identifiers
+to Celery through Redis. CSV contents and contact values are never placed in
+Celery task payloads.
+
+Start Redis locally (or point `REDIS_URL` at an existing Redis service):
+
+```bash
+docker run -d --name sandeshvani-redis --restart unless-stopped \
+  -p 127.0.0.1:6379:6379 redis:7-alpine
+```
+
+In separate terminals, run the API, Celery worker, and Celery Beat:
+
+```bash
+uvicorn app.main:app --reload --port 8000
+celery -A app.core.celery_app:celery_app worker --loglevel=INFO --concurrency=2
+celery -A app.core.celery_app:celery_app beat --loglevel=INFO
+```
+
+Celery Beat scans the transactional outbox every 10 seconds. The worker uses a
+synchronous PostgreSQL session factory, establishes transaction-local tenant
+context before tenant-owned queries, verifies the private file size and
+SHA-256, and commits bounded chunks (default 500 rows) with progress counters.
+A lease and worker token prevent overlapping workers from processing the same
+job. Transient worker and broker failures are retried with bounded attempts.
+Row errors store only safe field, code, and generic message details; submitted
+contact values are never copied into error records.
+
+Poll `GET /api/v1/audiences/imports/{job_id}` for status and progress. Read
+paginated validation failures from
+`GET /api/v1/audiences/imports/{job_id}/errors`. Duplicate identity resolution
+remains AUD-04 and is intentionally not performed by this worker. Audience
+import processing does not call communication providers.
 
 ## Local Authentication Email
 
