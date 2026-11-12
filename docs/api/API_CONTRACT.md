@@ -61,6 +61,34 @@ Role assignment must validate same-organization membership/role scope and grant 
 - `POST /audiences/{audience_id}/consent`
 - `GET /suppression-entries`, `POST /suppression-entries`
 
+### AUD-01 — Audience contact CRUD
+
+The first implementation slice exposes organization-scoped audience contact records:
+
+- `POST /audiences` — create one contact (201).
+- `GET /audiences` — list contacts using a bounded cursor (limit 1–100; default 25), with optional `search`, `status`, `district`, and `language` filters.
+- `GET /audiences/{audience_id}` — retrieve one contact in the verified active organization.
+- `PATCH /audiences/{audience_id}` — update supplied fields; use `status: "inactive"` to deactivate. Hard deletion is not exposed.
+
+Create/update requests require the existing organization-scoped `audiences:create` / `audiences:update` permission, CSRF token and trusted Origin/Referer validation. Reads require `audiences:read`. The tenant is derived from authenticated membership and active organization context; an organization header is not authorization evidence.
+
+Fields in this CRUD slice: `full_name` (required), `email` (optional), `phone` (optional, E.164), `preferred_language` (`en` or `hi` in the current MVP registry), `district` (optional), and `status` (`active` or `inactive`). At least one contact point (email or phone) is required. Email is normalized to lowercase.
+
+Duplicate identity matching is intentionally not enforced yet: the product's duplicate policy is still open and must be resolved before CSV import/deduplication. This CRUD slice does not implement CSV imports, segments, consent, suppression, exports or audit-event history. The record stores creator/last-updater references, which are metadata rather than an append-only audit log.
+
+Collection response:
+
+```json
+{
+  "data": [],
+  "pagination": {
+    "next_cursor": null,
+    "has_more": false,
+    "limit": 25
+  }
+}
+```
+
 Example audience:
 
 ```json
