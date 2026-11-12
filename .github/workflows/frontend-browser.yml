@@ -1,0 +1,50 @@
+name: Frontend browser checks
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-browser.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-browser-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chromium:
+    name: Chromium browser smoke tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      # Keep Playwright as pinned CI tooling without changing the app's runtime dependencies.
+      - run: npm install --no-save --package-lock=false @playwright/test@1.65.0
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+      - name: Upload browser traces and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandeshvani-browser-test-results
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -1,3 +1,5 @@
+import { cloneElement, isValidElement, useId } from 'react';
+
 export default function FormField({
   label,
   id,
@@ -7,25 +9,38 @@ export default function FormField({
   children,
   className = '',
 }) {
-  const errorId = error ? `${id}-error` : undefined;
-  const helperId = helperText ? `${id}-helper` : undefined;
+  const generatedId = useId();
+  const fieldId = id || generatedId;
+  const errorId = error ? `${fieldId}-error` : undefined;
+  const helperId = helperText ? `${fieldId}-helper` : undefined;
   const describedBy = [errorId, helperId].filter(Boolean).join(' ') || undefined;
+  const controlProps = {
+    id: fieldId,
+    'aria-describedby': describedBy,
+    hasError: Boolean(error),
+  };
+
+  const control = typeof children === 'function'
+    ? children(controlProps)
+    : isValidElement(children)
+      ? cloneElement(children, {
+          id: children.props.id || fieldId,
+          'aria-describedby': children.props['aria-describedby'] || describedBy,
+          hasError: children.props.hasError ?? Boolean(error),
+        })
+      : children;
 
   return (
     <div className={`form-control w-full space-y-1.5 ${className}`.trim()}>
       {label && (
-        <label htmlFor={id} className="label-text block text-sm font-medium text-base-content">
+        <label htmlFor={fieldId} className="label-text block text-sm font-medium text-base-content">
           {label}
           {required && <span className="text-error ml-1" aria-hidden="true">*</span>}
           {required && <span className="sr-only">(required)</span>}
         </label>
       )}
 
-      <div>
-        {typeof children === 'function'
-          ? children({ id, 'aria-describedby': describedBy, hasError: Boolean(error) })
-          : children}
-      </div>
+      <div>{control}</div>
 
       {helperText && !error && (
         <p id={helperId} className="text-xs text-base-content/60">
@@ -44,4 +59,3 @@ export default function FormField({
     </div>
   );
 }
-
