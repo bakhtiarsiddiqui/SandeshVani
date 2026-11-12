@@ -12,7 +12,9 @@ from fastapi import HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
+from app.models.audience_import_job import AudienceImportJob
 from app.models.audience_import_upload import AudienceImportUpload
+from app.models.outbox_event import OutboxEvent
 
 logger = logging.getLogger(__name__)
 
@@ -183,7 +185,9 @@ class AudienceImportService:
         self.actor_user_id = actor_user_id
         self.settings = settings
 
-    async def upload_csv(self, upload: UploadFile) -> AudienceImportUpload:
+    async def upload_csv(
+        self, upload: UploadFile
+    ) -> tuple[AudienceImportUpload, AudienceImportJob]:
         try:
             content = await upload.read(self.settings.audience_import_max_bytes + 1)
         finally:
@@ -215,6 +219,7 @@ class AudienceImportService:
                 detail="Audience upload storage is unavailable",
             ) from err
 
+        job_id = uuid.uuid4()
         record = AudienceImportUpload(
             id=upload_id,
             organization_id=self.organization_id,
@@ -223,7 +228,26 @@ class AudienceImportService:
             row_count=row_count,
             sha256=checksum,
         )
-        self.session.add(record)
+        job = AudienceImportJob(
+            id=job_id,
+            organization_id=self.organization_id,
+            upload_id=upload_id,
+            uploaded_by_id=self.actor_user_id,
+            status="queued",
+            total_rows=row_count,
+            processed_rows=0,
+            imported_rows=0,
+            error_rows=0,
+            chunk_size=self.settings.audience_import_chunk_size,
+        )
+        event = OutboxEvent(
+            organization_id=self.organization_id,
+            aggregate_type="audience_import_job",
+            aggregate_id=job_id,
+            event_type="audience_import.queued",
+            payload={"job_id": str(job_id), "upload_id": str(upload_id)},
+        )
+        self.session.add_all([record, job, event])
         try:
             await self.session.commit()
         except Exception:
@@ -242,4 +266,5 @@ class AudienceImportService:
             raise
 
         await self.session.refresh(record)
-        return record
+        await self.session.refresh(job)
+        return record, job
