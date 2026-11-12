@@ -8,7 +8,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 
 from app.core.config import Settings, get_settings
-from app.main import app, create_app
+from app.main import create_app
 from app.models.audience_import_upload import AudienceImportUpload
 
 PASSWORD = "CommonPassword123!"
@@ -62,7 +62,7 @@ def _tenant_headers(token: str, organization_id: str, csrf: str) -> dict:
     }
 
 
-def _override_upload_settings(monkeypatch, directory, **overrides) -> Settings:
+def _override_upload_settings(monkeypatch, directory, application, **overrides) -> Settings:
     settings = Settings(
         _env_file=None,
         app_env="local",
@@ -71,19 +71,20 @@ def _override_upload_settings(monkeypatch, directory, **overrides) -> Settings:
         audience_import_storage_dir=directory,
         **overrides,
     )
-    monkeypatch.setitem(app.dependency_overrides, get_settings, lambda: settings)
+    monkeypatch.setitem(application.dependency_overrides, get_settings, lambda: settings)
     return settings
 
 
 @pytest.mark.asyncio
 async def test_csv_upload_is_tenant_scoped_and_stored_privately(
     async_client,
+    test_app,
     development_mail_sink,
     test_db_session,
     tmp_path,
     monkeypatch,
 ):
-    _override_upload_settings(monkeypatch, tmp_path)
+    _override_upload_settings(monkeypatch, tmp_path, test_app)
     token, csrf = await _register_login(
         async_client, "csv-upload@example.org", development_mail_sink
     )
@@ -192,6 +193,7 @@ async def test_csv_upload_enforces_file_and_row_limits(
     _override_upload_settings(
         monkeypatch,
         tmp_path,
+        test_app,
         audience_import_max_bytes=20,
         audience_import_max_rows=1,
     )
@@ -224,7 +226,7 @@ async def test_csv_upload_enforces_file_and_row_limits(
         audience_import_max_rows=1,
     )
     monkeypatch.setitem(
-        app.dependency_overrides,
+        test_app.dependency_overrides,
         get_settings,
         lambda: row_limited_settings,
     )
