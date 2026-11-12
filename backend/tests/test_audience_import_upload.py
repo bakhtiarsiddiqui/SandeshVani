@@ -10,6 +10,8 @@ from sqlalchemy import select
 from app.core.config import Settings, get_settings
 from app.main import create_app
 from app.models.audience_import_upload import AudienceImportUpload
+from app.models.audience_import_job import AudienceImportJob
+from app.models.outbox_event import OutboxEvent
 
 PASSWORD = "CommonPassword123!"
 
@@ -107,17 +109,36 @@ async def test_csv_upload_is_tenant_scoped_and_stored_privately(
 
     assert response.status_code == 202, response.text
     payload = response.json()
-    upload_id = uuid.UUID(payload["id"])
+    job_id = uuid.UUID(payload["id"])
+    upload_id = uuid.UUID(payload["upload_id"])
+    job = await test_db_session.scalar(
+        select(AudienceImportJob).where(AudienceImportJob.id == job_id)
+    )
     stored = await test_db_session.scalar(
         select(AudienceImportUpload).where(AudienceImportUpload.id == upload_id)
     )
+    event = await test_db_session.scalar(
+        select(OutboxEvent).where(
+            OutboxEvent.aggregate_id == job_id,
+            OutboxEvent.event_type == "audience_import.requested",
+        )
+    )
+    assert job is not None
+    assert job.organization_id == uuid.UUID(organization["id"])
+    assert job.status == "queued"
+    assert job.total_rows == 2
+    assert job.processed_rows == 0
+    assert job.imported_rows == 0
+    assert job.rejected_rows == 0
     assert stored is not None
     assert stored.organization_id == uuid.UUID(organization["id"])
     assert stored.uploaded_by_id is not None
+    assert stored.byte_size == len(csv_content)
+    assert stored.row_count == 2
+    assert stored.sha256 == hashlib.sha256(csv_content).hexdigest()
+    assert event is not None and event.status == "pending"
     assert payload["organization_id"] == organization["id"]
-    assert payload["byte_size"] == len(csv_content)
-    assert payload["row_count"] == 2
-    assert payload["sha256"] == hashlib.sha256(csv_content).hexdigest()
+    assert payload["total_rows"] == 2
     assert payload["created_at"]
 
     stored_path = tmp_path / f"{upload_id.hex}.csv"

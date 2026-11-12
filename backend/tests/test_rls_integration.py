@@ -1021,6 +1021,9 @@ async def test_migration_upgrade_downgrade(pg_setup):
                 "role_permissions",
                 "audience_members",
                 "audience_import_uploads",
+                "audience_import_jobs",
+                "audience_import_job_errors",
+                "outbox_events",
             )
             for table in protected_tables:
                 row = await verify_conn.fetchrow(
@@ -1038,7 +1041,13 @@ async def test_migration_upgrade_downgrade(pg_setup):
                     f"FORCE RLS not enabled on {table}"
                 )
 
-            for table in ("audience_members", "audience_import_uploads"):
+            for table in (
+                "audience_members",
+                "audience_import_uploads",
+                "audience_import_jobs",
+                "audience_import_job_errors",
+                "outbox_events",
+            ):
                 policy = await verify_conn.fetchrow(
                     """
                     SELECT policyname, cmd, qual, with_check
