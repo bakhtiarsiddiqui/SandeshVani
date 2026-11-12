@@ -3,7 +3,6 @@ import uuid
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.audience_member import AudienceMember
 
@@ -67,7 +66,7 @@ def _tenant_headers(
 async def test_audience_crud_and_filters(
     async_client: AsyncClient,
     development_mail_sink,
-    test_db_session: AsyncSession,
+    test_db_session,
 ):
     token, csrf = await _register_login(
         async_client, "audience-admin@example.org", development_mail_sink
