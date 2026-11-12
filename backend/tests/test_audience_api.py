@@ -1,8 +1,7 @@
-# ruff: noqa: I001
 import uuid
 
-import pytest
 from httpx import AsyncClient
+import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

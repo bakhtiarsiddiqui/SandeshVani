@@ -12,6 +12,7 @@ from app.api.deps import (
     verify_csrf,
     verify_origin,
 )
+from app.core.http_status import HTTP_422_UNPROCESSABLE_CONTENT
 from app.db.session import get_db
 from app.schemas.audience import (
     AudienceMemberCreate,
@@ -42,12 +43,12 @@ async def list_audience_members(
 ):
     if search is not None and not search.strip():
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=HTTP_422_UNPROCESSABLE_CONTENT,
             detail="search must not be blank",
         )
     if district is not None and not district.strip():
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=HTTP_422_UNPROCESSABLE_CONTENT,
             detail="district must not be blank",
         )
 

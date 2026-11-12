@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.http_status import HTTP_422_UNPROCESSABLE_CONTENT
 from app.models.audience_member import AudienceMember
 from app.repositories.audience_repo import AudienceRepository
 from app.schemas.audience import AudienceMemberCreate
@@ -60,7 +61,7 @@ class AudienceService:
         except ValidationError as err:
             # Do not echo email addresses or phone numbers in the public error.
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Update must leave at least one valid contact point",
             ) from err
 
