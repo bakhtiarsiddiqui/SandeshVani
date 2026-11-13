@@ -117,7 +117,5 @@ class AudienceImportJobService:
         has_more = len(errors) > limit
         if has_more:
             errors = errors[:limit]
-        next_cursor = (
-            _encode_error_cursor(errors[-1]) if has_more and errors else None
-        )
+        next_cursor = _encode_error_cursor(errors[-1]) if has_more and errors else None
         return errors, has_more, next_cursor
