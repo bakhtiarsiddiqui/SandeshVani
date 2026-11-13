@@ -22,7 +22,7 @@ function getErrorMessage(error, fallback) {
 }
 
 function MemberForm({ initialValue = EMPTY_FORM, onCancel, onSave, saving, editing = false }) {
-  const [form, setForm] = useState({ ...EMPTY_FORM, ...initialValue });
+  const [form, setForm] = useState(() => ({ ...EMPTY_FORM, ...initialValue, email: initialValue.email || "", phone: initialValue.phone || "", district: initialValue.district || "" }));
   const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
   const hasContactPoint = Boolean(form.email.trim() || form.phone.trim());
   return <form className="rounded-xl border border-base-300 bg-base-100 p-4 space-y-4" onSubmit={(event) => {
