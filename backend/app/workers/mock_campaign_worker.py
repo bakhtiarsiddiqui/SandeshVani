@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 
 from app.models.audience_member import AudienceMember
 from app.models.governance import (
-    AuditEvent,
     AudienceSegmentVersion,
+    AuditEvent,
     CampaignApproval,
     CampaignExecution,
     CampaignVersion,
