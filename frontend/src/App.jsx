@@ -70,6 +70,12 @@ function AppRouter() {
 
   const [route, setRoute] = useState(getInitialRoute);
   const [verifyEmailAddress, setVerifyEmailAddress] = useState("");
+  const [verifyToken, setVerifyToken] = useState(() => {
+    if (typeof window !== "undefined") {
+      return new URLSearchParams(window.location.search).get("verify_token") || "";
+    }
+    return "";
+  });
   const [resetToken, setResetToken] = useState(() => {
     if (typeof window !== "undefined") {
       return new URLSearchParams(window.location.search).get("reset_token") || "";
@@ -127,7 +133,11 @@ function AppRouter() {
       {route === ROUTES.VERIFY_EMAIL && (
         <VerifyEmail
           initialEmail={verifyEmailAddress}
-          onNavigateLogin={() => navigate(ROUTES.LOGIN)}
+          initialToken={verifyToken}
+          onNavigateLogin={() => {
+            setVerifyToken("");
+            navigate(ROUTES.LOGIN);
+          }}
         />
       )}
 
