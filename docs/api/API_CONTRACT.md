@@ -116,16 +116,30 @@ The 202 response contains the upload UUID, organization UUID, byte size, row cou
 
 ### AUD-03 — Asynchronous import processing
 
-- `GET /audiences/imports/{job_id}` returns tenant-scoped job status, total/processed/imported/error row counts, chunk size, safe terminal error code, and lifecycle timestamps. It requires `audiences:read`.
+- `GET /audiences/imports/{job_id}` returns tenant-scoped job status, total/processed/imported/error/duplicate row counts, chunk size, safe terminal error code, and lifecycle timestamps. It requires `audiences:read`.
 - `GET /audiences/imports/{job_id}/errors?limit=&cursor=` returns paginated field-level validation issues. It requires `audiences:read`; limits are 1–100 (default 50). The opaque cursor is ordered by `(row_number, id)`, so multiple issues for the same CSV row are not skipped.
 - The outbox publisher scans PostgreSQL outbox rows and dispatches only job and organization identifiers to Celery over Redis. Raw CSV contents and contact values never enter the queue.
 - The worker verifies the private file byte size and SHA-256 before processing. It uses a lease/worker token and a bounded number of rows per transaction (default 500, configurable with `AUDIENCE_IMPORT_CHUNK_SIZE`).
 - Job statuses are `queued`, `processing`, `completed`, `completed_with_errors`, and `failed`. Progress counters are checkpointed with each committed chunk.
 - Row numbers are logical CSV row numbers: header is row 1, the first nonblank data row is row 2, and blank lines are ignored. Each issue stores only an allowlisted `field_name` and stable `error_code`; rejected values and raw validation messages are not persisted. Multiple issue records may share a row number. The job's `error_rows` counter counts rejected source rows, not issue records.
 - Transient worker failures are retried. Expired worker leases can be reclaimed; redelivery of a completed job is a no-op. Outbox publication retries are bounded and eventually dead-letter.
-- Valid rows are created using the same AUD-01 contact schema. Duplicate identity resolution remains AUD-04 and is intentionally not performed here.
+- Valid rows are created using the same AUD-01 contact schema. Exact duplicate identity handling is defined in AUD-04 below.
 
 AUD-03 does not introduce consent/suppression checks, segments, exports, or live communications; those remain separate tasks.
+
+### AUD-04 — Duplicate identity detection and resolution
+
+The proposed identity policy is organization-scoped exact matching, with no fuzzy name matching:
+
+- Email identity is normalized as trimmed, lowercase email. Phone identity is the trimmed E.164 value accepted by the AUD-01 schema; the platform does not infer a country code.
+- Email and phone are individually unique within one organization, including inactive contacts. The same identifiers may exist in different organizations.
+- Manual contact create/update requests return HTTP 409 when either identifier is already reserved by another contact. The response does not reveal the existing contact or echo the matched identifier.
+- CSV imports do not merge, overwrite, reactivate, or enrich an existing contact. If only email matches, the row is recorded as `DUPLICATE_EMAIL`; if only phone matches, `DUPLICATE_PHONE`; if both match the same contact, `DUPLICATE_CONTACT`; if the supplied email and phone resolve to different contacts or a key resolves to multiple legacy contacts, `IDENTITY_CONFLICT`.
+- Duplicate rows are skipped and recorded through the existing tenant-scoped import issue endpoint. `duplicate_rows` counts skipped duplicate/conflict source rows; `error_rows` continues to count validation-rejected rows. The accounting invariant is `processed_rows = imported_rows + error_rows + duplicate_rows`.
+- Exact identity indexes are enforced in PostgreSQL. The AUD-04 migration checks for existing tenant duplicates before creating indexes and aborts without selecting or modifying records when cleanup is required. Resolve legacy duplicates deliberately before retrying the migration.
+- This is a conservative no-auto-merge policy. Any later merge, overwrite, revive, phone-sharing exception, or fuzzy matching requires a separate audited product decision.
+
+The uniqueness of phone numbers may reject contacts who legitimately share a household or institutional number. This proposed trade-off requires owner review before applying the migration to production data.
 
 Segment filters use an allowlisted, type-checked grammar. Never accept raw SQL.
 

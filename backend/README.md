@@ -141,9 +141,29 @@ rejected source rows rather than issue records.
 Poll `GET /api/v1/audiences/imports/{job_id}` for status and progress. Read
 issues from `GET /api/v1/audiences/imports/{job_id}/errors?limit=&cursor=`.
 The opaque cursor orders by `(row_number, id)` so pagination does not skip
-additional issues for a row. Duplicate identity resolution remains AUD-04
-and is intentionally not performed by this worker. Audience import processing
-does not call communication providers.
+additional issues for a row. The import worker applies the AUD-04 exact identity
+policy below. Audience import processing does not call communication providers.
+
+## Audience duplicate identity policy (AUD-04)
+
+Email is matched case-insensitively after trimming; phone is matched as the
+trimmed E.164 value. Both keys are scoped to the active organization and are
+reserved by active and inactive contacts. The database enforces partial unique
+indexes on normalized email and phone. An existing duplicate discovered during
+migration preflight blocks index creation; migration never picks a winner or
+rewrites contact data.
+
+Manual create/update returns HTTP 409 for an identity already used by another
+contact. Imports skip duplicates without merging, overwriting or reactivating
+existing contacts. The import issue endpoint reports `DUPLICATE_EMAIL`,
+`DUPLICATE_PHONE`, `DUPLICATE_CONTACT` or `IDENTITY_CONFLICT` using only
+row number, field name and stable code. The job exposes `duplicate_rows`
+separately from validation `error_rows`; progress reconciles as imported +
+validation-error + duplicate rows.
+
+This conservative policy intentionally does not perform fuzzy name matching
+or automatic merges. Shared phone numbers are not supported by this proposed
+uniqueness policy and require owner review before production migration.
 
 ## Local Authentication Email
 

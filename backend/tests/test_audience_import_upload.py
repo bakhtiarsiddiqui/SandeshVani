@@ -128,6 +128,7 @@ async def test_csv_upload_is_tenant_scoped_and_stored_privately(
     assert payload["processed_rows"] == 0
     assert payload["imported_rows"] == 0
     assert payload["error_rows"] == 0
+    assert payload["duplicate_rows"] == 0
 
     job_id = uuid.UUID(payload["job_id"])
     job = await test_db_session.scalar(

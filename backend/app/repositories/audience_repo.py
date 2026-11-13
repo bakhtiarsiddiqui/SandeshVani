@@ -56,6 +56,32 @@ class AudienceRepository:
         self.session = session
         self.organization_id = organization_id
 
+    async def find_identity_matches(
+        self,
+        *,
+        email: str | None,
+        phone: str | None,
+        exclude_member_id: uuid.UUID | None = None,
+    ) -> list[AudienceMember]:
+        identity_filters = []
+        if email:
+            identity_filters.append(
+                func.lower(func.trim(AudienceMember.email)) == email.strip().lower()
+            )
+        if phone:
+            identity_filters.append(func.trim(AudienceMember.phone) == phone.strip())
+        if not identity_filters:
+            return []
+
+        statement = select(AudienceMember).where(
+            AudienceMember.organization_id == self.organization_id,
+            or_(*identity_filters),
+        )
+        if exclude_member_id is not None:
+            statement = statement.where(AudienceMember.id != exclude_member_id)
+        result = await self.session.execute(statement.order_by(AudienceMember.id.asc()))
+        return list(result.scalars().all())
+
     async def create(self, *, values: dict, actor_user_id: uuid.UUID) -> AudienceMember:
         member = AudienceMember(
             organization_id=self.organization_id,
@@ -63,8 +89,9 @@ class AudienceRepository:
             updated_by=actor_user_id,
             **values,
         )
-        self.session.add(member)
-        await self.session.flush()
+        async with self.session.begin_nested():
+            self.session.add(member)
+            await self.session.flush()
         return member
 
     async def get_by_id(self, member_id: uuid.UUID) -> AudienceMember | None:
@@ -146,8 +173,9 @@ class AudienceRepository:
         values: dict,
         actor_user_id: uuid.UUID,
     ) -> AudienceMember:
-        for field_name, value in values.items():
-            setattr(member, field_name, value)
-        member.updated_by = actor_user_id
-        await self.session.flush()
+        async with self.session.begin_nested():
+            for field_name, value in values.items():
+                setattr(member, field_name, value)
+            member.updated_by = actor_user_id
+            await self.session.flush()
         return member

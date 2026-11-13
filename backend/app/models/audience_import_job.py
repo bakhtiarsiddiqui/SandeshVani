@@ -32,11 +32,11 @@ class AudienceImportJob(Base, UUIDPrimaryKeyMixin, TimestampMixin):
             name="ck_audience_import_jobs_processed_rows",
         ),
         CheckConstraint(
-            "imported_rows >= 0 AND error_rows >= 0",
+            "imported_rows >= 0 AND error_rows >= 0 AND duplicate_rows >= 0",
             name="ck_audience_import_jobs_result_rows",
         ),
         CheckConstraint(
-            "processed_rows = imported_rows + error_rows",
+            "processed_rows = imported_rows + error_rows + duplicate_rows",
             name="ck_audience_import_jobs_row_accounting",
         ),
         CheckConstraint("chunk_size > 0", name="ck_audience_import_jobs_chunk_size"),
@@ -85,6 +85,9 @@ class AudienceImportJob(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     processed_rows: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     imported_rows: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     error_rows: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    duplicate_rows: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
     chunk_size: Mapped[int] = mapped_column(Integer, nullable=False)
     attempt_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     worker_token: Mapped[uuid.UUID | None] = mapped_column(nullable=True)

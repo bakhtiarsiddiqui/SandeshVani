@@ -26,7 +26,15 @@ def _create_database():
     return engine, sessionmaker(bind=engine, expire_on_commit=False)
 
 
-def _seed_job(session_factory, storage_dir, content, *, chunk_size=2, digest=None):
+def _seed_job(
+    session_factory,
+    storage_dir,
+    content,
+    *,
+    chunk_size=2,
+    digest=None,
+    total_rows=4,
+):
     organization_id = uuid.uuid4()
     user_id = uuid.uuid4()
     upload_id = uuid.uuid4()
@@ -57,7 +65,7 @@ def _seed_job(session_factory, storage_dir, content, *, chunk_size=2, digest=Non
                 organization_id=organization_id,
                 uploaded_by_id=user_id,
                 byte_size=len(content),
-                row_count=4,
+                row_count=total_rows,
                 sha256=digest or hashlib.sha256(content).hexdigest(),
             )
         )
@@ -68,10 +76,11 @@ def _seed_job(session_factory, storage_dir, content, *, chunk_size=2, digest=Non
                 upload_id=upload_id,
                 uploaded_by_id=user_id,
                 status="queued",
-                total_rows=4,
+                total_rows=total_rows,
                 processed_rows=0,
                 imported_rows=0,
                 error_rows=0,
+                duplicate_rows=0,
                 chunk_size=chunk_size,
             )
         )
@@ -178,3 +187,139 @@ def test_worker_fails_closed_when_private_upload_checksum_changes(import_db):
     assert job.status == "failed"
     assert job.last_error_code == "UPLOAD_CHECKSUM_MISMATCH"
     assert members == []
+
+
+def test_worker_skips_duplicate_and_conflicting_identity_rows(import_db):
+    _, session_factory, storage_dir = import_db
+    content = (
+        b"full_name,email,phone,preferred_language,district\n"
+        b"Same Email,existing@example.org,+919333333333,en,Meerut\n"
+        b"Same Phone,new@example.org,+922222222222,en,Agra\n"
+        b"Conflicting Keys,existing@example.org,+922222222222,en,Noida\n"
+        b"Same Existing Contact,existing@example.org,+911111111111,en,Meerut\n"
+        b"New Contact,fresh@example.org,+944444444444,en,Delhi\n"
+    )
+    organization_id, _, job_id = _seed_job(
+        session_factory, storage_dir, content, chunk_size=5, total_rows=5
+    )
+    with session_factory.begin() as session:
+        job = session.get(AudienceImportJob, job_id)
+        assert job is not None
+        session.add_all(
+            [
+                AudienceMember(
+                    organization_id=organization_id,
+                    created_by=job.uploaded_by_id,
+                    updated_by=job.uploaded_by_id,
+                    full_name="Existing Email Owner",
+                    email="existing@example.org",
+                    phone="+911111111111",
+                    preferred_language="en",
+                    district="Meerut",
+                    status="active",
+                ),
+                AudienceMember(
+                    organization_id=organization_id,
+                    created_by=job.uploaded_by_id,
+                    updated_by=job.uploaded_by_id,
+                    full_name="Existing Phone Owner",
+                    email="other@example.org",
+                    phone="+922222222222",
+                    preferred_language="en",
+                    district="Agra",
+                    status="active",
+                ),
+            ]
+        )
+
+    worker = AudienceImportWorker(session_factory, storage_dir, lease_seconds=30)
+    result = worker.process(job_id, organization_id)
+
+    assert result == {"status": "completed", "processed_rows": 5}
+    with session_factory() as session:
+        job = session.get(AudienceImportJob, job_id)
+        members = list(
+            session.scalars(
+                select(AudienceMember).where(
+                    AudienceMember.organization_id == organization_id
+                )
+            )
+        )
+        issues = list(
+            session.scalars(
+                select(AudienceImportJobError)
+                .where(
+                    AudienceImportJobError.organization_id == organization_id,
+                    AudienceImportJobError.job_id == job_id,
+                )
+                .order_by(AudienceImportJobError.row_number)
+            )
+        )
+
+    assert job is not None
+    assert job.status == "completed"
+    assert job.processed_rows == 5
+    assert job.imported_rows == 1
+    assert job.error_rows == 0
+    assert job.duplicate_rows == 4
+    assert len(members) == 3
+    assert [
+        (issue.row_number, issue.field_name, issue.error_code) for issue in issues
+    ] == [
+        (2, "email", "DUPLICATE_EMAIL"),
+        (3, "phone", "DUPLICATE_PHONE"),
+        (4, None, "IDENTITY_CONFLICT"),
+        (5, None, "DUPLICATE_CONTACT"),
+    ]
+    issue_metadata = str([(issue.field_name, issue.error_code) for issue in issues])
+    assert "existing@example.org" not in issue_metadata
+    assert "+922222222222" not in issue_metadata
+
+    # Re-delivery cannot turn previously skipped duplicate rows into new contacts.
+    assert worker.process(job_id, organization_id) == {"status": "not_claimed"}
+
+
+def test_worker_detects_duplicates_created_earlier_in_same_csv(import_db):
+    _, session_factory, storage_dir = import_db
+    content = (
+        b"full_name,email,phone\n"
+        b"First Row,same@example.org,+919876543210\n"
+        b"Second Row,SAME@example.org,+919876543211\n"
+    )
+    organization_id, _, job_id = _seed_job(
+        session_factory,
+        storage_dir,
+        content,
+        chunk_size=2,
+        total_rows=2,
+    )
+
+    worker = AudienceImportWorker(session_factory, storage_dir, lease_seconds=30)
+    result = worker.process(job_id, organization_id)
+
+    assert result == {"status": "completed", "processed_rows": 2}
+    with session_factory() as session:
+        job = session.get(AudienceImportJob, job_id)
+        members = list(
+            session.scalars(
+                select(AudienceMember).where(
+                    AudienceMember.organization_id == organization_id
+                )
+            )
+        )
+        issues = list(
+            session.scalars(
+                select(AudienceImportJobError).where(
+                    AudienceImportJobError.job_id == job_id
+                )
+            )
+        )
+
+    assert job is not None
+    assert job.imported_rows == 1
+    assert job.duplicate_rows == 1
+    assert job.error_rows == 0
+    assert len(members) == 1
+    assert [(issue.row_number, issue.error_code) for issue in issues] == [
+        (3, "DUPLICATE_EMAIL")
+    ]
