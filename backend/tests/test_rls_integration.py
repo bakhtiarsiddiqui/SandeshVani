@@ -1159,9 +1159,7 @@ async def test_migration_upgrade_downgrade(pg_setup):
                     table,
                     f"{table}_append_only",
                 )
-                assert trigger is not None, (
-                    f"Append-only trigger missing for {table}"
-                )
+                assert trigger is not None, f"Append-only trigger missing for {table}"
             campaign_trigger = await verify_conn.fetchrow(
                 """
                 SELECT tgname FROM pg_trigger
