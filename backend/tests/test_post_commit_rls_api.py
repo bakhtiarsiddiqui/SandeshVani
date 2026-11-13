@@ -129,15 +129,15 @@ async def postgres_api_environment(tmp_path):
     try:
         async with admin_factory() as session:
             actor = User(
-                email=f"rls-admin-{suffix}@example.test",
-                normalized_email=f"rls-admin-{suffix}@example.test",
+                email=f"rls-admin-{suffix}@example.com",
+                normalized_email=f"rls-admin-{suffix}@example.com",
                 password_hash="unused-in-this-api-test",
                 full_name="RLS API Administrator",
                 status="active",
             )
             invitee = User(
-                email=f"rls-invitee-{suffix}@example.test",
-                normalized_email=f"rls-invitee-{suffix}@example.test",
+                email=f"rls-invitee-{suffix}@example.com",
+                normalized_email=f"rls-invitee-{suffix}@example.com",
                 password_hash="unused-in-this-api-test",
                 full_name="RLS API Invitee",
                 status="active",
@@ -235,7 +235,7 @@ async def test_audience_and_member_api_responses_keep_rls_tenant_context(
             "/api/v1/audiences",
             json={
                 "full_name": "Post Commit RLS Test",
-                "email": "post-commit@example.test",
+                "email": "post-commit@example.com",
                 "preferred_language": "en",
             },
         )
@@ -254,7 +254,7 @@ async def test_audience_and_member_api_responses_keep_rls_tenant_context(
             files={
                 "file": (
                     "rls-audience.csv",
-                    "full_name,email\nCSV RLS Test,csv-rls@example.test\n",
+                    "full_name,email\nCSV RLS Test,csv-rls@example.com\n",
                     "text/csv",
                 )
             },
