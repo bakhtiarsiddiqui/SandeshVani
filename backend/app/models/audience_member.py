@@ -6,6 +6,7 @@ from sqlalchemy import (
     Index,
     String,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -54,6 +55,22 @@ class AudienceMember(Base, UUIDPrimaryKeyMixin, TimestampMixin):
             "ix_audience_members_org_language",
             "organization_id",
             "preferred_language",
+        ),
+        Index(
+            "uq_audience_members_org_email_identity",
+            "organization_id",
+            text("lower(trim(email))"),
+            unique=True,
+            postgresql_where=text("email IS NOT NULL AND trim(email) <> ''"),
+            sqlite_where=text("email IS NOT NULL AND trim(email) <> ''"),
+        ),
+        Index(
+            "uq_audience_members_org_phone_identity",
+            "organization_id",
+            text("trim(phone)"),
+            unique=True,
+            postgresql_where=text("phone IS NOT NULL AND trim(phone) <> ''"),
+            sqlite_where=text("phone IS NOT NULL AND trim(phone) <> ''"),
         ),
     )
 
