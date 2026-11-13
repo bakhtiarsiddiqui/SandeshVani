@@ -293,11 +293,18 @@ class AuthService:
         # Resolve active org
         user_orgs = await self.org_repo.get_user_organizations(user.id)
         active_org = next(
-            (org for org in user_orgs if org.id == auth_session.active_organization_id),
-            user_orgs[0] if user_orgs else None,
+            (
+                org
+                for org in user_orgs
+                if org.id == auth_session.active_organization_id
+            ),
+            None,
         )
-        if auth_session.active_organization_id != (active_org.id if active_org else None):
-            auth_session.active_organization_id = active_org.id if active_org else None
+        if active_org is None and user_orgs:
+            active_org = user_orgs[0]
+        resolved_org_id = active_org.id if active_org else None
+        if auth_session.active_organization_id != resolved_org_id:
+            auth_session.active_organization_id = resolved_org_id
             await self.session.flush()
 
         new_access_token = create_access_token(
