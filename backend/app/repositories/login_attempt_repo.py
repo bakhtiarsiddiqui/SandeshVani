@@ -45,9 +45,7 @@ class LoginAttemptRepository:
         )
         return {row.key_hash: row.attempt_count for row in result}
 
-    async def record_failure(
-        self, key_hashes: list[str], window_seconds: int
-    ) -> None:
+    async def record_failure(self, key_hashes: list[str], window_seconds: int) -> None:
         now = datetime.now(UTC)
         cutoff = now - timedelta(seconds=window_seconds)
         dialect = self.session.bind.dialect.name
@@ -90,9 +88,7 @@ class LoginAttemptRepository:
             await self.session.execute(statement)
 
         await self.session.execute(
-            delete(model).where(
-                model.window_started_at < now - timedelta(days=1)
-            )
+            delete(model).where(model.window_started_at < now - timedelta(days=1))
         )
         await self.session.flush()
 

@@ -51,9 +51,7 @@ async def test_last_organization_administrator_role_cannot_be_removed(
     )
     await test_db_session.commit()
 
-    membership = await service.membership_repo.get_membership(
-        organization.id, actor.id
-    )
+    membership = await service.membership_repo.get_membership(organization.id, actor.id)
     with pytest.raises(HTTPException) as error:
         await service.remove_role_from_member(
             organization_id=organization.id,

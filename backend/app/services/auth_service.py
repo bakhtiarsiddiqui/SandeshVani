@@ -129,12 +129,8 @@ class AuthService:
         counts = await login_limits.get_counts(
             keys, settings.auth_login_rate_window_seconds
         )
-        if (
-            counts.get(email_key, 0) >= settings.auth_login_email_limit
-            or (
-                ip_key is not None
-                and counts.get(ip_key, 0) >= settings.auth_login_ip_limit
-            )
+        if counts.get(email_key, 0) >= settings.auth_login_email_limit or (
+            ip_key is not None and counts.get(ip_key, 0) >= settings.auth_login_ip_limit
         ):
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,

@@ -30,6 +30,6 @@ celery_app.conf.update(
         "cleanup-expired-audience-import-files": {
             "task": "app.workers.audience_import_tasks.cleanup_expired_audience_files",
             "schedule": 86400.0,
-        }
+        },
     },
 )

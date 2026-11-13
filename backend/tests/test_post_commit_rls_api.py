@@ -35,8 +35,13 @@ if not PG_TEST_URL:
     )
 
 
-def _url_for_database(database: str, *, username: str | None = None,
-                      password: str | None = None, async_driver: bool = False) -> str:
+def _url_for_database(
+    database: str,
+    *,
+    username: str | None = None,
+    password: str | None = None,
+    async_driver: bool = False,
+) -> str:
     url = make_url(PG_TEST_URL)
     return url.set(
         drivername="postgresql+asyncpg" if async_driver else "postgresql",
@@ -59,7 +64,7 @@ async def postgres_api_environment(tmp_path):
     admin = await asyncpg.connect(admin_dsn)
     try:
         await admin.execute(
-            f'CREATE ROLE "{app_role}" LOGIN PASSWORD \'{app_password}\' '
+            f"CREATE ROLE \"{app_role}\" LOGIN PASSWORD '{app_password}' "
             "NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;"
         )
         await admin.execute(f'CREATE DATABASE "{database}";')
@@ -97,11 +102,11 @@ async def postgres_api_environment(tmp_path):
     try:
         await admin_test.execute(f'GRANT USAGE ON SCHEMA public TO "{app_role}";')
         await admin_test.execute(
-            f'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public '
+            f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public "
             f'TO "{app_role}";'
         )
         await admin_test.execute(
-            f'GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public '
+            f"GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public "
             f'TO "{app_role}";'
         )
     finally:
@@ -269,5 +274,7 @@ async def test_audience_and_member_api_responses_keep_rls_tenant_context(
         assert added.status_code == 201, added.text
         payload = added.json()
         assert payload["user"]["email"] == postgres_api_environment["invitee_email"]
-        assert any(role["id"] == str(postgres_api_environment["role_id"])
-                   for role in payload["roles"])
+        assert any(
+            role["id"] == str(postgres_api_environment["role_id"])
+            for role in payload["roles"]
+        )
