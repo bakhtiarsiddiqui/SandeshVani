@@ -93,7 +93,9 @@ class AudienceMemberUpdate(BaseModel):
     )
     preferred_language: Literal["en", "hi"] | None = None
     district: str | None = Field(default=None, max_length=150)
-    state_code: str | None = Field(default=None, min_length=2, max_length=2, pattern=r"^[A-Z]{2}$")
+    state_code: str | None = Field(
+        default=None, min_length=2, max_length=2, pattern=r"^[A-Z]{2}$"
+    )
     city: str | None = Field(default=None, max_length=120)
     status: Literal["active", "inactive"] | None = None
 

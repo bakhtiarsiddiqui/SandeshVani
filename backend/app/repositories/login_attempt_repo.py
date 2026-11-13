@@ -23,7 +23,7 @@ class LoginAttemptRepository:
         normalized = value.strip().casefold()
         digest = hmac.new(
             self.hmac_secret,
-            f"login:{kind}:{normalized}".encode("utf-8"),
+            f"login:{kind}:{normalized}".encode(),
             hashlib.sha256,
         )
         return digest.hexdigest()

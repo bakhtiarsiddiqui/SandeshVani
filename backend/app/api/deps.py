@@ -1,6 +1,6 @@
+import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
-import uuid
 from typing import Annotated
 from urllib.parse import urlsplit
 

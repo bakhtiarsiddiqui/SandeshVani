@@ -27,7 +27,6 @@ from app.main import create_app
 from app.models.user import User
 from app.services.organization_service import OrganizationService
 
-
 PG_TEST_URL = os.environ.get("SANDESHVANI_PG_TEST_URL", "")
 if not PG_TEST_URL:
     pytest.skip(

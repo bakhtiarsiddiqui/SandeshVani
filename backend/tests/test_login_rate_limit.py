@@ -8,7 +8,7 @@ from app.core.config import get_settings
 async def test_login_failures_are_persistently_throttled(
     async_client: AsyncClient,
 ):
-    email = "throttle-target@example.test"
+    email = "throttle-target@example.com"
     settings = get_settings()
 
     for _ in range(settings.auth_login_email_limit):

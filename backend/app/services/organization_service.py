@@ -1,5 +1,5 @@
-from datetime import UTC, datetime
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -11,9 +11,9 @@ from app.models.membership import Membership
 from app.models.organization import Organization
 from app.models.role import Role
 from app.repositories.membership_repo import MembershipRepository
-from app.repositories.session_repo import SessionRepository
 from app.repositories.organization_repo import OrganizationRepository
 from app.repositories.role_repo import RoleRepository
+from app.repositories.session_repo import SessionRepository
 from app.repositories.user_repo import UserRepository
 
 

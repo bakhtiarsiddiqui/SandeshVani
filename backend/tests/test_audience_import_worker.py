@@ -117,7 +117,10 @@ def test_worker_processes_bounded_chunks_and_records_safe_row_errors(import_db):
             session.scalars(
                 select(AudienceImportJobError)
                 .where(AudienceImportJobError.organization_id == organization_id)
-                .order_by(AudienceImportJobError.row_number)
+                .order_by(
+                    AudienceImportJobError.row_number,
+                    AudienceImportJobError.field_name,
+                )
             )
         )
 
