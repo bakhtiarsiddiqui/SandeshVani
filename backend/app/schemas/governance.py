@@ -81,9 +81,7 @@ def validate_content_variants(variants: dict[str, dict[str, Any]]) -> None:
     allowed_channels = {"email", "sms", "whatsapp", "push"}
     allowed_languages = {"en", "hi"}
     if not variants or set(variants) - allowed_channels:
-        raise ValueError(
-            "variants must contain only supported communication channels"
-        )
+        raise ValueError("variants must contain only supported communication channels")
     for channel, language_variants in variants.items():
         if not isinstance(language_variants, dict) or not language_variants:
             raise ValueError(f"{channel} must contain explicit language variants")
