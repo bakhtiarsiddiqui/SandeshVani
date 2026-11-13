@@ -25,6 +25,8 @@ class AudienceMemberCreate(BaseModel):
     )
     preferred_language: Literal["en", "hi"] = "en"
     district: str | None = Field(default=None, max_length=150)
+    state_code: str | None = Field(default=None, min_length=2, max_length=2, pattern=r"^[A-Z]{2}$")
+    city: str | None = Field(default=None, max_length=120)
 
     @field_validator("full_name")
     @classmethod
@@ -56,6 +58,19 @@ class AudienceMemberCreate(BaseModel):
         value = value.strip()
         return value or None
 
+    @field_validator("state_code", mode="before")
+    @classmethod
+    def normalize_state_code(cls, value):
+        return value.strip().upper() if isinstance(value, str) else value
+
+    @field_validator("city")
+    @classmethod
+    def normalize_city(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
+
     @model_validator(mode="after")
     def require_contact_point(self):
         if self.email is None and self.phone is None:
@@ -76,6 +91,8 @@ class AudienceMemberUpdate(BaseModel):
     )
     preferred_language: Literal["en", "hi"] | None = None
     district: str | None = Field(default=None, max_length=150)
+    state_code: str | None = Field(default=None, min_length=2, max_length=2, pattern=r"^[A-Z]{2}$")
+    city: str | None = Field(default=None, max_length=120)
     status: Literal["active", "inactive"] | None = None
 
     @field_validator("full_name")
@@ -110,6 +127,19 @@ class AudienceMemberUpdate(BaseModel):
         value = value.strip()
         return value or None
 
+    @field_validator("state_code", mode="before")
+    @classmethod
+    def normalize_state_code(cls, value):
+        return value.strip().upper() if isinstance(value, str) else value
+
+    @field_validator("city")
+    @classmethod
+    def normalize_city(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
+
     @model_validator(mode="after")
     def reject_null_required_fields(self):
         for field_name in ("full_name", "preferred_language", "status"):
@@ -131,6 +161,8 @@ class AudienceMemberResponse(BaseModel):
     phone: str | None
     preferred_language: str
     district: str | None
+    state_code: str | None
+    city: str | None
     status: str
     created_at: datetime
     updated_at: datetime
