@@ -136,9 +136,8 @@ raw development tokens. The sink is process-local and is cleared on backend
 restart. This development transport is not a production email provider.
 
 Production configuration must not enable the local sink or Mailpit transport.
-A production transactional email provider, sender-domain verification (SPF,
-DKIM, and DMARC), retry handling, and delivery monitoring remain a separate
-production-readiness task.
+The Resend production adapter is implemented below. Activating it still requires
+verified sender-domain DNS records, deployment secrets, and delivery monitoring.
 
 
 ## Production transactional email (Resend)
