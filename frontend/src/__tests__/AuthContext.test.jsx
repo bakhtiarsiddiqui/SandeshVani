@@ -28,9 +28,16 @@ vi.mock('../api/client', () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Default: refresh endpoint returns 401 (unauthenticated)
+  // Default: refresh endpoint returns 401 (unauthenticated).
   mockPost.mockRejectedValue({ response: { status: 401 } });
-  mockGet.mockRejectedValue({ response: { status: 401 } });
+  // A normal user has no global platform role. Tests that restore /auth/me
+  // can still override the first call with mockResolvedValueOnce.
+  mockGet.mockImplementation((url) => {
+    if (url === '/platform/me') {
+      return Promise.resolve({ data: { platform_roles: [], platform_permissions: [] } });
+    }
+    return Promise.reject({ response: { status: 401 } });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -48,56 +55,37 @@ function AuthConsumer() {
   );
 }
 
-
 function LoginConsumer({ email = 'test@example.com', password = 'password' }) {
   const { login, isAuthenticated, error } = useAuth();
-
   return (
     <div>
       <span data-testid="auth">{String(isAuthenticated)}</span>
       <span data-testid="error">{error ?? ''}</span>
-
-      <button
-        onClick={async () => {
-          try {
-            await login(email, password);
-          } catch {
-            // Expected in tests that verify failed authentication.
-          }
-        }}
-      >
+      <button onClick={async () => {
+        try {
+          await login(email, password);
+        } catch {
+          // Expected in tests that verify failed authentication.
+        }
+      }}>
         Login
       </button>
     </div>
   );
 }
 
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
 describe('AuthContext', () => {
   it('starts in loading state and resolves to unauthenticated when refresh fails', async () => {
-    render(
-      <AuthProvider>
-        <AuthConsumer />
-      </AuthProvider>
-    );
-
-    // Initially loading
+    render(<AuthProvider><AuthConsumer /></AuthProvider>);
     expect(screen.getByTestId('loading').textContent).toBe('true');
-
-    // After mount effect resolves (refresh returned 401)
     await waitFor(() => {
       expect(screen.getByTestId('loading').textContent).toBe('false');
     });
-
     expect(screen.getByTestId('auth').textContent).toBe('false');
     expect(screen.getByTestId('email').textContent).toBe('none');
   });
 
   it('restores session when refresh token is valid', async () => {
-    // Arrange: refresh succeeds, then /me returns user data
     mockPost.mockResolvedValueOnce({
       data: { access_token: 'jwt.access.token', csrf_token: 'csrf123' },
     });
@@ -111,26 +99,18 @@ describe('AuthContext', () => {
       },
     });
 
-    render(
-      <AuthProvider>
-        <AuthConsumer />
-      </AuthProvider>
-    );
-
+    render(<AuthProvider><AuthConsumer /></AuthProvider>);
     await waitFor(() => {
       expect(screen.getByTestId('loading').textContent).toBe('false');
     });
-
     expect(screen.getByTestId('auth').textContent).toBe('true');
     expect(screen.getByTestId('email').textContent).toBe('restored@example.com');
   });
 
   it('sets authenticated state after successful login', async () => {
-    // Arrange: refresh returns 401 (unauthenticated); then login succeeds
     mockPost
-      .mockRejectedValueOnce({ response: { status: 401 } }) // initial refresh
+      .mockRejectedValueOnce({ response: { status: 401 } })
       .mockResolvedValueOnce({
-        // login
         data: {
           access_token: 'login.token',
           csrf_token: 'csrf.login',
@@ -151,64 +131,44 @@ describe('AuthContext', () => {
       },
     });
 
-    render(
-      <AuthProvider>
-        <LoginConsumer email="admin@dept.gov.in" password="secure123" />
-      </AuthProvider>
-    );
-
-    // Wait for initial loading to finish
+    render(<AuthProvider><LoginConsumer email="admin@dept.gov.in" password="secure123" /></AuthProvider>);
     await waitFor(() => {
       expect(screen.getByTestId('auth').textContent).toBe('false');
     });
 
-    // Trigger login
     await act(async () => {
       await userEvent.click(screen.getByRole('button', { name: 'Login' }));
     });
-
     await waitFor(() => {
       expect(screen.getByTestId('auth').textContent).toBe('true');
     });
   });
 
   it('sets error message on failed login', async () => {
-    // Both refresh and login fail
     mockPost
-      .mockRejectedValueOnce({ response: { status: 401 } }) // refresh
+      .mockRejectedValueOnce({ response: { status: 401 } })
       .mockRejectedValueOnce({
         response: { status: 401, data: { detail: 'Invalid credentials.' } },
-      }); // login
+      });
 
-    render(
-      <AuthProvider>
-        <LoginConsumer />
-      </AuthProvider>
-    );
-
+    render(<AuthProvider><LoginConsumer /></AuthProvider>);
     await waitFor(() => {
       expect(screen.getByTestId('auth').textContent).toBe('false');
     });
-
     await act(async () => {
       await userEvent.click(screen.getByRole('button', { name: 'Login' }));
     });
-
     await waitFor(() => {
       expect(screen.getByTestId('error').textContent).toBe('Invalid credentials.');
     });
-
     expect(screen.getByTestId('auth').textContent).toBe('false');
   });
 
   it('throws when useAuth is used outside AuthProvider', () => {
-    // Suppress React error boundary noise
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => { });
-
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => render(<AuthConsumer />)).toThrow(
       'useAuth must be used within an AuthProvider'
     );
-
     spy.mockRestore();
   });
 });
