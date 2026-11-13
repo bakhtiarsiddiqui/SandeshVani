@@ -191,10 +191,11 @@ def test_worker_skips_duplicate_and_conflicting_identity_rows(import_db):
         b"Same Email,existing@example.org,+919333333333,en,Meerut\n"
         b"Same Phone,new@example.org,+922222222222,en,Agra\n"
         b"Conflicting Keys,existing@example.org,+922222222222,en,Noida\n"
+        b"Same Existing Contact,existing@example.org,+911111111111,en,Meerut\n"
         b"New Contact,fresh@example.org,+944444444444,en,Delhi\n"
     )
     organization_id, _, job_id = _seed_job(
-        session_factory, storage_dir, content, chunk_size=4
+        session_factory, storage_dir, content, chunk_size=5, total_rows=5
     )
     with session_factory.begin() as session:
         job = session.get(AudienceImportJob, job_id)
@@ -229,7 +230,7 @@ def test_worker_skips_duplicate_and_conflicting_identity_rows(import_db):
     worker = AudienceImportWorker(session_factory, storage_dir, lease_seconds=30)
     result = worker.process(job_id, organization_id)
 
-    assert result == {"status": "completed", "processed_rows": 4}
+    assert result == {"status": "completed", "processed_rows": 5}
     with session_factory() as session:
         job = session.get(AudienceImportJob, job_id)
         members = list(
@@ -252,10 +253,10 @@ def test_worker_skips_duplicate_and_conflicting_identity_rows(import_db):
 
     assert job is not None
     assert job.status == "completed"
-    assert job.processed_rows == 4
+    assert job.processed_rows == 5
     assert job.imported_rows == 1
     assert job.error_rows == 0
-    assert job.duplicate_rows == 3
+    assert job.duplicate_rows == 4
     assert len(members) == 3
     assert [
         (issue.row_number, issue.field_name, issue.error_code) for issue in issues
@@ -263,6 +264,7 @@ def test_worker_skips_duplicate_and_conflicting_identity_rows(import_db):
         (2, "email", "DUPLICATE_EMAIL"),
         (3, "phone", "DUPLICATE_PHONE"),
         (4, None, "IDENTITY_CONFLICT"),
+        (5, None, "DUPLICATE_CONTACT"),
     ]
     issue_metadata = str([(issue.field_name, issue.error_code) for issue in issues])
     assert "existing@example.org" not in issue_metadata
