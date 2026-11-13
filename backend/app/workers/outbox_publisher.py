@@ -19,7 +19,11 @@ def publish_pending_outbox() -> int:
             task_id=str(event_id),
         )
 
-    def publish_execution(execution_id: uuid.UUID, organization_id: uuid.UUID, event_id: uuid.UUID):
+    def publish_execution(
+        execution_id: uuid.UUID,
+        organization_id: uuid.UUID,
+        event_id: uuid.UUID,
+    ):
         execute_mock_campaign.apply_async(
             args=[str(execution_id), str(organization_id)],
             task_id=str(event_id),
