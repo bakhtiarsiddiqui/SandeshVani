@@ -25,6 +25,8 @@ _ALLOWED_HEADERS = {
     "phone",
     "preferred_language",
     "district",
+    "state_code",
+    "city",
 }
 _ALLOWED_CONTENT_TYPES = {
     "application/csv",
