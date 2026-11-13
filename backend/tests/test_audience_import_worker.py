@@ -33,7 +33,7 @@ def _seed_job(
     *,
     chunk_size=2,
     digest=None,
-    total_rows=total_rows,
+    total_rows=4,
 ):
     organization_id = uuid.uuid4()
     user_id = uuid.uuid4()
