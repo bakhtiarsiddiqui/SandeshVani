@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "0008_session_org_audience_location"
+revision: str = "0008_sess_org_aud_loc"
 down_revision: str | None = "0007_audience_identity"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
