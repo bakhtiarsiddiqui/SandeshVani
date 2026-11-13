@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { AuthProvider, useAuth } from "./context";
 import AppShell from "./components/layout/AppShell";
 import Button from "./components/ui/Button";
@@ -62,8 +62,25 @@ function AppRouter() {
   };
   const [route, setRoute] = useState(getInitialRoute);
   const [verifyEmailAddress, setVerifyEmailAddress] = useState("");
+  const [verifyToken, setVerifyToken] = useState(() => typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("verify_token") || "" : "");
   const [resetToken, setResetToken] = useState(() => typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("reset_token") || "" : "");
   const navigate = useCallback((target) => setRoute(target), []);
+  // Strip one-time auth tokens from the URL after capturing them in state.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    let changed = false;
+    for (const key of ["verify_token", "reset_token"]) {
+      if (params.has(key)) { params.delete(key); changed = true; }
+    }
+    if (changed) {
+      const query = params.toString();
+      const nextUrl = query
+        ? `${window.location.pathname}?${query}${window.location.hash}`
+        : `${window.location.pathname}${window.location.hash}`;
+      window.history.replaceState({}, document.title, nextUrl);
+    }
+  }, []);
   if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-base-200"><div className="text-center space-y-3"><div className="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /><p className="text-sm text-base-content/60 font-medium">Authenticating institutional session…</p></div></div>;
   if (isAuthenticated) {
     if (route === ROUTES.ORG_SELECT || (!activeOrg && !hasPlatformRole(platformRoles))) {
@@ -72,8 +89,8 @@ function AppRouter() {
     return <ProtectedRoute onNavigateToLogin={() => navigate(ROUTES.LOGIN)}><Dashboard onNavigateOrgSelect={() => navigate(ROUTES.ORG_SELECT)} /></ProtectedRoute>;
   }
   return <AuthLayout>
-    {route === ROUTES.REGISTER && <Register onNavigateLogin={() => navigate(ROUTES.LOGIN)} onNavigateVerify={(email, token) => { setVerifyEmailAddress(email); if (token) setResetToken(token); navigate(ROUTES.VERIFY_EMAIL); }} />}
-    {route === ROUTES.VERIFY_EMAIL && <VerifyEmail initialEmail={verifyEmailAddress} onNavigateLogin={() => navigate(ROUTES.LOGIN)} />}
+    {route === ROUTES.REGISTER && <Register onNavigateLogin={() => navigate(ROUTES.LOGIN)} onNavigateVerify={(email, token) => { setVerifyEmailAddress(email); if (token) setVerifyToken(token); navigate(ROUTES.VERIFY_EMAIL); }} />}
+    {route === ROUTES.VERIFY_EMAIL && <VerifyEmail initialEmail={verifyEmailAddress} initialToken={verifyToken} onNavigateLogin={() => { setVerifyToken(""); navigate(ROUTES.LOGIN); }} />}
     {route === ROUTES.FORGOT_PASSWORD && <ForgotPassword onNavigateLogin={() => navigate(ROUTES.LOGIN)} />}
     {route === ROUTES.RESET_PASSWORD && <ResetPassword initialToken={resetToken} onNavigateLogin={() => { setResetToken(""); navigate(ROUTES.LOGIN); }} />}
     {(route === ROUTES.LOGIN || route === ROUTES.DASHBOARD) && <Login onNavigateRegister={() => navigate(ROUTES.REGISTER)} onNavigateForgot={() => navigate(ROUTES.FORGOT_PASSWORD)} onNavigateVerify={(email) => { setVerifyEmailAddress(email); navigate(ROUTES.VERIFY_EMAIL); }} onSuccess={() => navigate(ROUTES.DASHBOARD)} />}
