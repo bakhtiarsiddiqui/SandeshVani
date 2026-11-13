@@ -36,9 +36,7 @@ def _has_duplicate_identity_keys(
         )
         """
     )
-    return bool(
-        bind.execute(statement, {"organization_id": organization_id}).scalar()
-    )
+    return bool(bind.execute(statement, {"organization_id": organization_id}).scalar())
 
 
 def _assert_no_existing_duplicates(bind, column_name: str) -> None:
@@ -46,14 +44,14 @@ def _assert_no_existing_duplicates(bind, column_name: str) -> None:
     # not BYPASSRLS. Inspect each tenant under its transaction-local context.
     # organizations is not tenant-RLS-protected in the current schema.
     if bind.dialect.name == "postgresql":
-        organization_ids = bind.execute(
-            sa.text("SELECT id FROM organizations ORDER BY id")
-        ).scalars().all()
+        organization_ids = (
+            bind.execute(sa.text("SELECT id FROM organizations ORDER BY id"))
+            .scalars()
+            .all()
+        )
         for organization_id in organization_ids:
             bind.execute(
-                sa.text(
-                    "SELECT set_config('app.current_org', :organization_id, true)"
-                ),
+                sa.text("SELECT set_config('app.current_org', :organization_id, true)"),
                 {"organization_id": str(organization_id)},
             )
             duplicate_exists = _has_duplicate_identity_keys(
