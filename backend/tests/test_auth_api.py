@@ -12,6 +12,7 @@ from app.core.dev_mail import DevelopmentMailSink
 from app.core.security import hash_token
 from app.db.session import get_db
 from app.main import create_app
+from app.models.auth_session import AuthSession
 from app.models.token import EmailVerificationToken, PasswordResetToken
 from app.models.user import User
 
@@ -40,6 +41,64 @@ async def test_registration_and_duplicate_rejection(async_client: AsyncClient):
     # 2. Duplicate registration
     dup_res = await async_client.post("/api/v1/auth/register", json=payload)
     assert dup_res.status_code == 409
+
+
+
+
+@pytest.mark.asyncio
+async def test_login_is_rate_limited_by_account_and_ip(async_client: AsyncClient):
+    email = "guess-target@example.test"
+    for _ in range(10):
+        response = await async_client.post(
+            "/api/v1/auth/login",
+            json={"email": email, "password": "incorrect-password"},
+        )
+        assert response.status_code == 401
+    limited = await async_client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": "incorrect-password"},
+    )
+    assert limited.status_code == 429
+    assert "too many sign-in attempts" in limited.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_expired_database_session_rejects_existing_access_token(
+    async_client: AsyncClient,
+    test_db_session: AsyncSession,
+    development_mail_sink,
+):
+    email = "session-expiry@example.test"
+    password = "SessionExpiryPassword123!"
+    registration = await async_client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": password, "full_name": "Session Expiry"},
+    )
+    assert registration.status_code == 201
+    verification = _local_mail_token(
+        development_mail_sink, email, "email-verification"
+    )
+    assert (await async_client.post(
+        "/api/v1/auth/verify-email", json={"token": verification}
+    )).status_code == 200
+    login = await async_client.post(
+        "/api/v1/auth/login", json={"email": email, "password": password}
+    )
+    assert login.status_code == 200
+    user_id = await test_db_session.scalar(select(User.id).where(User.email == email))
+    auth_session = await test_db_session.scalar(
+        select(AuthSession)
+        .where(AuthSession.user_id == user_id)
+        .order_by(AuthSession.created_at.desc())
+    )
+    assert auth_session is not None
+    auth_session.expires_at = datetime.now(UTC) - timedelta(seconds=1)
+    await test_db_session.commit()
+    response = await async_client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {login.json()['access_token']}"},
+    )
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio
