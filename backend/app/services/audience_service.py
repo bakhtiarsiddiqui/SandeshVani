@@ -1,8 +1,8 @@
 import uuid
 
 from fastapi import HTTPException, status
-from sqlalchemy.exc import IntegrityError
 from pydantic import ValidationError
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.http_status import HTTP_422_UNPROCESSABLE_CONTENT
@@ -50,9 +50,9 @@ class AudienceService:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=(
-                "An audience contact with one or more supplied "
-                "identifiers already exists"
-            ),
+                    "An audience contact with one or more supplied "
+                    "identifiers already exists"
+                ),
             )
 
     async def _raise_concurrent_identity_conflict(
