@@ -3,8 +3,8 @@ import uuid
 from app.core.celery_app import celery_app
 from app.core.config import get_settings
 from app.db.sync import create_sync_session_factory
-from app.workers.outbox_service import publish_pending_outbox_events
 from app.workers.audience_import_tasks import process_audience_import
+from app.workers.outbox_service import publish_pending_outbox_events
 
 
 @celery_app.task(name="app.workers.outbox_publisher.publish_pending_outbox")

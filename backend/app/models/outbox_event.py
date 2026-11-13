@@ -2,12 +2,12 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    JSON,
     CheckConstraint,
     DateTime,
     ForeignKeyConstraint,
     Index,
     Integer,
-    JSON,
     String,
     UniqueConstraint,
     func,

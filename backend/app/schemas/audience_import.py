@@ -4,7 +4,6 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-
 ImportJobStatus = Literal[
     "queued", "processing", "completed", "completed_with_errors", "failed"
 ]
