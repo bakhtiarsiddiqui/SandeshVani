@@ -112,7 +112,20 @@ Example audience:
 - Upload metadata (tenant, uploader, byte size, row count, SHA-256 and creation time) is stored in a tenant-owned database table protected by PostgreSQL RLS.
 - The endpoint requires authenticated organization membership, `audiences:create`, and the existing CSRF and trusted-origin checks.
 
-The 202 response contains the upload UUID, organization UUID, byte size, row count, SHA-256 and creation time. This stage validates and retains the upload only: it does not create audience contacts, queue a worker, report per-row semantic validation errors, or apply duplicate matching. Those are AUD-03/AUD-04 scope.
+The 202 response contains the upload UUID, organization UUID, byte size, row count, SHA-256, creation time, and the queued import job ID/status with initial progress counters. Upload metadata, the import job, and its outbox event are committed in one transaction.
+
+### AUD-03 — Asynchronous import processing
+
+- `GET /audiences/imports/{job_id}` returns tenant-scoped job status, total/processed/imported/error row counts, chunk size, safe terminal error code, and lifecycle timestamps. It requires `audiences:read`.
+- `GET /audiences/imports/{job_id}/errors?limit=&cursor=` returns paginated field-level validation issues. It requires `audiences:read`; limits are 1–100 (default 50). The opaque cursor is ordered by `(row_number, id)`, so multiple issues for the same CSV row are not skipped.
+- The outbox publisher scans PostgreSQL outbox rows and dispatches only job and organization identifiers to Celery over Redis. Raw CSV contents and contact values never enter the queue.
+- The worker verifies the private file byte size and SHA-256 before processing. It uses a lease/worker token and a bounded number of rows per transaction (default 500, configurable with `AUDIENCE_IMPORT_CHUNK_SIZE`).
+- Job statuses are `queued`, `processing`, `completed`, `completed_with_errors`, and `failed`. Progress counters are checkpointed with each committed chunk.
+- Row numbers are logical CSV row numbers: header is row 1, the first nonblank data row is row 2, and blank lines are ignored. Each issue stores only an allowlisted `field_name` and stable `error_code`; rejected values and raw validation messages are not persisted. Multiple issue records may share a row number. The job's `error_rows` counter counts rejected source rows, not issue records.
+- Transient worker failures are retried. Expired worker leases can be reclaimed; redelivery of a completed job is a no-op. Outbox publication retries are bounded and eventually dead-letter.
+- Valid rows are created using the same AUD-01 contact schema. Duplicate identity resolution remains AUD-04 and is intentionally not performed here.
+
+AUD-03 does not introduce consent/suppression checks, segments, exports, or live communications; those remain separate tasks.
 
 Segment filters use an allowlisted, type-checked grammar. Never accept raw SQL.
 

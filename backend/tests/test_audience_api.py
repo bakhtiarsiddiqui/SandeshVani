@@ -84,6 +84,8 @@ async def test_audience_crud_and_filters(
             "phone": "+919876543210",
             "preferred_language": "hi",
             "district": "Meerut",
+            "state_code": "up",
+            "city": "Meerut",
         },
     )
     assert created.status_code == 201, created.text
@@ -92,6 +94,8 @@ async def test_audience_crud_and_filters(
     assert member["email"] == "asha@example.org"
     assert member["phone"] == "+919876543210"
     assert member["preferred_language"] == "hi"
+    assert member["state_code"] == "UP"
+    assert member["city"] == "Meerut"
     assert member["organization_id"] == org["id"]
     assert "created_by" not in member
 
@@ -135,6 +139,8 @@ async def test_audience_crud_and_filters(
             "full_name": "Asha Sharma Singh",
             "phone": None,
             "district": "Ghaziabad",
+            "state_code": "DL",
+            "city": "New Delhi",
             "status": "inactive",
         },
     )
@@ -143,6 +149,8 @@ async def test_audience_crud_and_filters(
     assert updated.json()["phone"] is None
     assert updated.json()["email"] == "asha@example.org"
     assert updated.json()["district"] == "Ghaziabad"
+    assert updated.json()["state_code"] == "DL"
+    assert updated.json()["city"] == "New Delhi"
     assert updated.json()["status"] == "inactive"
 
 
