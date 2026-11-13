@@ -168,6 +168,21 @@ class SessionRepository:
         )
         return result.scalar_one_or_none()
 
+    async def consume_email_token(self, token_id: uuid.UUID) -> bool:
+        now = datetime.now(UTC)
+        result = await self.session.execute(
+            update(EmailVerificationToken)
+            .where(
+                EmailVerificationToken.id == token_id,
+                EmailVerificationToken.used_at.is_(None),
+                EmailVerificationToken.expires_at > now,
+            )
+            .values(used_at=now)
+            .execution_options(synchronize_session=False)
+        )
+        await self.session.flush()
+        return result.rowcount == 1
+
     async def mark_email_token_used(self, token_id: uuid.UUID) -> None:
         await self.session.execute(
             update(EmailVerificationToken)
@@ -203,6 +218,21 @@ class SessionRepository:
             )
         )
         return result.scalar_one_or_none()
+
+    async def consume_password_reset_token(self, token_id: uuid.UUID) -> bool:
+        now = datetime.now(UTC)
+        result = await self.session.execute(
+            update(PasswordResetToken)
+            .where(
+                PasswordResetToken.id == token_id,
+                PasswordResetToken.used_at.is_(None),
+                PasswordResetToken.expires_at > now,
+            )
+            .values(used_at=now)
+            .execution_options(synchronize_session=False)
+        )
+        await self.session.flush()
+        return result.rowcount == 1
 
     async def mark_password_reset_token_used(self, token_id: uuid.UUID) -> None:
         await self.session.execute(
