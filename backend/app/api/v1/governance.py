@@ -57,9 +57,7 @@ async def create_processing_basis_event(
     session: Annotated[AsyncSession, Depends(get_db)],
 ):
     service = GovernanceService(session, tenant_ctx.organization.id)
-    event = await service.create_processing_basis(
-        data.model_dump(), auth_ctx.user.id
-    )
+    event = await service.create_processing_basis(data.model_dump(), auth_ctx.user.id)
     await session.commit()
     return {
         "id": event.id,
@@ -114,9 +112,7 @@ async def create_suppression_event(
     session: Annotated[AsyncSession, Depends(get_db)],
 ):
     service = GovernanceService(session, tenant_ctx.organization.id)
-    event = await service.create_suppression_event(
-        data.model_dump(), auth_ctx.user.id
-    )
+    event = await service.create_suppression_event(data.model_dump(), auth_ctx.user.id)
     await session.commit()
     return {
         "id": event.id,
@@ -167,9 +163,7 @@ async def create_segment_version(
     session: Annotated[AsyncSession, Depends(get_db)],
 ):
     service = GovernanceService(session, tenant_ctx.organization.id)
-    version = await service.create_segment_version(
-        segment_id, data, auth_ctx.user.id
-    )
+    version = await service.create_segment_version(segment_id, data, auth_ctx.user.id)
     await session.commit()
     return {
         "id": version.id,
@@ -187,9 +181,7 @@ async def create_segment_version(
 async def preview_segment(
     segment_id: uuid.UUID,
     data: SegmentPreviewRequest,
-    tenant_ctx: Annotated[
-        TenantContext, Depends(require_permissions("segments:read"))
-    ],
+    tenant_ctx: Annotated[TenantContext, Depends(require_permissions("segments:read"))],
     session: Annotated[AsyncSession, Depends(get_db)],
 ):
     service = GovernanceService(session, tenant_ctx.organization.id)
@@ -235,9 +227,7 @@ async def create_template_version(
     session: Annotated[AsyncSession, Depends(get_db)],
 ):
     service = GovernanceService(session, tenant_ctx.organization.id)
-    version = await service.create_template_version(
-        template_id, data, auth_ctx.user.id
-    )
+    version = await service.create_template_version(template_id, data, auth_ctx.user.id)
     await session.commit()
     return {
         "id": version.id,
@@ -288,9 +278,7 @@ async def create_campaign_version(
     session: Annotated[AsyncSession, Depends(get_db)],
 ):
     service = GovernanceService(session, tenant_ctx.organization.id)
-    version = await service.create_campaign_version(
-        campaign_id, data, auth_ctx.user.id
-    )
+    version = await service.create_campaign_version(campaign_id, data, auth_ctx.user.id)
     await session.commit()
     return {
         "id": version.id,
@@ -486,9 +474,7 @@ async def get_campaign_execution_analytics(
 
 @router.get("/audit")
 async def list_audit_events(
-    tenant_ctx: Annotated[
-        TenantContext, Depends(require_permissions("audit:read"))
-    ],
+    tenant_ctx: Annotated[TenantContext, Depends(require_permissions("audit:read"))],
     session: Annotated[AsyncSession, Depends(get_db)],
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
 ):
