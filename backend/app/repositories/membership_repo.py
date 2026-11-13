@@ -119,6 +119,22 @@ class MembershipRepository:
         await self.session.flush()
         return membership_role
 
+    async def count_active_members_with_role(
+        self, organization_id: uuid.UUID, role_id: uuid.UUID
+    ) -> int:
+        from sqlalchemy import func
+
+        result = await self.session.execute(
+            select(func.count(MembershipRole.id))
+            .join(Membership, Membership.id == MembershipRole.membership_id)
+            .where(
+                MembershipRole.organization_id == organization_id,
+                MembershipRole.role_id == role_id,
+                Membership.status == "active",
+            )
+        )
+        return int(result.scalar_one())
+
     async def remove_role(
         self,
         organization_id: uuid.UUID,
