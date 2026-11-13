@@ -328,3 +328,122 @@ async def test_audience_permissions_are_enforced(
         json={"full_name": "No Permission", "email": "no-permission@example.org"},
     )
     assert forbidden.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_audience_identity_keys_are_tenant_scoped_and_conflicts_return_409(
+    async_client: AsyncClient,
+    development_mail_sink,
+):
+    token_a, csrf_a = await _register_login(
+        async_client, "audience-identity-a@example.org", development_mail_sink
+    )
+    token_b, csrf_b = await _register_login(
+        async_client, "audience-identity-b@example.org", development_mail_sink
+    )
+    org_a = await _create_org(async_client, token_a, "audience-identity-a")
+    org_b = await _create_org(async_client, token_b, "audience-identity-b")
+    headers_a = _tenant_headers(token_a, org_a["id"], csrf_a)
+    headers_b = _tenant_headers(token_b, org_b["id"], csrf_b)
+
+    first = await async_client.post(
+        "/api/v1/audiences",
+        headers=headers_a,
+        json={
+            "full_name": "Identity Owner",
+            "email": "IDENTITY@example.org",
+            "phone": "+919876543210",
+        },
+    )
+    assert first.status_code == 201, first.text
+
+    # Case/whitespace normalization applies before exact identity comparison.
+    duplicate_email = await async_client.post(
+        "/api/v1/audiences",
+        headers=headers_a,
+        json={
+            "full_name": "Same Email",
+            "email": " identity@example.org ",
+            "phone": "+919876543211",
+        },
+    )
+    assert duplicate_email.status_code == 409
+    assert "identity@example.org" not in duplicate_email.text
+    assert "+919876543210" not in duplicate_email.text
+
+    # Identity uniqueness is scoped to an organization, not the whole platform.
+    other_tenant = await async_client.post(
+        "/api/v1/audiences",
+        headers=headers_b,
+        json={
+            "full_name": "Other Tenant Contact",
+            "email": "identity@example.org",
+            "phone": "+919876543210",
+        },
+    )
+    assert other_tenant.status_code == 201, other_tenant.text
+
+    second = await async_client.post(
+        "/api/v1/audiences",
+        headers=headers_a,
+        json={
+            "full_name": "Second Contact",
+            "email": "second@example.org",
+            "phone": "+919876543212",
+        },
+    )
+    assert second.status_code == 201, second.text
+
+    conflict_update = await async_client.patch(
+        f"/api/v1/audiences/{second.json()['id']}",
+        headers=headers_a,
+        json={"phone": "+919876543210"},
+    )
+    assert conflict_update.status_code == 409
+
+    unchanged = await async_client.get(
+        f"/api/v1/audiences/{second.json()['id']}",
+        headers=headers_a,
+    )
+    assert unchanged.status_code == 200
+    assert unchanged.json()["phone"] == "+919876543212"
+
+
+@pytest.mark.asyncio
+async def test_inactive_audience_contact_still_reserves_its_identity(
+    async_client: AsyncClient,
+    development_mail_sink,
+):
+    token, csrf = await _register_login(
+        async_client, "audience-inactive-identity@example.org", development_mail_sink
+    )
+    org = await _create_org(async_client, token, "audience-inactive-identity-org")
+    headers = _tenant_headers(token, org["id"], csrf)
+
+    created = await async_client.post(
+        "/api/v1/audiences",
+        headers=headers,
+        json={
+            "full_name": "Inactive Contact",
+            "email": "inactive@example.org",
+        },
+    )
+    assert created.status_code == 201, created.text
+
+    deactivated = await async_client.patch(
+        f"/api/v1/audiences/{created.json()['id']}",
+        headers=headers,
+        json={"status": "inactive"},
+    )
+    assert deactivated.status_code == 200
+    assert deactivated.json()["status"] == "inactive"
+
+    duplicate = await async_client.post(
+        "/api/v1/audiences",
+        headers=headers,
+        json={
+            "full_name": "Reimport Attempt",
+            "email": "INACTIVE@example.org",
+        },
+    )
+    assert duplicate.status_code == 409
