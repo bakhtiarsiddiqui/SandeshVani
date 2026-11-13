@@ -43,9 +43,10 @@ test('verification and reset-token URLs render the correct forms', async ({ page
 test('keyboard navigation exposes the visible focus indicator', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === 'mobile-chromium', 'Keyboard-only focus is checked in desktop Chromium.');
   await page.goto('/');
-  await page.keyboard.press('Tab');
 
   const email = page.getByLabel(/Institutional Email/);
+  await expect(email).toBeVisible();
+  await page.keyboard.press('Tab');
   await expect(email).toBeFocused();
   await expect.poll(() => email.evaluate((element) => getComputedStyle(element).outlineWidth)).toBe('2px');
 });
