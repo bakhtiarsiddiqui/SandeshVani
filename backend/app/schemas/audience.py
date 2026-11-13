@@ -1,7 +1,7 @@
-from datetime import datetime
-from typing import Literal
 import unicodedata
 import uuid
+from datetime import datetime
+from typing import Literal
 
 from pydantic import (
     BaseModel,
