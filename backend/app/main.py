@@ -45,6 +45,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         ip_limit=settings.auth_recovery_ip_limit,
         window_seconds=settings.auth_recovery_rate_window_seconds,
     )
+    application.state.auth_login_rate_limiter = AuthRecoveryRateLimiter(
+        email_limit=settings.auth_login_email_limit,
+        ip_limit=settings.auth_login_ip_limit,
+        window_seconds=settings.auth_login_rate_window_seconds,
+    )
 
     application.include_router(create_api_v1_router(settings))
 
