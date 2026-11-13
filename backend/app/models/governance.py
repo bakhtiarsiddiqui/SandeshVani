@@ -297,9 +297,7 @@ class CampaignVersion(Base, UUIDPrimaryKeyMixin):
             "status IN ('draft', 'submitted', 'approved', 'changes_requested')",
             name="ck_campaign_versions_status",
         ),
-        UniqueConstraint(
-            "organization_id", "id", name="uq_campaign_versions_org_id"
-        ),
+        UniqueConstraint("organization_id", "id", name="uq_campaign_versions_org_id"),
         UniqueConstraint(
             "organization_id",
             "campaign_id",
@@ -362,7 +360,9 @@ class CampaignApproval(Base, UUIDPrimaryKeyMixin):
             name="ck_campaign_approvals_decision",
         ),
         UniqueConstraint(
-            "organization_id", "campaign_version_id", "decided_by",
+            "organization_id",
+            "campaign_version_id",
+            "decided_by",
             name="uq_campaign_approvals_reviewer_version",
         ),
         ForeignKeyConstraint(
@@ -423,11 +423,10 @@ class CampaignExecution(Base, UUIDPrimaryKeyMixin):
             "status IN ('queued', 'processing', 'completed', 'failed')",
             name="ck_campaign_executions_status",
         ),
+        UniqueConstraint("organization_id", "id", name="uq_campaign_executions_org_id"),
         UniqueConstraint(
-            "organization_id", "id", name="uq_campaign_executions_org_id"
-        ),
-        UniqueConstraint(
-            "organization_id", "campaign_version_id",
+            "organization_id",
+            "campaign_version_id",
             name="uq_campaign_executions_version",
         ),
         ForeignKeyConstraint(
@@ -471,7 +470,9 @@ class ExecutionRecipient(Base, UUIDPrimaryKeyMixin):
             "organization_id", "id", name="uq_execution_recipients_org_id"
         ),
         UniqueConstraint(
-            "organization_id", "execution_id", "audience_member_id",
+            "organization_id",
+            "execution_id",
+            "audience_member_id",
             name="uq_execution_recipients_member",
         ),
         ForeignKeyConstraint(
@@ -512,7 +513,9 @@ class ChannelDelivery(Base, UUIDPrimaryKeyMixin):
         ),
         UniqueConstraint("organization_id", "id", name="uq_channel_deliveries_org_id"),
         UniqueConstraint(
-            "organization_id", "recipient_id", "channel",
+            "organization_id",
+            "recipient_id",
+            "channel",
             name="uq_channel_deliveries_recipient_channel",
         ),
         ForeignKeyConstraint(
@@ -544,7 +547,9 @@ class DeliveryAttempt(Base, UUIDPrimaryKeyMixin):
             name="ck_delivery_attempts_status",
         ),
         UniqueConstraint(
-            "organization_id", "delivery_id", "attempt_number",
+            "organization_id",
+            "delivery_id",
+            "attempt_number",
             name="uq_delivery_attempts_number",
         ),
         ForeignKeyConstraint(
