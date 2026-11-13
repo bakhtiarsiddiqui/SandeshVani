@@ -54,43 +54,38 @@ def _iter_nonblank_rows(
 
 
 def _safe_validation_errors(error: ValidationError) -> list[dict[str, str | None]]:
-    """Map Pydantic errors to stable messages without retaining submitted values."""
+    """Return allowlisted issue metadata; never persist rejected cell values."""
     safe_errors: list[dict[str, str | None]] = []
+    seen: set[tuple[str | None, str]] = set()
+
     for issue in error.errors(include_url=False):
         location = issue.get("loc", ())
         field = str(location[0]) if location else None
-        if field not in _ALLOWED_HEADERS:
-            field = None
 
-        if field == "full_name":
+        if not location:
+            field = None
+            code = "CONTACT_POINT_REQUIRED"
+        elif field == "full_name":
             code = "INVALID_FULL_NAME"
-            message = "Full name is required and must be at most 255 characters."
         elif field == "email":
             code = "INVALID_EMAIL"
-            message = "Email address is invalid."
         elif field == "phone":
             code = "INVALID_PHONE"
-            message = "Phone must use international format, for example +919876543210."
         elif field == "preferred_language":
             code = "UNSUPPORTED_LANGUAGE"
-            message = "Preferred language must be en or hi."
         elif field == "district":
             code = "INVALID_DISTRICT"
-            message = "District must be at most 150 characters."
         else:
-            code = "CONTACT_POINT_REQUIRED"
-            message = "At least one valid email address or phone number is required."
+            field = None
+            code = "INVALID_ROW"
 
-        safe_errors.append({"field": field, "code": code, "message": message})
+        issue_key = (field, code)
+        if issue_key in seen:
+            continue
+        seen.add(issue_key)
+        safe_errors.append({"field_name": field, "error_code": code})
 
-    return safe_errors or [
-        {
-            "field": None,
-            "code": "INVALID_ROW",
-            "message": "Row does not satisfy audience contact requirements.",
-        }
-    ]
-
+    return safe_errors or [{"field_name": None, "error_code": "INVALID_ROW"}]
 
 def _validate_contact_row(row: dict[str, str | None]) -> dict | list[dict]:
     values = {
@@ -333,14 +328,20 @@ class AudienceImportWorker:
                         for row_number, row in batch:
                             validated = _validate_contact_row(row)
                             if isinstance(validated, list):
-                                session.add(
-                                    AudienceImportJobError(
-                                        organization_id=organization_id,
-                                        job_id=job_id,
-                                        row_number=row_number,
-                                        errors=validated,
-                                    )
+                                session.add_all(
+                                    [
+                                        AudienceImportJobError(
+                                            organization_id=organization_id,
+                                            job_id=job_id,
+                                            row_number=row_number,
+                                            field_name=issue["field_name"],
+                                            error_code=issue["error_code"],
+                                        )
+                                        for issue in validated
+                                    ]
                                 )
+                                # Progress is measured in rejected source rows,
+                                # not the number of field-level issue records.
                                 errors_in_chunk += 1
                                 continue
 
