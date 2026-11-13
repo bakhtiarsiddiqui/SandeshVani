@@ -34,9 +34,9 @@ function MemberForm({ initialValue = EMPTY_FORM, onCancel, onSave, saving, editi
       <FormField label="Full name" required><Input value={form.full_name} onChange={update("full_name")} required maxLength={255} disabled={saving} /></FormField>
       <FormField label="Email address" helperText="Optional when a phone number is supplied."><Input type="email" value={form.email} onChange={update("email")} maxLength={255} disabled={saving} /></FormField>
       <FormField label="Phone number" helperText="Use international E.164 format, for example +919876543210."><Input type="tel" value={form.phone} onChange={update("phone")} pattern="^\+[1-9]\d{7,14}$" disabled={saving} /></FormField>
-      <FormField label="Preferred language" required><select className="select select-bordered w-full bg-base-100" value={form.preferred_language} onChange={update("preferred_language")} disabled={saving}><option value="en">English</option><option value="hi">Hindi</option></select></FormField>
+      <FormField label="Preferred language" required>{({ id }) => <select id={id} className="select select-bordered w-full bg-base-100" value={form.preferred_language} onChange={update("preferred_language")} disabled={saving}><option value="en">English</option><option value="hi">Hindi</option></select>}</FormField>
       <FormField label="District"><Input value={form.district || ""} onChange={update("district")} maxLength={150} disabled={saving} /></FormField>
-      {editing && <FormField label="Status" required><select className="select select-bordered w-full bg-base-100" value={form.status} onChange={update("status")} disabled={saving}><option value="active">Active</option><option value="inactive">Inactive</option></select></FormField>}
+      {editing && <FormField label="Status" required>{({ id }) => <select id={id} className="select select-bordered w-full bg-base-100" value={form.status} onChange={update("status")} disabled={saving}><option value="active">Active</option><option value="inactive">Inactive</option></select>}</FormField>}
     </div>
     {!hasContactPoint && <p className="text-xs text-warning">Enter an email address or phone number before saving.</p>}
     <div className="flex justify-end gap-2"><Button size="sm" variant="ghost" onClick={onCancel} disabled={saving}>Cancel</Button><Button size="sm" type="submit" isLoading={saving} disabled={!form.full_name.trim() || !hasContactPoint}>{editing ? "Save changes" : "Create contact"}</Button></div>
@@ -161,9 +161,9 @@ export default function AudienceWorkspace({ permissions = [], organizationId }) 
       <div><h2 className="font-semibold text-sm">Filter contacts</h2><p className="text-xs text-base-content/60 mt-1">Filters are sent to the tenant-scoped audience API.</p></div>
       <form onSubmit={applyFilters} className="grid gap-3 md:grid-cols-5">
         <FormField label="Search"><Input placeholder="Name, email or phone" value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} maxLength={100} /></FormField>
-        <FormField label="Status"><select className="select select-bordered w-full bg-base-100" value={filtersDraft.status} onChange={(event) => setFiltersDraft((value) => ({ ...value, status: event.target.value }))}><option value="">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select></FormField>
+        <FormField label="Status">{({ id }) => <select id={id} className="select select-bordered w-full bg-base-100" value={filtersDraft.status} onChange={(event) => setFiltersDraft((value) => ({ ...value, status: event.target.value }))}><option value="">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select>}</FormField>
         <FormField label="District"><Input value={filtersDraft.district} onChange={(event) => setFiltersDraft((value) => ({ ...value, district: event.target.value }))} maxLength={150} /></FormField>
-        <FormField label="Language"><select className="select select-bordered w-full bg-base-100" value={filtersDraft.language} onChange={(event) => setFiltersDraft((value) => ({ ...value, language: event.target.value }))}><option value="">Any language</option><option value="en">English</option><option value="hi">Hindi</option></select></FormField>
+        <FormField label="Language">{({ id }) => <select id={id} className="select select-bordered w-full bg-base-100" value={filtersDraft.language} onChange={(event) => setFiltersDraft((value) => ({ ...value, language: event.target.value }))}><option value="">Any language</option><option value="en">English</option><option value="hi">Hindi</option></select>}</FormField>
         <div className="flex items-end"><Button type="submit" size="sm" className="w-full">Apply filters</Button></div>
       </form>
     </section>
@@ -182,7 +182,7 @@ export default function AudienceWorkspace({ permissions = [], organizationId }) 
     {canCreate && <section className="rounded-xl border border-base-300 bg-base-100 p-4 space-y-3">
       <div><h2 className="font-semibold text-sm">CSV file upload</h2><p className="text-xs text-base-content/60 mt-1">The current backend validates and privately stores the file. It does not import contacts or create an asynchronous import job.</p></div>
       <form onSubmit={handleUpload} className="flex flex-col sm:flex-row gap-3 sm:items-end">
-        <FormField label="CSV file" required className="flex-1"><input className="file-input file-input-bordered w-full bg-base-100" type="file" accept=".csv,text/csv" required onChange={(event) => setUploadFile(event.target.files?.[0] || null)} /></FormField>
+        <FormField label="CSV file" required className="flex-1">{({ id }) => <input id={id} className="file-input file-input-bordered w-full bg-base-100" type="file" accept=".csv,text/csv" required onChange={(event) => setUploadFile(event.target.files?.[0] || null)} />}</FormField>
         <Button type="submit" size="sm" isLoading={isUploading} disabled={!uploadFile || isUploading}>Validate & upload</Button>
       </form>
       {uploadError && <Alert variant="error" title="Upload failed">{uploadError}</Alert>}
