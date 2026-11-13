@@ -1092,23 +1092,24 @@ async def test_migration_upgrade_downgrade(pg_setup):
                     f"Migration role must own table {table}"
                 )
 
-        # AUD-04 identity keys are enforced by tenant-scoped unique indexes.
-        for index_name in (
-            "uq_audience_members_org_email_identity",
-            "uq_audience_members_org_phone_identity",
-        ):
-            index = await verify_conn.fetchrow(
-                """
-                SELECT indexdef
-                FROM pg_indexes
-                WHERE schemaname = 'public' AND indexname = $1;
-                """,
-                index_name,
-            )
-            assert index is not None, f"Identity index {index_name} is missing"
-            assert "CREATE UNIQUE INDEX" in index["indexdef"]
-            assert "organization_id" in index["indexdef"]
-            assert "WHERE" in index["indexdef"]
+            # AUD-04 identity keys are enforced by tenant-scoped unique indexes.
+            for index_name in (
+                "uq_audience_members_org_email_identity",
+                "uq_audience_members_org_phone_identity",
+            ):
+                index = await verify_conn.fetchrow(
+                    """
+                    SELECT indexdef
+                    FROM pg_indexes
+                    WHERE schemaname = 'public' AND indexname = $1;
+                    """,
+                    index_name,
+                )
+                assert index is not None, f"Identity index {index_name} is missing"
+                assert "CREATE UNIQUE INDEX" in index["indexdef"]
+                assert "organization_id" in index["indexdef"]
+                assert "WHERE" in index["indexdef"]
+
         finally:
             await verify_conn.close()
 
