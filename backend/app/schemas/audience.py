@@ -161,6 +161,21 @@ class AudienceMemberUpdate(BaseModel):
     def normalize_city(cls, value: str | None) -> str | None:
         return _normalize_city(value)
 
+    @field_validator("state_code")
+    @classmethod
+    def validate_update_state_code(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().upper()
+        if normalized not in INDIA_STATE_UT_CODES:
+            raise ValueError("state_code must be a valid India State / UT ISO 3166-2 code")
+        return normalized
+
+    @field_validator("city")
+    @classmethod
+    def normalize_update_city(cls, value: str | None) -> str | None:
+        return _normalize_city(value)
+
     @model_validator(mode="after")
     def reject_null_required_fields(self):
         for field_name in ("full_name", "preferred_language", "status"):
