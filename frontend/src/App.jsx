@@ -144,7 +144,7 @@ function AppRouter() {
           onNavigateLogin={() => navigate(ROUTES.LOGIN)}
           onNavigateVerify={(email, token) => {
             setVerifyEmailAddress(email);
-            if (token) setResetToken(token); // dev token reuse slot
+            if (token) setVerifyToken(token);
             navigate(ROUTES.VERIFY_EMAIL);
           }}
         />
