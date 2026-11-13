@@ -322,7 +322,10 @@ class CampaignVersion(Base, UUIDPrimaryKeyMixin):
         ),
         ForeignKeyConstraint(
             ["organization_id", "segment_version_id"],
-            ["audience_segment_versions.organization_id", "audience_segment_versions.id"],
+            [
+                "audience_segment_versions.organization_id",
+                "audience_segment_versions.id",
+            ],
         ),
     )
 
