@@ -26,6 +26,7 @@ class AudienceImportUploadResponse(BaseModel):
     processed_rows: int
     imported_rows: int
     error_rows: int
+    duplicate_rows: int
 
 
 class AudienceImportJobResponse(BaseModel):
@@ -39,6 +40,7 @@ class AudienceImportJobResponse(BaseModel):
     processed_rows: int
     imported_rows: int
     error_rows: int
+    duplicate_rows: int
     chunk_size: int
     last_error_code: str | None
     created_at: datetime
