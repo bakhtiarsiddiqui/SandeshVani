@@ -29,7 +29,9 @@ def publish_pending_outbox_events(
     batch_size: int = 50,
     lease_seconds: int = 60,
     max_attempts: int = 12,
-    publish_execution_task: Callable[[uuid.UUID, uuid.UUID, uuid.UUID], None] | None = None,
+    publish_execution_task: (
+        Callable[[uuid.UUID, uuid.UUID, uuid.UUID], None] | None
+    ) = None,
 ) -> int:
     """Publish durable outbox records, claiming them tenant by tenant."""
     with session_factory() as session:
@@ -81,7 +83,9 @@ def publish_pending_outbox_events(
                     publish_import_task(aggregate_id, organization_id, event_id)
                 elif event_type == "campaign.mock_execute.queued":
                     if publish_execution_task is None:
-                        raise RuntimeError("Mock execution task publisher is not configured")
+                        raise RuntimeError(
+                            "Mock execution task publisher is not configured"
+                        )
                     publish_execution_task(aggregate_id, organization_id, event_id)
                 else:
                     raise RuntimeError(f"Unsupported outbox event type: {event_type}")
@@ -113,7 +117,8 @@ def publish_pending_outbox_events(
                             job = session.scalar(
                                 select(AudienceImportJob)
                                 .where(
-                                    AudienceImportJob.organization_id == organization_id,
+                                    AudienceImportJob.organization_id
+                                    == organization_id,
                                     AudienceImportJob.id == aggregate_id,
                                 )
                                 .with_for_update()
@@ -130,12 +135,16 @@ def publish_pending_outbox_events(
                             execution = session.scalar(
                                 select(CampaignExecution)
                                 .where(
-                                    CampaignExecution.organization_id == organization_id,
+                                    CampaignExecution.organization_id
+                                    == organization_id,
                                     CampaignExecution.id == aggregate_id,
                                 )
                                 .with_for_update()
                             )
-                            if execution is not None and execution.status != "completed":
+                            if (
+                                execution is not None
+                                and execution.status != "completed"
+                            ):
                                 execution.status = "failed"
                     else:
                         event.status = "pending"
