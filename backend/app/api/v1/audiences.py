@@ -51,6 +51,8 @@ async def list_audience_members(
         Literal["active", "inactive"] | None, Query(alias="status")
     ] = None,
     district: Annotated[str | None, Query(max_length=150)] = None,
+    state_code: Annotated[str | None, Query(max_length=8)] = None,
+    city: Annotated[str | None, Query(max_length=150)] = None,
     language: Annotated[Literal["en", "hi"] | None, Query()] = None,
 ):
     if search is not None and not search.strip():
@@ -71,6 +73,8 @@ async def list_audience_members(
         search=search.strip() if search is not None else None,
         status=status_filter,
         district=district.strip() if district is not None else None,
+        state_code=state_code.strip().upper() if state_code is not None else None,
+        city=city.strip() if city is not None else None,
         language=language,
     )
     return AudienceMemberListResponse(
