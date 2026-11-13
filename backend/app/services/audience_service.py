@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,6 +9,7 @@ from app.core.http_status import HTTP_422_UNPROCESSABLE_CONTENT
 from app.models.audience_member import AudienceMember
 from app.repositories.audience_repo import AudienceRepository
 from app.schemas.audience import AudienceMemberCreate
+from app.services.audience_identity import is_identity_unique_violation
 
 
 class AudienceService:
@@ -32,13 +34,65 @@ class AudienceService:
             )
         return member
 
+    async def _ensure_identity_available(
+        self,
+        *,
+        email: str | None,
+        phone: str | None,
+        exclude_member_id: uuid.UUID | None = None,
+    ) -> None:
+        matches = await self.repository.find_identity_matches(
+            email=email,
+            phone=phone,
+            exclude_member_id=exclude_member_id,
+        )
+        if matches:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="An audience contact with one or more supplied identifiers already exists",
+            )
+
+    async def _raise_concurrent_identity_conflict(
+        self,
+        error: IntegrityError,
+        *,
+        email: str | None,
+        phone: str | None,
+        exclude_member_id: uuid.UUID | None = None,
+    ) -> None:
+        if not is_identity_unique_violation(error):
+            raise error
+        matches = await self.repository.find_identity_matches(
+            email=email,
+            phone=phone,
+            exclude_member_id=exclude_member_id,
+        )
+        if not matches:
+            raise error
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An audience contact with one or more supplied identifiers already exists",
+        ) from error
+
     async def create_member(
         self, values: dict, actor_user_id: uuid.UUID
     ) -> AudienceMember:
-        return await self.repository.create(
-            values=values,
-            actor_user_id=actor_user_id,
+        await self._ensure_identity_available(
+            email=values.get("email"),
+            phone=values.get("phone"),
         )
+        try:
+            return await self.repository.create(
+                values=values,
+                actor_user_id=actor_user_id,
+            )
+        except IntegrityError as err:
+            await self._raise_concurrent_identity_conflict(
+                err,
+                email=values.get("email"),
+                phone=values.get("phone"),
+            )
+            raise
 
     async def update_member(
         self,
@@ -65,8 +119,22 @@ class AudienceService:
                 detail="Update must leave at least one valid contact point",
             ) from err
 
-        return await self.repository.update(
-            member,
-            values=values,
-            actor_user_id=actor_user_id,
+        await self._ensure_identity_available(
+            email=merged.get("email"),
+            phone=merged.get("phone"),
+            exclude_member_id=member_id,
         )
+        try:
+            return await self.repository.update(
+                member,
+                values=values,
+                actor_user_id=actor_user_id,
+            )
+        except IntegrityError as err:
+            await self._raise_concurrent_identity_conflict(
+                err,
+                email=merged.get("email"),
+                phone=merged.get("phone"),
+                exclude_member_id=member_id,
+            )
+            raise
