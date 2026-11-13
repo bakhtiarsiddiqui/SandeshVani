@@ -299,10 +299,7 @@ class MockCampaignWorker:
                             ExecutionRecipient.audience_member_id.in_(eligible_union),
                         )
                     ).all()
-                    recipient_map = {
-                        audience_id: recipient_id
-                        for audience_id, recipient_id in existing
-                    }
+                    recipient_map = dict(existing)
                 new_recipients = [
                     ExecutionRecipient(
                         organization_id=organization_id,
