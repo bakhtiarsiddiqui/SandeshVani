@@ -16,7 +16,11 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
-def _has_duplicate_identity_keys(bind, column_name: str) -> bool:
+def _has_duplicate_identity_keys(
+    bind,
+    column_name: str,
+    organization_id,
+) -> bool:
     if column_name not in {"email", "phone"}:
         raise ValueError("Unsupported audience identity column")
     statement = sa.text(
@@ -24,14 +28,36 @@ def _has_duplicate_identity_keys(bind, column_name: str) -> bool:
         SELECT EXISTS (
             SELECT 1
             FROM audience_members
-            WHERE {column_name} IS NOT NULL
+            WHERE organization_id = :organization_id
+              AND {column_name} IS NOT NULL
               AND trim({column_name}) <> ''
             GROUP BY organization_id, lower(trim({column_name}))
             HAVING count(*) > 1
         )
         """
     )
-    return bool(bind.execute(statement).scalar())
+    return bool(
+        bind.execute(statement, {"organization_id": organization_id}).scalar()
+    )
+
+
+def _assert_no_existing_duplicates(bind, column_name: str) -> None:
+    # audience_members has FORCE RLS and the migration owner is intentionally
+    # not BYPASSRLS. Inspect each tenant under its transaction-local context.
+    # organizations is not tenant-RLS-protected in the current schema.
+    organization_ids = bind.execute(
+        sa.text("SELECT id FROM organizations ORDER BY id")
+    ).scalars()
+    for organization_id in organization_ids:
+        bind.execute(
+            sa.text("SELECT set_config('app.current_org', :organization_id, true)"),
+            {"organization_id": str(organization_id)},
+        )
+        if _has_duplicate_identity_keys(bind, column_name, organization_id):
+            raise RuntimeError(
+                "AUD-04 migration blocked: duplicate tenant identity keys exist. "
+                "Review and resolve duplicate audience records before retrying."
+            )
 
 
 def upgrade() -> None:
@@ -39,16 +65,8 @@ def upgrade() -> None:
 
     # Do not pick a winner or rewrite live audience data during a schema
     # migration. Require an explicit, tenant-reviewed cleanup first.
-    if _has_duplicate_identity_keys(bind, "email"):
-        raise RuntimeError(
-            "AUD-04 migration blocked: duplicate tenant email identity keys exist. "
-            "Review and resolve duplicate audience records before retrying."
-        )
-    if _has_duplicate_identity_keys(bind, "phone"):
-        raise RuntimeError(
-            "AUD-04 migration blocked: duplicate tenant phone identity keys exist. "
-            "Review and resolve duplicate audience records before retrying."
-        )
+    _assert_no_existing_duplicates(bind, "email")
+    _assert_no_existing_duplicates(bind, "phone")
 
     op.add_column(
         "audience_import_jobs",
