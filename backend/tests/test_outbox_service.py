@@ -258,6 +258,7 @@ def test_outbox_dispatches_mock_execution_to_campaign_worker(outbox_db):
         )
 
     published = []
+
     def publish_execution(received_execution, received_org, received_event):
         published.append((received_execution, received_org, received_event))
 
