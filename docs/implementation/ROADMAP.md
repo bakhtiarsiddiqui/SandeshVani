@@ -1,54 +1,91 @@
-# SandeshVani — Staged Project Roadmap
+# SandeshVani — implementation roadmap
 
-**Status:** Proposed sequence; estimates are not commitments.  
-**Principle:** Resolve architecture and security dependencies before feature implementation.
+**Status:** Current dependency-aware plan, reconciled against reviewed \`main\` on 2026-11-13.  
+**Baseline:** \`c88e270add18c6b0a4259fa5dbb310afa69534e7\`.  
+**Principle:** finish the governed data workflow before expanding into campaign execution, integrations or AI.
 
-## Stage 0 — Specification and technical foundation
+## Stage 0 — Engineering and security foundations
 
-**Goal:** Make the system implementable.  
-**Deliverables:** approved PRD/RTM; ERD and constraints; permission catalog; API schemas; threat model; repository skeleton; Docker Compose; CI/test baseline.  
-**Exit gate:** critical relationships and tenant boundaries defined; mock-only boundary testable; unresolved decisions assigned owners.
+**Status: substantially implemented.**
 
-## Stage 1 — Identity, organizations and tenant security
+Current repository includes React/Vite and FastAPI bootstraps, PostgreSQL configuration, Alembic migrations \`0001\`–\`0005\`, CI workflows, backend/frontend test suites, auth/token lifecycle, organization/membership/RBAC foundations and forced-RLS policies. P0.2/P0.3/P0.4 ledgers record completion. Remaining setup and operational gaps are tracked below; do not re-open completed foundations without a defect or new requirement.
 
-**Deliverables:** authentication/session handling; organizations; memberships; `membership_roles`; roles/permissions; active organization context; RLS; audit.  
-**Exit gate:** multi-org/multi-role tests pass; cross-tenant tests pass; role revocation takes effect; org admin cannot grant platform role.
+## Stage 1 — Audience foundation
 
-## Stage 2 — Audience and consent
+**Status: partially implemented; current workstream.**
 
-**Deliverables:** audience CRUD; CSV validation/import jobs; duplicate policy; segment builder/preview; consent history; suppression.  
-**Exit gate:** row-level errors and recovery; safe file handling; allowlisted segment grammar; consent/suppression tested at execution.
+Merged:
+- AUD-01 audience contact CRUD (PR #16).
+- AUD-02 CSV file-level validation and private storage (PR #17).
 
-## Stage 3 — Campaign and localization foundation
+Next:
+1. AUD-03 choose and complete one asynchronous import implementation; #18 and #19 are competing drafts, not additive.
+2. Verify RLS, schema ownership/grants, outbox state, task idempotency, crash recovery, progress counters, row errors and production worker/Redis/Beat wiring using disposable PostgreSQL and configured Redis.
+3. AUD-04 define duplicate identity rules and conflict resolution.
+4. Define channel/purpose consent, evidence, withdrawal, suppression, retention and legal review.
+5. Implement allowlisted segments and eligibility preview; re-check eligibility at execution.
+6. Add permissioned, formula-safe exports only after authorization/audit design.
 
-**Deliverables:** campaigns; templates/template versions; immutable campaign versions; English/Hindi content variants; extensible language registry; four-channel previews; validation.  
-**Exit gate:** selected channel/language variants are complete or explicitly incomplete; version hash stable; material edits create new version.
+**Exit gate:** large upload is safely processed in bounded chunks; failures are recoverable; duplicates are governed; consent/suppression fail closed; tenant boundaries and row errors are tested.
 
-## Stage 4 — Approval and audit
+## Stage 2 — Campaign and content foundation
 
-**Deliverables:** reviewer queue; approve/reject; version/hash binding; separation-of-duties rules; audit views.  
-**Exit gate:** only authorized reviewers act; rationale captured; creator self-approval policy enforced; approved version immutable.
+**Status: not implemented on reviewed main.**
 
-## Stage 5 — Mock-all distribution
+- Campaign CRUD and state machine.
+- Immutable campaign versions and stable content hashes.
+- Template and template-version models.
+- English/Hindi channel content variants and preview validation.
+- Segment-to-campaign association and eligibility preview.
 
-**Deliverables:** execution model; recipient snapshots; channel delivery intents; outbox; Celery/Redis; mock Email/SMS/WhatsApp/Push adapters; attempts; retry/backoff; pause/cancel.  
-**Exit gate:** all four adapters conform; duplicate tasks do not duplicate logical deliveries; worker failure recovery tested; no real provider path exists.
+**Exit gate:** validated content snapshot is immutable after submission; template edits cannot mutate existing campaign versions; channel/language completeness is explicit.
 
-## Stage 6 — Analytics, reliability and performance
+## Stage 3 — Approval and audit
 
-**Deliverables:** campaign/channel metrics; structured logs/request IDs; operational metrics; backup/restore; security regression suite; representative 100k load tests.  
-**Exit gate:** documented workload test reports completion time, throughput, resource use and errors; recovery exercised; metric definitions agreed; known limitations recorded.
+**Status: not implemented on reviewed main.**
 
-## Stage 7 — AI and localization intelligence (Release 2)
+- Reviewer queue and version/hash-bound approve/reject APIs.
+- Permission and separation-of-duties policy.
+- Recorded rationale and immutable decision history.
+- Append-oriented audit events and tenant-scoped audit views.
 
-**Deliverables:** provider evaluation; opt-in drafting/translation suggestions; human translation review; quality checks; language-specific evaluation; AI cost/latency monitoring.  
-**Exit gate:** privacy/provider approval; factual and language quality evidence; AI cannot approve or dispatch; human review enforced.
+**Exit gate:** only authorized reviewers can decide; prohibited self-approval is blocked by a human-approved policy; every sensitive transition is auditable.
 
-## Stage 8 — Real distribution and engagement (Release 3)
+## Stage 4 — Mock-only distribution
 
-**Deliverables:** provider-specific Email/SMS/WhatsApp/Push adapters; credentials/secrets; signed webhooks; scheduling/rate controls; feedback/engagement; advanced analytics.  
-**Exit gate:** legal/consent review; provider integration and failure tests; webhook replay protection; operational runbooks; rollback plan; explicit production authorization.
+**Status: not implemented on reviewed main.**
 
-## Schedule note
+- Provider-independent mock adapter interface for Email, SMS, WhatsApp and Push.
+- Approved-version execution and execution-time consent/suppression checks.
+- Recipient snapshots, logical channel-delivery intents and attempt history.
+- PostgreSQL transactional outbox; Celery/Redis workers once AUD-03 worker foundations are accepted.
+- Bounded concurrency/batches, idempotent consumers, retry/backoff, pause/cancel and explicit unknown outcomes.
 
-The original v1 pack proposed Sprint 0 plus six weeks. The v2 sequence preserves the same broad work order but adds explicit localization, multi-role RBAC and release gates. Do not promise a six-week completion date until scope, team capacity, acceptance profile and estimates are reviewed. Stages may be split into sprints; dependencies should not be skipped for schedule reasons.
+**Exit gate:** all four mock adapters conform; duplicate tasks do not duplicate logical deliveries; worker interruption and replay are tested; no live provider path exists.
+
+## Stage 5 — Analytics, reliability and performance
+
+**Status: not implemented as product analytics; operational foundations partial.**
+
+- Define metric semantics before chart implementation.
+- Tenant-scoped campaign/channel aggregates and drill-down.
+- Structured logs, request IDs and error monitoring.
+- Backup/restore exercise, security regression gates and operational runbooks.
+- Representative 100,000-recipient import/snapshot/distribution workload tests.
+
+**Exit gate:** report measured throughput, completion time, resource use, failures, recovery and explicit workload assumptions. No performance claim before evidence.
+
+## Stage 6 — Release 2 intelligence
+
+Deferred: opt-in AI drafting and translation suggestions, human review, quality evaluation per language, provider/privacy/cost/latency assessment. AI cannot approve, target autonomously or dispatch.
+
+## Stage 7 — Release 3 real distribution and engagement
+
+Deferred: provider-specific adapters, secret management, signed webhooks/replay protection, live scheduling/rate controls, feedback and engagement. Requires separate legal, consent, security, provider, operational and rollback gates.
+
+## Working rules
+
+- Do not start a later stage while its data, permission, API or state-machine dependency is undecided.
+- Stabilise contracts before frontend/backend parallelism.
+- Estimates are not commitments. Re-estimate after acceptance criteria and workload are defined.
+- Synchronize this roadmap with \`TASKS.md\`, \`PROJECT_STATUS.md\`, API docs and actual GitHub issue/PR state.

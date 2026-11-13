@@ -1,3 +1,7 @@
+> **DEPRECATED / EXPIRED:** This five-day Milestone 1 plan had a deadline of 11 November 2026 and is no longer the active delivery plan. Do not assign new work or infer completion from its day-by-day statuses. Use [the current roadmap](../docs/implementation/ROADMAP.md), [task tracker](../docs/implementation/TASKS.md) and [project status](../docs/PROJECT_STATUS.md). Historical notes below are preserved only as context.
+
+---
+
 # SandeshVani — Milestone 1
 
 **Deadline:** Wednesday, 11 November 2026, 7:00 PM IST.

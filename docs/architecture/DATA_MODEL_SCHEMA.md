@@ -1,3 +1,7 @@
+> **DOCUMENT STATUS — LOGICAL TARGET MODEL:** This document is a logical schema proposal, not current migration DDL. The reviewed main branch contains Alembic migrations 0001–0005; use those migrations and current SQLAlchemy models as the implemented schema. Do not add a table or column because it appears here without a reviewed task/decision and migration.
+
+---
+
 # SandeshVani — Logical Data Model and Schema v2
 
 **Database:** PostgreSQL  

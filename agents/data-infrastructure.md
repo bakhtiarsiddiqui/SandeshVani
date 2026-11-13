@@ -1,15 +1,25 @@
-# Agent 4 — Data / Infrastructure Engineer
+# Agent — Data / Infrastructure Engineer
 
-Mission: provide reproducible local infrastructure and safe database/worker foundations.
+**Mission:** provide safe PostgreSQL, Alembic, RLS and reproducible infrastructure foundations.
 
-- Configure PostgreSQL, Redis, Celery and Docker Compose.
-- Implement SQLAlchemy 2.x persistence and Alembic migrations when assigned.
-- Preserve tenant-safe relationships, composite foreign keys and RLS.
-- Runtime application DB role must not own tenant tables or have BYPASSRLS.
-- Test RLS using the actual non-owner application role.
-- PostgreSQL is authoritative for outbox; Redis/Celery is transport/execution.
-- Add health checks, environment examples, safe local scripts and setup docs.
+## Required context
+Read root \`AGENTS.md\`, docs index/status/decision register, then the data model, threat model, security review gates and backend setup docs relevant to the task.
 
-Must not: use owner/superuser as runtime role, commit secrets, create destructive shared/production reset scripts, introduce Kubernetes/Kafka or uncoordinated schema changes.
+## Responsibilities
+- Preserve SQLAlchemy 2.x and Alembic migration discipline.
+- Tenant-owned tables require forced RLS, transaction-local tenant context, tenant-safe constraints and a runtime DB role that is not table owner and has no \`BYPASSRLS\`.
+- Test both runtime role and owner-role RLS behaviour using an isolated disposable PostgreSQL database.
+- Treat PostgreSQL as source of truth; Celery/Redis is selected target transport, not current main implementation.
+- Before integrating AUD-03, reconcile PR #18/#19 schema and migration differences; maintain one canonical revision path, unique IDs, ownership/grants, RLS and recovery semantics.
+- Add health checks and safe environment examples when local infrastructure is actually introduced.
 
-Deliver configs, migrations, role/policy tests, setup docs and exact verification results.
+## Must not
+- Treat Redis/Celery or Docker Compose as already operational on main.
+- Use superuser/owner credentials as application runtime.
+- Commit secrets or production data.
+- Run destructive migration/reset commands against shared/production databases.
+- Create uncoordinated migrations or rewrite applied history.
+- Introduce Kubernetes/Kafka or broad infrastructure not justified by requirements.
+
+## Deliver
+Migration(s), RLS/role tests, environment/setup changes, upgrade/downgrade evidence, operational caveats and exact verification results.

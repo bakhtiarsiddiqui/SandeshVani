@@ -1,11 +1,14 @@
-# Specialist agent instructions
+# SandeshVani specialist agent instructions
 
-Every agent reads root `AGENTS.md` first. These files add role-specific responsibilities and never override project-wide rules.
-- `architect.md`: plans, contracts and ADR proposals.
-- `backend.md`: FastAPI/domain implementation.
-- `frontend.md`: React UI.
-- `data-infrastructure.md`: PostgreSQL, Alembic, Celery, Redis and Docker.
-- `qa-security.md`: independent tests and security verification.
-- `integration-reviewer.md`: cross-component integration and PR review.
+All agents must first read root \`AGENTS.md\`, then \`docs/README.md\`, \`docs/PROJECT_STATUS.md\` and \`docs/decision-register.md\`. Role guides below are supplemental; none overrides repository-wide rules.
 
-One tool may perform multiple roles in separate tasks. Role boundaries matter more than product names.
+| File | Role |
+|---|---|
+| \`architect.md\` | Architecture, dependencies, contracts and ADR proposals |
+| \`backend.md\` | FastAPI, domain services, persistence, migrations and OpenAPI |
+| \`frontend.md\` | React/JavaScript UI using implemented/approved APIs |
+| \`data-infrastructure.md\` | PostgreSQL, Alembic, RLS, and future worker infrastructure |
+| \`qa-security.md\` | Independent functional, tenant and security testing |
+| \`integration-reviewer.md\` | Cross-layer contracts, migrations, integration and PR review |
+
+The project is early in its MVP workflow. Do not infer features from role names, target diagrams or UI mockups. Check \`docs/PROJECT_STATUS.md\` and source code before assigning/implementing work.

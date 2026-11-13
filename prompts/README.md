@@ -1,3 +1,7 @@
+> **ARCHIVAL / SUPERSEDED:** This is the former Project Documentation Pack v4 planning snapshot dated 2026-11-04. It is retained for history only and is not the current implementation status, agent instruction source or authoritative documentation index. Do not use it to decide what is implemented. Start at [root AGENTS.md](../AGENTS.md), [docs index](../docs/README.md), [project status](../docs/PROJECT_STATUS.md) and [decision register](../docs/decision-register.md). Its stack and feature lists may include target architecture and planned features that are not present in the current main branch.
+
+---
+
 # SandeshVani Documentation Pack v4
 
 **Version:** 4.0 brand-aligned planning baseline  

@@ -1,3 +1,7 @@
+> **USAGE NOTE:** These are human security review gates to apply as the corresponding feature is implemented. A gate listed here does not imply the feature exists or has passed review. Use [PROJECT_STATUS.md](PROJECT_STATUS.md) to distinguish current foundations from future gates.
+
+---
+
 # Security review gates
 
 Human approval required for:

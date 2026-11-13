@@ -1,31 +1,40 @@
-# SandeshVani — System Architecture v2
+# SandeshVani — system architecture
 
-**Version:** 2.0  
-**Status:** Proposed architecture baseline; detailed design decisions remain open where identified in the RTM.
+**Document type:** Target architecture with current implementation annotations  
+**Reviewed:** 2026-11-13  
+**Important:** The diagrams and future flows in this document describe the intended MVP architecture, not proof that those modules are implemented.
 
-## 1. Architectural decision
+## 1. Current implementation snapshot
 
-Use a **modular monolith**: one FastAPI application with separately run Celery worker processes, a shared PostgreSQL database and Redis as broker/cache. Keep module boundaries explicit. Do not introduce microservices, Kafka or Kubernetes for the MVP.
+The reviewed \`main\` baseline is a React/JavaScript/Vite frontend and a FastAPI/Python backend using PostgreSQL, SQLAlchemy 2.x and Alembic. The implemented backend domains are authentication, organization/membership/role management and audience contact CRUD plus secure CSV upload validation/storage.
 
-## 2. Architecture goals
+The main tree does not yet contain campaign, consent, segment, template, approval, audit-event, delivery, analytics or Celery worker domains. The Overview dashboard contains hard-coded sample data. The async worker/outbox architecture described below is a selected target and is under competing draft PR review.
 
-- Strong tenant isolation and organization-scoped multiple-role RBAC.
-- Governed audience, consent, campaign and approval workflows.
-- Versioned English/Hindi content with an extensible Indic language registry.
-- Four-channel mock distribution with no live provider path in R1.
-- Durable, idempotent asynchronous processing and auditable state.
-- Design target of 100,000 recipients per campaign, verified through load testing.
+## 2. Target architectural decision
 
-## 3. Logical architecture
+Use a **modular monolith**: one FastAPI application with clear domain modules. When background processing is integrated, run worker processes separately while retaining one shared PostgreSQL database and Redis as the Celery broker/transport. Do not turn module boundaries into independently deployed microservices for the MVP.
 
-```mermaid
+## 3. Target goals
+
+- Multi-organization workspaces and organization-scoped multiple-role RBAC.
+- Secure audience management, channel/purpose-specific consent and suppression.
+- Segments using an allowlisted filter grammar.
+- Versioned campaigns and templates with English/Hindi content variants.
+- Human approval bound to an immutable version and content hash.
+- Mock-only Email, SMS, WhatsApp and Push delivery.
+- Durable audit, delivery state, basic analytics and explicit operational recovery.
+- A design target of up to 100,000 recipients per campaign, subject to representative load testing.
+
+## 4. Target logical architecture
+
+\`\`\`mermaid
 flowchart TB
   USER[Organization Users] --> WEB[React SPA]
   WEB --> API[FastAPI REST API]
   subgraph APP[Modular Monolith]
     AUTH[Identity and Organizations]
     RBAC[Permissions and Tenant Context]
-    AUD[Audience and Consent]
+    AUD[Audience, Consent and Segments]
     CAMP[Campaigns and Templates]
     LOC[Localization]
     APR[Approvals and Audit]
@@ -51,66 +60,60 @@ flowchart TB
   MOCK --> PUSH[Mock Push]
   WORKER --> DB
   ANALYTICS --> DB
-```
+\`\`\`
 
-## 4. Technology baseline
+**Implementation caveat:** only identity/organization/RBAC and audience CRUD/upload portions currently exist on main. Redis, Celery, outbox and the product modules shown in the diagram are future work.
 
-Frontend: React, JavaScript, Vite, Tailwind CSS, DaisyUI, React Router, Axios, Lucide React, Recharts, React Hook Form and Zod.  
-Backend: Python, FastAPI, Pydantic, SQLAlchemy 2.x, Alembic, pytest and HTTPX.  
-Data/async: PostgreSQL, Celery and Redis.  
-Local infrastructure: Docker Compose.  
-Operations: structured logs and request IDs initially; Sentry and Prometheus/Grafana/OpenTelemetry may be introduced progressively.
+## 5. Current and target technology
 
-## 5. Backend modules
+- Implemented frontend: React, JavaScript, Vite, Tailwind CSS 3, DaisyUI 4, Axios, Mukta; Three.js only for decorative sign-in animation.
+- Implemented backend/data: Python, FastAPI, Pydantic, SQLAlchemy 2.x, Alembic, PostgreSQL.
+- Selected target background processing: Celery + Redis and a PostgreSQL transactional outbox; not merged into main in the reviewed snapshot.
+- Intended local orchestration: Docker Compose; root Compose file not present in the reviewed tree.
 
-`identity`, `organizations`, `permissions`, `audiences`, `consent`, `campaigns`, `templates`, `localization`, `approvals`, `distribution`, `providers`, `analytics`, `audit`, and later `ai_engine`.
+Do not describe React Router, Recharts, React Hook Form, Zod or other previously proposed UI libraries as selected dependencies. See \`TECH_STACK_DECISIONS.md\`.
 
-Modules own their business logic and repositories. Cross-module collaboration uses explicit application interfaces/domain events, not arbitrary imports of private internals. Keep provider adapter implementations behind a stable interface.
+## 6. Backend module boundaries
 
-## 6. Request and tenant flow
+Target module areas:
+- \`identity\`: users, authentication, sessions and recovery.
+- \`organizations\`: organizations, memberships and role assignments.
+- \`audiences\`: contacts and controlled CSV upload/import.
+- \`consent\`: consent evidence and suppression.
+- \`segments\`: allowlisted filter definitions and preview.
+- \`campaigns\`: drafts, state transitions and immutable versions.
+- \`templates\` / \`localization\`: versioned reusable content and language variants.
+- \`approvals\` / \`audit\`: reviewer decisions and append-oriented events.
+- \`distribution\`: recipient snapshots, mock adapters, delivery state and retry.
+- \`analytics\`: tenant-scoped aggregates.
+- \`ai_engine\`: deferred, human-reviewed suggestions only.
 
-Browser → FastAPI → authenticate session → resolve requested/active organization through membership → aggregate assigned role permissions → authorize resource and workflow state → tenant-scoped service/repository → PostgreSQL under RLS.
+Only identity/organizations and audiences currently have implemented API modules. The module list above is a target boundary, not a claim that these packages exist.
 
-The client-supplied organization ID is a selector, not proof of access. Every request verifies active membership. Set transaction-local tenant context before tenant queries. Use an application database role that is not table owner and lacks `BYPASSRLS`.
+## 7. Request and tenant flow
 
-## 7. Major data flows
+Target: Browser → FastAPI → authenticate session → resolve requested/active organization through verified membership → aggregate roles/permissions in that organization → authorize resource and workflow state → tenant-scoped service/repository → PostgreSQL with transaction-local RLS context.
 
-**CSV import:** upload validation → controlled file storage + import job + outbox → bounded worker chunks → normalized rows/row errors → UI progress.  
-**Campaign approval:** draft → immutable version and content hash → submit → reviewer inspects exact snapshot → decision → audit.  
-**Mock execution:** approved version → eligibility recheck → recipient snapshot → channel delivery intents + outbox rows in one transaction → publisher → Celery → mock adapter → attempt/status persistence → analytics.
+A client-supplied organization ID is a selector, not proof of access. Every tenant-owned operation must verify membership and resource ownership. The runtime DB role must not own tenant tables and must not have \`BYPASSRLS\`.
 
-## 8. Multiple-role authorization
+## 8. Target major data flows
 
-A membership may map to multiple roles through `membership_roles`. Effective permissions are the union of permissions assigned to those roles, subject to explicit deny/constraint policies if adopted. Role grants are validated against the grantor's authority. Roles are organization-scoped except explicitly controlled platform roles. Revocation must affect subsequent authorization checks.
+**CSV import:** validated private upload → tenant-scoped durable import job + outbox → bounded worker chunks → imported contacts and PII-minimized row errors → progress/status UI. The current merged AUD-02 slice stops after file validation and private storage; async import is AUD-03 and is not on main.
 
-## 9. Distribution architecture
+**Campaign approval:** draft → immutable version/hash → submit → reviewer inspects exact snapshot → authorized decision with rationale → audit. Not implemented on main.
 
-Use a provider-independent adapter contract with validation, capability declaration and send simulation. R1 adapters: mock Email, SMS, WhatsApp and Push. Adapter responses simulate accepted, delivered, failed, retryable and unknown outcomes. The MVP must not include production provider SDKs, credentials, endpoints or a configuration flag capable of enabling live dispatch.
+**Mock execution:** approved version → execution-time eligibility recheck → recipient snapshot → channel delivery intents and outbox → worker → mock adapter → attempt/status persistence → analytics. Not implemented on main.
 
-PostgreSQL is authoritative. Create logical delivery intents and outbox events in the same transaction. Redis/Celery may deliver tasks more than once; consumers must be idempotent. Use bounded batches, worker concurrency/rate controls, retries with jitter, dead-letter/exhausted-work handling and explicit unknown-outcome handling.
+## 9. Distribution reliability requirements
 
-## 10. 100k recipient strategy
+When introduced, use a provider-independent mock adapter contract. PostgreSQL stores logical state and outbox events atomically; Redis/Celery may deliver duplicate tasks, so consumers must be idempotent. Use bounded batches, bounded retries/backoff, exhausted-work handling, worker recovery, pause/cancel checks and explicit unknown outcomes.
 
-Do not enqueue one task containing the entire audience. Build recipient snapshots and delivery intents in bounded database batches; publish bounded outbox batches; process bounded worker tasks; use indexes aligned to status/tenant/campaign access patterns; avoid per-recipient unbounded fan-out in API requests. The actual throughput and completion-time objective are OPEN and must be measured under a documented workload profile.
+No live provider SDKs, credentials, endpoints or configuration flag capable of enabling live dispatch may be present in the MVP execution path.
 
-## 11. State models
+## 10. 100k recipient target
 
-Campaign states proposed: `DRAFT`, `SUBMITTED`, `APPROVED`, `SCHEDULED`, `PROCESSING`, `PAUSED`, `COMPLETED`, `REJECTED`, `CANCELLED`, `FAILED`. Valid transitions are backend-owned. The relationship between approval and scheduling must be finalized before implementing scheduled execution.
+Do not enqueue an entire audience as one unbounded task or execute recipient fan-out inside an API request. Plan bounded recipient snapshots and worker batches, indexed tenant/campaign/status access patterns and realistic resource limits. The required workload profile and completion-time objective remain open. No 100k throughput or completion claim may be made until measured and reported.
 
-Delivery states: `PENDING`, `PROCESSING`, `ACCEPTED`, `DELIVERED`, `RETRY_WAIT`, `FAILED`, `UNKNOWN`, `CANCELLED`. Acceptance is not delivery confirmation. Attempts are separate records.
+## 11. Open design decisions
 
-## 12. Localization
-
-Store language tags and language metadata in a registry. English and Hindi are initial supported content languages. The system should allow additional Indic language records without schema changes. Each campaign version has explicit language-specific content variants and review status. Do not claim full localization quality or complete language coverage from registry extensibility alone.
-
-## 13. Security and operational requirements
-
-See `../security/THREAT_MODEL.md`. Critical controls include RLS, tenant-safe composite FKs, least privilege, secure sessions, safe uploads/exports, immutable approved versions, server-enforced mock-only dispatch, transactional outbox, idempotency, replay protection for future webhooks, secret management, backup/restore and observability.
-
-## 14. Explicitly deferred
-
-Microservices, Kubernetes, Kafka, multi-region active-active, advanced ML targeting, AI agents, production analytics warehouse, vector database and live providers in R1. Add only after a measurable requirement and architecture decision record.
-
-## 15. Architecture status
-
-This is a logical architecture baseline. It is not yet a frozen physical schema or production deployment design. Finalize ERD, constraints, exact state transitions, API schemas, tenant/RLS policy, performance profile and operational objectives before implementation is treated as ready.
+Campaign and delivery state machines; consent legal basis and retention; organization invitation/onboarding; separation of duties; audit retention/tamper-evidence; scheduling and recovery semantics; recipient identity/deduplication; 100k workload profile; RPO/RTO; future provider/webhook and AI provider selection.

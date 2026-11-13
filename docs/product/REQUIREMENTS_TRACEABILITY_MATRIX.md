@@ -1,3 +1,7 @@
+> **DOCUMENT STATUS — ACCEPTANCE TARGETS, NOT COMPLETION RECORD:** RTM rows describe requirements and expected evidence. A requirement is complete only when current implementation and relevant tests/CI demonstrate it. Use [PROJECT_STATUS.md](../PROJECT_STATUS.md) and [TASKS.md](../implementation/TASKS.md) for the dated status snapshot. Do not infer implementation from an R1 label or an acceptance statement.
+
+---
+
 # SandeshVani — Requirements Traceability Matrix (RTM)
 
 **Version:** 2.0  

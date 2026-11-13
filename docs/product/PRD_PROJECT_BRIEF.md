@@ -1,3 +1,7 @@
+> **DOCUMENT STATUS — REQUIREMENTS, NOT IMPLEMENTATION EVIDENCE:** This PRD describes target product scope and release intent. It must not be used to claim a feature exists. Check [current project status](../PROJECT_STATUS.md), the current source tree and tests. Audience CRUD and file-level CSV upload are implemented; async import, consent, segments, campaigns, templates, approvals, audit workflows, distribution and analytics remain unimplemented on the reviewed main baseline.
+
+---
+
 # SandeshVani — Product Requirements Document / Project Brief
 
 **Version:** 3.0  

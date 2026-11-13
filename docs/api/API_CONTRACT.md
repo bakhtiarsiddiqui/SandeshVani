@@ -1,179 +1,98 @@
-# SandeshVani — API Contract v2
+# SandeshVani — API contract and implementation inventory
 
-**Base path:** `/api/v1`  
-**Format:** JSON over HTTPS  
-**Contract source of truth:** FastAPI-generated OpenAPI plus reviewed schemas
+**Base path:** \`/api/v1\`  
+**Format:** JSON over HTTPS; CSV upload is multipart.  
+**Reviewed:** 2026-11-13  
+**Status:** This document contains a verified inventory of current route definitions plus a clearly separate future API design. It is not a substitute for FastAPI-generated OpenAPI.
 
-This is a resource/endpoint inventory, not final Pydantic schemas. Request/response fields, idempotency semantics and error codes must be finalized before frontend integration.
+> Before implementing or integrating an endpoint, inspect the route, Pydantic schema, service, authorization dependencies and current \`/openapi.json\`. Do not implement a planned endpoint just because it appears in the future API section.
 
-## 1. Conventions
+## 1. Contract authority
 
-- UUID resource IDs; UTC ISO-8601 timestamps.
-- Cursor pagination with bounded `limit` and allowlisted filters/sorting.
-- Pydantic request/response schemas and consistent error envelope.
-- Tenant resolved from authenticated membership and active organization; client org ID is never authorization evidence.
-- Request ID in responses/errors and structured logs.
-- Idempotency keys for asynchronous/state-changing operations where appropriate.
-- Resource-level authorization and state-machine validation on every request.
-- Cookie-authenticated mutations require CSRF protection; cookies HttpOnly, Secure over HTTPS and appropriate SameSite.
+The running FastAPI application's generated OpenAPI and current route/schema source are authoritative for current request/response shapes. This file records route coverage and design intent. If it conflicts with source/OpenAPI, source/OpenAPI for the checked-out revision wins; update this document in the same code change.
 
-## 2. Authentication and organization context
+Common requirements:
+- UUID resource identifiers and UTC timestamps where applicable.
+- Tenant context must be derived from authenticated membership and validated active organization. Client-provided organization ID is never authorization evidence.
+- Server-side resource authorization; frontend route/visibility gates are presentation only.
+- Cookie-authenticated mutations must preserve CSRF and trusted-origin protections.
+- Use bounded pagination and allowlisted filters; do not compile user-supplied filters into raw SQL.
+- Do not log secrets, access tokens, refresh tokens, raw recovery tokens or unnecessary PII.
 
-- `POST /auth/login`
-- `POST /auth/logout`
-- `POST /auth/refresh` (if refresh rotation is implemented)
-- `GET /auth/me` — user and memberships; expose role summaries per organization without leaking other tenant data.
-- `POST /auth/active-organization` — server verifies membership before switching context.
-- `POST /auth/password-recovery` and recovery completion endpoints — required design work; exact contract to be finalized.
+## 2. Implemented route inventory on reviewed main
 
-## 3. Organizations, memberships and roles
+The following routes are present in the reviewed source tree. Verify exact schema and response details in current OpenAPI/source.
 
-- `GET /organizations`
-- `GET /organizations/current`
-- `POST /organizations` (subject to onboarding policy)
-- `GET /organizations/{organization_id}`
-- `PATCH /organizations/{organization_id}`
-- `GET /organizations/{organization_id}/members`
-- `POST /organizations/{organization_id}/invitations`
-- `PATCH /organizations/{organization_id}/members/{membership_id}`
-- `GET /organizations/{organization_id}/roles`
-- `POST /organizations/{organization_id}/roles`
-- `GET /organizations/{organization_id}/permissions`
-- `PUT /organizations/{organization_id}/roles/{role_id}/permissions`
-- `POST /organizations/{organization_id}/members/{membership_id}/roles`
-- `DELETE /organizations/{organization_id}/members/{membership_id}/roles/{role_id}`
+### Health
+- \`GET /api/v1/health\`
 
-Role assignment must validate same-organization membership/role scope and grant authority. Platform roles must not be assignable by tenant administrators.
+### Authentication (\`/api/v1/auth\`)
+- \`POST /register\`
+- \`POST /verify-email\`
+- \`POST /resend-verification\`
+- \`POST /login\`
+- \`POST /refresh\`
+- \`POST /logout\`
+- \`POST /logout-all\`
+- \`GET /me\`
+- \`POST /select-org\`
+- \`POST /password-recovery\`
+- \`POST /password-reset\`
 
-## 4. Audience, imports, segments and consent
+Local auth email/token delivery is a development/test mechanism constrained by backend configuration and in-process capture; do not invent an HTTP mailbox endpoint or document raw-token retrieval routes.
 
-- `GET /audiences?cursor=&limit=&search=&status=&district=&language=`
-- `POST /audiences`
-- `GET /audiences/{audience_id}`
-- `PATCH /audiences/{audience_id}`
-- `POST /audiences/imports` (multipart CSV; 202)
-- `GET /audiences/imports/{import_id}`
-- `GET /audiences/imports/{import_id}/errors`
-- `GET /segments`, `POST /segments`, `GET /segments/{segment_id}`
-- `POST /segments/{segment_id}/preview`
-- `POST /audiences/exports` (controlled permissioned export)
-- `GET /audiences/{audience_id}/consent`
-- `POST /audiences/{audience_id}/consent`
-- `GET /suppression-entries`, `POST /suppression-entries`
+### Organizations (\`/api/v1/organizations\`)
+- \`GET /\` — list organizations for the authenticated user.
+- \`POST /\` — create an organization.
+- \`GET /current\` — retrieve active organization context.
+- \`GET /{organization_id}\` — retrieve an organization subject to membership checks.
+- \`GET /{organization_id}/members\`
+- \`POST /{organization_id}/members\`
+- \`GET /{organization_id}/roles\`
+- \`POST /{organization_id}/members/{membership_id}/roles\`
+- \`DELETE /{organization_id}/members/{membership_id}/roles/{role_id}\`
+- \`GET /{organization_id}/permissions\`
 
-### AUD-01 — Audience contact CRUD
+No invitation acceptance, arbitrary role-permission administration or organization PATCH route is part of this current inventory.
 
-The first implementation slice exposes organization-scoped audience contact records:
+### Audience (\`/api/v1/audiences\`)
+- \`GET /\` — tenant-scoped list with bounded cursor, search/status/district/language filters.
+- \`POST /\` — create one contact.
+- \`GET /{audience_id}\` — retrieve one contact.
+- \`PATCH /{audience_id}\` — update supplied contact fields.
+- \`POST /imports\` — file-level CSV validation and private storage; returns HTTP 202.
 
-- `POST /audiences` — create one contact (201).
-- `GET /audiences` — list contacts using a bounded cursor (limit 1–100; default 25), with optional `search`, `status`, `district`, and `language` filters.
-- `GET /audiences/{audience_id}` — retrieve one contact in the verified active organization.
-- `PATCH /audiences/{audience_id}` — update supplied fields; use `status: "inactive"` to deactivate. Hard deletion is not exposed.
+**AUD-02 boundary:** \`POST /imports\` currently validates and stores the CSV and its tenant-scoped metadata. It does not create contacts, create an asynchronous import job, publish an outbox event, run a Celery worker, expose progress/error APIs or deduplicate records. Do not describe the upload response as an import-job response.
 
-Create/update requests require the existing organization-scoped `audiences:create` / `audiences:update` permission, CSRF token and trusted Origin/Referer validation. Reads require `audiences:read`. The tenant is derived from authenticated membership and active organization context; an organization header is not authorization evidence.
+## 3. Implemented audience semantics
 
-Fields in this CRUD slice: `full_name` (required), `email` (optional), `phone` (optional, E.164), `preferred_language` (`en` or `hi` in the current MVP registry), `district` (optional), and `status` (`active` or `inactive`). At least one contact point (email or phone) is required. Email is normalized to lowercase.
+The current CRUD fields include full name, email, phone, preferred language (English/Hindi), district and active/inactive status. At least one contact point is required. List pagination is bounded (limit 1–100; default 25); filter names and schema constraints are defined in source.
 
-Duplicate identity matching is intentionally not enforced yet: the product's duplicate policy is still open and must be resolved before CSV import/deduplication. This CRUD slice does not implement CSV imports, segments, consent, suppression, exports or audit-event history. The record stores creator/last-updater references, which are metadata rather than an append-only audit log.
+The upload accepts one CSV file subject to file-level validation and configured limits (default 25 MiB and 100,000 nonblank rows). Files are stored outside frontend static content with generated names and private permissions. Upload metadata is tenant-owned and protected with PostgreSQL RLS. Duplicate identity matching is not implemented; no consent is inferred from an import or contact record.
 
-Collection response:
+## 4. Planned API surface — not an implementation contract
 
-```json
-{
-  "data": [],
-  "pagination": {
-    "next_cursor": null,
-    "has_more": false,
-    "limit": 25
-  }
-}
-```
+The following domains are required or contemplated by the product plan, but are not present as complete route groups on reviewed main:
+- Import job status/progress and row-error pagination.
+- Duplicate detection and resolution.
+- Segments and segment preview.
+- Consent history, withdrawal and suppression.
+- Permissioned audience exports.
+- Campaigns, immutable versions, templates and localized content.
+- Campaign preview, submission and version history.
+- Approvals, reviewer decisions and audit queries.
+- Mock executions, delivery detail, metrics and analytics.
 
-Example audience:
+These endpoints must be designed from the accepted domain model, permission catalogue and state machines. Do not invent route names, fields, enums, error semantics or pagination patterns in the frontend.
 
-```json
-{
-  "full_name": "Example Person",
-  "email": "person@example.org",
-  "phone": "+911234567890",
-  "preferred_language": "hi",
-  "district": "Meerut"
-}
-```
+## 5. Planned API conventions and state controls
 
-### AUD-02 — CSV upload validation and controlled storage
+- Use Pydantic request and response models and a consistent error envelope.
+- Use 401 for unauthenticated, 403 for denied, 404 where intentional resource concealment applies, 409 for state/idempotency conflict, 413 for upload limit, 422 for schema validation and 429 for rate limiting as appropriate to the actual implementation.
+- State-changing operations should be idempotent where retry is possible; idempotency key scope/retention remain to be defined.
+- Future approval must bind to an immutable version/hash. Future distribution must re-check consent/suppression and current workflow state.
+- No client field may enable live mode in R1.
 
-- `POST /audiences/imports` accepts one multipart file in the `file` field and returns HTTP 202 after file-level validation and durable private storage.
-- The filename must have a `.csv` extension. The content is parsed as UTF-8 (an optional UTF-8 BOM is accepted); a declared media type, when present, must be CSV-compatible.
-- Headers are case-insensitive after trimming and must be unique and drawn from `full_name`, `email`, `phone`, `preferred_language`, and `district`. `full_name` is required, and at least one of `email` or `phone` must be present.
-- CSV quoting and row structure are checked. Blank rows are ignored. Each nonblank row must have the same number of fields as the header.
-- Default limits are 25 MiB and 100,000 nonblank data rows; both are configurable with `AUDIENCE_IMPORT_MAX_BYTES` and `AUDIENCE_IMPORT_MAX_ROWS`.
-- The backend stores files outside the frontend static tree, under `AUDIENCE_IMPORT_STORAGE_DIR`. It generates the stored filename from a UUID, creates private directories/files (0700/0600), and does not persist or return the supplied filename or a filesystem path.
-- Upload metadata (tenant, uploader, byte size, row count, SHA-256 and creation time) is stored in a tenant-owned database table protected by PostgreSQL RLS.
-- The endpoint requires authenticated organization membership, `audiences:create`, and the existing CSRF and trusted-origin checks.
+## 6. Postman and contract test coverage
 
-The 202 response contains the upload UUID, organization UUID, byte size, row count, SHA-256 and creation time. This stage validates and retains the upload only: it does not create audience contacts, queue a worker, report per-row semantic validation errors, or apply duplicate matching. Those are AUD-03/AUD-04 scope.
-
-Segment filters use an allowlisted, type-checked grammar. Never accept raw SQL.
-
-## 5. Campaigns, templates and localization
-
-- `GET /campaigns`, `POST /campaigns`
-- `GET /campaigns/{campaign_id}`, `PATCH /campaigns/{campaign_id}` (draft-only)
-- `POST /campaigns/{campaign_id}/versions`
-- `GET /campaigns/{campaign_id}/versions`
-- `GET /campaigns/{campaign_id}/versions/{version_id}`
-- `POST /campaigns/{campaign_id}/preview`
-- `POST /campaigns/{campaign_id}/submit`
-- `POST /campaigns/{campaign_id}/cancel`
-- `GET /languages`
-- `GET /campaigns/{campaign_id}/versions/{version_id}/content`
-- `PUT /campaigns/{campaign_id}/versions/{version_id}/content/{language_code}`
-- `GET /templates`, `POST /templates`, `GET /templates/{template_id}`
-- `POST /templates/{template_id}/versions`, `GET /templates/{template_id}/versions`
-
-R1 language registry includes English and Hindi and supports adding further Indic language metadata. Content variant completeness and review status must be visible. Submitted version content cannot be edited in place.
-
-## 6. Approvals
-
-- `GET /approvals`
-- `GET /approvals/{approval_id}`
-- `POST /approvals/{approval_id}/approve`
-- `POST /approvals/{approval_id}/reject`
-
-Decision payload example: `{"rationale":"Reviewed the exact submitted version."}`. Backend verifies reviewer permissions, separation-of-duties policy, organization, immutable version and content hash.
-
-## 7. Mock execution and delivery
-
-- `POST /campaigns/{campaign_id}/executions` — creates mock execution only in R1.
-- `GET /executions/{execution_id}`
-- `POST /executions/{execution_id}/pause`
-- `POST /executions/{execution_id}/cancel`
-- `GET /executions/{execution_id}/deliveries`
-- `GET /executions/{execution_id}/metrics`
-
-The server must enforce mock mode. No client field may switch R1 to live mode. API deployment must not contain real provider credentials or provider endpoints.
-
-## 8. Response and error conventions
-
-Collection example:
-
-```json
-{"data":[],"pagination":{"next_cursor":null,"has_more":false}}
-```
-
-Error example:
-
-```json
-{"error":{"code":"CAMPAIGN_ACCESS_DENIED","message":"You do not have permission to access this campaign.","request_id":"req-example-123"}}
-```
-
-Status codes: 200 success; 201 created; 202 accepted async operation; 204 no body; 400 malformed/invalid operation; 401 unauthenticated; 403 unauthorized; 404 missing or intentionally concealed resource; 409 state/idempotency conflict; 413 upload too large; 422 schema validation; 429 rate limited; 500 generic server failure.
-
-## 9. Contract gaps to resolve
-
-Invitation acceptance and expiry; password recovery; organization onboarding; consent history and withdrawal; import retry/recovery; scheduling/rescheduling; execution re-run semantics; campaign feedback; analytics metric definitions; provider webhook contract and tenant attribution; AI endpoints in R2; export download/expiry; exact channel payload schema; idempotency key scope and retention.
-
-## 10. Postman coverage
-
-Collections: Auth, Organizations/Members/Roles, Audience/Imports, Segments/Consent, Campaigns/Versions/Localization, Approvals, Mock Executions/Deliveries, Analytics. Environments should use test tenant IDs and test accounts. Include positive, validation, unauthorized, revoked-role, cross-tenant and idempotency tests.
+As routes are added, maintain positive, validation, unauthenticated, unauthorized, revoked-role, cross-tenant, CSRF/origin, idempotency and failure/retry tests. Keep Postman collections aligned with generated OpenAPI. A schema/route drift check is desirable once a stable contract export workflow is established.

@@ -1,3 +1,7 @@
+> **DOCUMENT STATUS — CURRENT AND FUTURE THREATS:** This threat model includes future worker, provider, webhook and AI boundaries. Future controls are requirements for those later integrations, not evidence those systems exist. Reviewed main currently has no campaign, consent, approval, distribution or Celery worker domain. Use [PROJECT_STATUS.md](../PROJECT_STATUS.md) and verify the current code before making implementation claims.
+
+---
+
 # SandeshVani — Threat Model v2
 
 **Scope:** MVP modular monolith, PostgreSQL/RLS, Redis/Celery workers, file imports/exports, mock channel adapters and later provider/AI extensions.

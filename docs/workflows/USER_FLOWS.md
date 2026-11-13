@@ -1,3 +1,7 @@
+> **DOCUMENT STATUS — TARGET WORKFLOWS:** This document describes end-to-end product journeys, including workflows not yet implemented. The reviewed main branch does not yet provide campaign, consent, segment, approval, distribution or analytics workflows. Treat these as future acceptance targets; see [PROJECT_STATUS.md](../PROJECT_STATUS.md).
+
+---
+
 # SandeshVani — User and System Flows v2
 
 ## 1. Sign-in and organization selection

@@ -1,3 +1,7 @@
+> **ARCHIVAL / SUPERSEDED:** This is the original engineering-foundation milestone plan. Its exit criteria and target layout must not be interpreted as current implementation status. Several milestones were superseded by merged work; some target infrastructure (including a root Docker Compose file) remains absent. Use [project status](../docs/PROJECT_STATUS.md), [current roadmap](../docs/implementation/ROADMAP.md) and [task tracker](../docs/implementation/TASKS.md). Preserve this file as historical planning context.
+
+---
+
 # Milestone 0 — Engineering Foundation
 
 ## Goal

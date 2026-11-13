@@ -1,3 +1,7 @@
+> **ARCHIVAL NOTE:** This records the historical v4 brand-alignment change only. It is not an active decision register or implementation status. Use [docs index](../docs/README.md), [project status](../docs/PROJECT_STATUS.md) and [decision register](../docs/decision-register.md) for current guidance.
+
+---
+
 # SandeshVani Documentation Pack — v4 change log
 
 ## Brand and domain update (2026-11-04)

@@ -1,3 +1,7 @@
+> **DOCUMENT STATUS — POLICY TARGET:** This matrix describes intended permission boundaries. Verify currently implemented permission codes and route dependencies in the backend source and generated OpenAPI. Do not invent or expose permissions because a future workflow requires them. Use [PROJECT_STATUS.md](../PROJECT_STATUS.md) for implemented domains.
+
+---
+
 # SandeshVani — RBAC Matrix v2
 
 **Model:** Organization-scoped RBAC with multiple roles per membership and resource/workflow-level authorization.
