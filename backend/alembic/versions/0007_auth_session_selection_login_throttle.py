@@ -17,6 +17,17 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    # Alembic creates its version table with VARCHAR(32) by default, while this
+    # revision identifier is longer. Widen it before Alembic records this
+    # revision at the end of the transaction.
+    op.alter_column(
+        "alembic_version",
+        "version_num",
+        existing_type=sa.String(length=32),
+        type_=sa.String(length=64),
+        existing_nullable=False,
+    )
+
     op.add_column(
         "auth_sessions",
         sa.Column("selected_organization_id", sa.UUID(), nullable=True),
