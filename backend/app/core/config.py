@@ -16,6 +16,15 @@ _INSECURE_CSRF_SECRETS = {
 }
 
 
+def _as_asyncpg_url(database_url: str) -> str:
+    """Normalize Render's standard PostgreSQL URL for SQLAlchemy async engines."""
+    if database_url.startswith("postgres://"):
+        return database_url.replace("postgres://", "postgresql+asyncpg://", 1)
+    if database_url.startswith("postgresql://"):
+        return database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    return database_url
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -27,7 +36,6 @@ class Settings(BaseSettings):
     app_env: str = "production"
     deployment_environment: Literal["development", "production"] = "production"
     enable_local_mail_sink: bool = False
-    # Local-only SMTP delivery for the Mailpit development inbox
     dev_mail_smtp_host: str = ""
     dev_mail_smtp_port: int = Field(default=1025, gt=0, le=65535)
     dev_mail_smtp_starttls: bool = False
@@ -43,7 +51,6 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     version: str = "0.1.0"
 
-    # Runtime database — used by FastAPI
     database_url: str = ""
     postgres_db: str = "sandeshvani"
     postgres_user: str = "sandeshvani_app"
@@ -51,16 +58,11 @@ class Settings(BaseSettings):
     postgres_host: str = "localhost"
     postgres_port: int = 5432
 
-    # Migration database — used exclusively by Alembic
     migration_database_url: str = ""
     migration_database_role: str = ""
 
-    # Redis
     redis_url: str = "redis://localhost:6379/0"
 
-    # JWT / Cryptography Configuration
-    # Supported algorithms: RS256 (RSA 2048+), EdDSA (Ed25519)
-    # The decision between RS256 and EdDSA is configurable pending key-management review
     jwt_algorithm: str = "RS256"
     jwt_private_key_pem: str = ""
     jwt_public_key_pem: str = ""
@@ -69,13 +71,11 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 10
     refresh_token_expire_days: int = 7
 
-    # Cookie & CSRF Security
     cookie_secure: bool = False
     cookie_samesite: str = "lax"
     cookie_domain: str | None = None
     csrf_secret: str = "dev_csrf_secret_32_bytes_minimum_key_change_in_prod"
 
-    # CORS
     allowed_origins: list[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
@@ -117,7 +117,6 @@ class Settings(BaseSettings):
         return self
 
     def _validate_jwt_key_pair(self) -> None:
-        """Reject invalid or algorithm-incompatible production signing keys."""
         if not self.jwt_private_key_pem.strip() or not self.jwt_public_key_pem.strip():
             raise ValueError("JWT private and public keys are required in production")
         try:
@@ -184,9 +183,9 @@ class Settings(BaseSettings):
         )
 
     def get_database_url(self) -> str:
-        """Return the restricted runtime database URL."""
+        """Return the restricted runtime database URL with an async driver."""
         if self.database_url:
-            return self.database_url
+            return _as_asyncpg_url(self.database_url)
 
         return (
             f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@"
@@ -194,14 +193,13 @@ class Settings(BaseSettings):
         )
 
     def get_migration_database_url(self) -> str:
-        """Return the dedicated Alembic migration database URL."""
+        """Return the dedicated Alembic migration URL with an async driver."""
         if not self.migration_database_url:
             raise ValueError("MIGRATION_DATABASE_URL must be configured for Alembic")
 
-        return self.migration_database_url
+        return _as_asyncpg_url(self.migration_database_url)
 
     def get_migration_database_role(self) -> str | None:
-        """Return a validated optional role for migration-only SET LOCAL ROLE."""
         role = self.migration_database_role.strip()
         if not role:
             return None
