@@ -107,7 +107,7 @@ async def upload_audience_csv(
     file: Annotated[UploadFile, File()],
     auth_ctx: Annotated[AuthContext, Depends(get_current_user)],
     tenant_ctx: Annotated[
-        TenantContext, Depends(require_permissions("audiences:create"))
+        TenantContext, Depends(require_permissions("audiences:import"))
     ],
     session: Annotated[AsyncSession, Depends(get_db)],
     settings: Annotated[Settings, Depends(get_settings)],
@@ -249,5 +249,6 @@ async def update_audience_member(
         actor_user_id=auth_ctx.user.id,
     )
     await session.commit()
+    await set_tenant_context(session, tenant_ctx.organization.id)
     await session.refresh(member)
     return AudienceMemberResponse.model_validate(member)
