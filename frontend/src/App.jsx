@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { AuthProvider, useAuth } from "./context";
 import AppShell from "./components/layout/AppShell";
 import Button from "./components/ui/Button";
@@ -29,13 +29,12 @@ const WORKSPACES = {
 function Dashboard({ onNavigateOrgSelect }) {
   const { activeOrg, logout, permissions, roles, platformRoles, user } = useAuth();
   const navItems = useMemo(() => getVisibleNavigation(permissions, platformRoles), [permissions, platformRoles]);
-  const [activeWorkspace, setActiveWorkspace] = useState(() => getDefaultWorkspace(roles, platformRoles, permissions));
-  useEffect(() => {
-    if (!navItems.some((item) => item.id === activeWorkspace)) {
-      setActiveWorkspace(getDefaultWorkspace(roles, platformRoles, permissions));
-    }
-  }, [activeWorkspace, navItems, roles, platformRoles, permissions]);
-  const selected = navItems.some((item) => item.id === activeWorkspace) ? activeWorkspace : "overview";
+  const defaultWorkspace = getDefaultWorkspace(roles, platformRoles, permissions);
+  const [activeWorkspace, setActiveWorkspace] = useState(defaultWorkspace);
+  // Derive a valid page when an organization switch or role revocation changes grants.
+  const selected = navItems.some((item) => item.id === activeWorkspace)
+    ? activeWorkspace
+    : defaultWorkspace;
   const Workspace = WORKSPACES[selected];
   const actions = <div className="flex items-center gap-1">
     {activeOrg && <Button variant="ghost" size="sm" onClick={onNavigateOrgSelect}>Switch organization</Button>}

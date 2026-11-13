@@ -34,28 +34,47 @@ async def test_platform_context_returns_only_callers_global_assignments(
     token = login.json()["access_token"]
 
     role = Role(
-        id=uuid.uuid4(), name="Platform Operator", scope="platform",
-        organization_id=None, description="Global operations", is_system_role=True,
+        id=uuid.uuid4(),
+        name="Platform Operator",
+        scope="platform",
+        organization_id=None,
+        description="Global operations",
+        is_system_role=True,
     )
     permission = Permission(
-        id=uuid.uuid4(), code="platform:organizations:read",
+        id=uuid.uuid4(),
+        code="platform:organizations:read",
         description="Read platform organization directory",
     )
     other_user = User(
-        id=uuid.uuid4(), email="other.operator@example.test",
-        normalized_email="other.operator@example.test", password_hash="test-hash",
+        id=uuid.uuid4(),
+        email="other.operator@example.test",
+        normalized_email="other.operator@example.test",
+        password_hash="test-hash",
         full_name="Other Operator",
     )
     test_db_session.add_all([role, permission, other_user])
     await test_db_session.flush()
-    test_db_session.add_all([
-        RolePermission(role_id=role.id, permission_id=permission.id,
-                       role_scope="platform", organization_id=None),
-        PlatformRoleAssignment(user_id=uuid.UUID(registration.json()["user_id"]),
-                               role_scope="platform", role_id=role.id),
-        PlatformRoleAssignment(user_id=other_user.id, role_scope="platform",
-                               role_id=role.id),
-    ])
+    test_db_session.add_all(
+        [
+            RolePermission(
+                role_id=role.id,
+                permission_id=permission.id,
+                role_scope="platform",
+                organization_id=None,
+            ),
+            PlatformRoleAssignment(
+                user_id=uuid.UUID(registration.json()["user_id"]),
+                role_scope="platform",
+                role_id=role.id,
+            ),
+            PlatformRoleAssignment(
+                user_id=other_user.id,
+                role_scope="platform",
+                role_id=role.id,
+            ),
+        ]
+    )
     await test_db_session.commit()
 
     response = await async_client.get(
