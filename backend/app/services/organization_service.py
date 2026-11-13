@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token
 from app.db.session import set_tenant_context
-from app.models.membership import Membership
 from app.models.auth_session import AuthSession
+from app.models.membership import Membership
 from app.models.organization import Organization
 from app.models.role import Role
 from app.repositories.membership_repo import MembershipRepository
