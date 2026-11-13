@@ -39,13 +39,10 @@ def _email_content(
         )
         return subject, plain_message, f"<p>{plain_message}</p>"
 
-    link = (
-        f"{settings.frontend_base_url.rstrip('/')}/?"
-        f"{parameter}={quote(token, safe='')}"
-    )
+    link = f"{settings.frontend_base_url.rstrip('/')}/?{parameter}={quote(token, safe='')}"
     minutes = max(1, lifetime_seconds // 60)
     text = (
-        f"Use this link to {action}:\\n\\n{link}\\n\\n"
+        f"Use this link to {action}:\n\n{link}\n\n"
         f"This link expires in approximately {minutes} minutes. "
         "If you did not request this, you can ignore this email."
     )
