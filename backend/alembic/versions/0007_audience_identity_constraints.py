@@ -45,19 +45,44 @@ def _assert_no_existing_duplicates(bind, column_name: str) -> None:
     # audience_members has FORCE RLS and the migration owner is intentionally
     # not BYPASSRLS. Inspect each tenant under its transaction-local context.
     # organizations is not tenant-RLS-protected in the current schema.
-    organization_ids = bind.execute(
-        sa.text("SELECT id FROM organizations ORDER BY id")
-    ).scalars().all()
-    for organization_id in organization_ids:
-        bind.execute(
-            sa.text("SELECT set_config('app.current_org', :organization_id, true)"),
-            {"organization_id": str(organization_id)},
-        )
-        if _has_duplicate_identity_keys(bind, column_name, organization_id):
-            raise RuntimeError(
-                "AUD-04 migration blocked: duplicate tenant identity keys exist. "
-                "Review and resolve duplicate audience records before retrying."
+    if bind.dialect.name == "postgresql":
+        organization_ids = bind.execute(
+            sa.text("SELECT id FROM organizations ORDER BY id")
+        ).scalars().all()
+        for organization_id in organization_ids:
+            bind.execute(
+                sa.text(
+                    "SELECT set_config('app.current_org', :organization_id, true)"
+                ),
+                {"organization_id": str(organization_id)},
             )
+            duplicate_exists = _has_duplicate_identity_keys(
+                bind, column_name, organization_id
+            )
+            if duplicate_exists:
+                raise RuntimeError(
+                    "AUD-04 migration blocked: duplicate tenant identity keys exist. "
+                    "Review and resolve duplicate audience records before retrying."
+                )
+        return
+
+    statement = sa.text(
+        f"""
+        SELECT EXISTS (
+            SELECT 1
+            FROM audience_members
+            WHERE {column_name} IS NOT NULL
+              AND trim({column_name}) <> ''
+            GROUP BY organization_id, lower(trim({column_name}))
+            HAVING count(*) > 1
+        )
+        """
+    )
+    if bind.execute(statement).scalar():
+        raise RuntimeError(
+            "AUD-04 migration blocked: duplicate tenant identity keys exist. "
+            "Review and resolve duplicate audience records before retrying."
+        )
 
 
 def upgrade() -> None:
