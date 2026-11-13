@@ -2,6 +2,7 @@ from app.models.audience_import_job import AudienceImportJob
 from app.models.audience_import_job_error import AudienceImportJobError
 from app.models.audience_import_upload import AudienceImportUpload
 from app.models.audience_member import AudienceMember
+from app.models.auth_login_attempt_window import AuthLoginAttemptWindow
 from app.models.auth_session import AuthSession
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.membership import Membership
@@ -26,6 +27,7 @@ __all__ = [
     "AudienceImportJobError",
     "AudienceImportUpload",
     "AudienceMember",
+    "AuthLoginAttemptWindow",
     "AuthSession",
     "Base",
     "EmailVerificationToken",
