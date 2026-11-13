@@ -17,6 +17,14 @@ class OrganizationRepository:
         )
         return result.scalar_one_or_none()
 
+    async def lock_for_update(self, organization_id: uuid.UUID) -> Organization | None:
+        result = await self.session.execute(
+            select(Organization)
+            .where(Organization.id == organization_id)
+            .with_for_update()
+        )
+        return result.scalar_one_or_none()
+
     async def get_by_slug(self, slug: str) -> Organization | None:
         result = await self.session.execute(
             select(Organization).where(Organization.slug == slug)
@@ -40,6 +48,7 @@ class OrganizationRepository:
                 Membership.status == "active",
                 Organization.status == "active",
             )
+            .order_by(Organization.created_at.asc(), Organization.id.asc())
         )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
