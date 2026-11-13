@@ -168,7 +168,7 @@ class AuthService:
         active_org: Organization | None = user_orgs[0] if user_orgs else None
         auth_session.active_organization_id = active_org.id if active_org else None
         await self.session.flush()
-        active_roles: list[Role] =
+        active_roles: list[Role] = []
         effective_permissions: list[str] = []
 
         if active_org:
