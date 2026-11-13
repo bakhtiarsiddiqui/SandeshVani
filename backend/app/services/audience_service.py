@@ -113,6 +113,8 @@ class AudienceService:
             "phone": member.phone,
             "preferred_language": member.preferred_language,
             "district": member.district,
+            "state_code": member.state_code,
+            "city": member.city,
         }
         merged.update({key: value for key, value in values.items() if key != "status"})
 
