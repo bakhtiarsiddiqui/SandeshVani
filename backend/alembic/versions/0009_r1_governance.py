@@ -2,10 +2,13 @@
 
 Revision ID: 0009_r1_governance
 Revises: 0008_sess_org_aud_loc
+
+# Declarative schema DDL is intentionally kept together in this migration.
+# ruff: noqa: E501
 """
 
-from collections.abc import Sequence
 import uuid
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 
@@ -67,6 +70,7 @@ def _create_append_only_trigger(table_name: str) -> None:
 
 
 def upgrade() -> None:
+    # fmt: off
     op.create_table(
         "processing_basis_events",
         sa.Column("id", sa.UUID(), primary_key=True, nullable=False),
@@ -477,6 +481,8 @@ def upgrade() -> None:
                     ),
                     {"role_id": role_id, "org_id": org_id, "code": code},
                 )
+
+    # fmt: on
 
 
 def downgrade() -> None:
