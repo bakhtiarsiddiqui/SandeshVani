@@ -69,9 +69,7 @@ class AudienceRepository:
                 func.lower(func.trim(AudienceMember.email)) == email.strip().lower()
             )
         if phone:
-            identity_filters.append(
-                func.trim(AudienceMember.phone) == phone.strip()
-            )
+            identity_filters.append(func.trim(AudienceMember.phone) == phone.strip())
         if not identity_filters:
             return []
 
@@ -81,9 +79,7 @@ class AudienceRepository:
         )
         if exclude_member_id is not None:
             statement = statement.where(AudienceMember.id != exclude_member_id)
-        result = await self.session.execute(
-            statement.order_by(AudienceMember.id.asc())
-        )
+        result = await self.session.execute(statement.order_by(AudienceMember.id.asc()))
         return list(result.scalars().all())
 
     async def create(self, *, values: dict, actor_user_id: uuid.UUID) -> AudienceMember:
