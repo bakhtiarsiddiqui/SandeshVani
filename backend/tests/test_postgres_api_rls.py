@@ -37,7 +37,14 @@ pytest.importorskip("asyncpg")
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 
-def _url_for(database_url: str, *, database: str, driver: str, username=None, password=None):
+def _url_for(
+    database_url: str,
+    *,
+    database: str,
+    driver: str,
+    username: str | None = None,
+    password: str | None = None,
+):
     url = make_url(database_url).set(drivername=driver, database=database)
     if username is not None:
         url = url.set(username=username, password=password)
@@ -108,7 +115,8 @@ async def pg_api_runtime(tmp_path):
         await app_admin.execute(f"GRANT CONNECT ON DATABASE {database} TO {role}")
         await app_admin.execute(f"GRANT USAGE ON SCHEMA public TO {role}")
         await app_admin.execute(
-            f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {role}"
+            f"GRANT SELECT, INSERT, UPDATE, DELETE "
+            f"ON ALL TABLES IN SCHEMA public TO {role}"
         )
         await app_admin.execute(
             f"GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO {role}"
@@ -198,7 +206,7 @@ async def _register_and_verify(
 
 
 @pytest.mark.asyncio
-async def test_audience_create_update_upload_and_member_role_response_under_postgres_rls(
+async def test_postgres_rls_api_paths(
     pg_api_runtime,
 ):
     runtime = pg_api_runtime
