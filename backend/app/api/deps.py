@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import Annotated
 from urllib.parse import urlsplit
 
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.security import (
+    ensure_utc,
     verify_access_token,
     verify_csrf_token,
 )
@@ -88,7 +90,11 @@ async def get_current_user(
     # Check active session in DB
     session_repo = SessionRepository(session)
     auth_session = await session_repo.get_session(session_id)
-    if not auth_session or auth_session.revoked_at is not None:
+    if (
+        not auth_session
+        or auth_session.revoked_at is not None
+        or ensure_utc(auth_session.expires_at) <= datetime.now(UTC)
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Session has been revoked or expired",
