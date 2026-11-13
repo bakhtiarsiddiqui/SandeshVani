@@ -138,12 +138,13 @@ def test_worker_processes_bounded_chunks_and_records_safe_row_errors(import_db):
     assert len(members) == 2
     assert {member.email for member in members if member.email} == {"asha@example.org"}
     assert {member.phone for member in members if member.phone} == {"+919876543210"}
-    assert [
-        (error.row_number, error.field_name, error.error_code) for error in errors
-    ] == [
+    assert sorted(
+        (error.row_number, error.field_name or "", error.error_code)
+        for error in errors
+    ) == [
         (3, "email", "INVALID_EMAIL"),
         (3, "preferred_language", "UNSUPPORTED_LANGUAGE"),
-        (4, None, "CONTACT_POINT_REQUIRED"),
+        (4, "", "CONTACT_POINT_REQUIRED"),
     ]
     error_text = str([(error.field_name, error.error_code) for error in errors])
     assert "not-an-email" not in error_text
