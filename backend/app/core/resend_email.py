@@ -32,18 +32,20 @@ def _email_content(
     if not token:
         # Keep known/unknown-account responses equivalent without disclosing
         # account existence. No actionable link is sent for unknown accounts.
-        return (
-            subject,
-            "If this address is associated with an account, follow the instructions "
-            "previously sent to you. If you did not request this, you can ignore this email.",
-            "<p>If this address is associated with an account, follow the instructions "
-            "previously sent to you. If you did not request this, you can ignore this email.</p>",
+        plain_message = (
+            "If this address is associated with an account, follow the "
+            "instructions previously sent to you. If you did not request this, "
+            "you can ignore this email."
         )
+        return subject, plain_message, f"<p>{plain_message}</p>"
 
-    link = f"{settings.frontend_base_url.rstrip('/')}/?{parameter}={quote(token, safe='')}"
+    link = (
+        f"{settings.frontend_base_url.rstrip('/')}/?"
+        f"{parameter}={quote(token, safe='')}"
+    )
     minutes = max(1, lifetime_seconds // 60)
     text = (
-        f"Use this link to {action}:\n\n{link}\n\n"
+        f"Use this link to {action}:\\n\\n{link}\\n\\n"
         f"This link expires in approximately {minutes} minutes. "
         "If you did not request this, you can ignore this email."
     )
