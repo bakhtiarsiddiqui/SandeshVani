@@ -1,3 +1,4 @@
+import httpx
 import pytest
 
 from app.core.config import Settings
@@ -76,3 +77,45 @@ async def test_resend_posts_to_server_side_api(monkeypatch):
     assert captured["json"]["from"] == settings.auth_email_from
     assert "secret-token" in captured["json"]["text"]
     assert captured["headers"]["Authorization"] == "Bearer re_test_key"
+
+
+@pytest.mark.asyncio
+async def test_resend_retries_once_after_temporary_provider_failure(monkeypatch):
+    attempts = {"count": 0}
+
+    class FakeResponse:
+        def __init__(self, status_code):
+            self.status_code = status_code
+            self.response = httpx.Response(
+                status_code,
+                request=httpx.Request("POST", "https://api.resend.com/emails"),
+            )
+
+        def raise_for_status(self):
+            self.response.raise_for_status()
+
+    class FakeAsyncClient:
+        def __init__(self, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def post(self, *args, **kwargs):
+            attempts["count"] += 1
+            return FakeResponse(503 if attempts["count"] == 1 else 200)
+
+    async def no_sleep(_seconds):
+        return None
+
+    monkeypatch.setattr("app.core.resend_email.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.core.resend_email.asyncio.sleep", no_sleep)
+
+    await deliver_resend_auth_email(
+        _settings(), "recipient@example.com", "password-reset", "opaque-token", 3600
+    )
+
+    assert attempts["count"] == 2
