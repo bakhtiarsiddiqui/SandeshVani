@@ -87,6 +87,7 @@ def _safe_validation_errors(error: ValidationError) -> list[dict[str, str | None
 
     return safe_errors or [{"field_name": None, "error_code": "INVALID_ROW"}]
 
+
 def _validate_contact_row(row: dict[str, str | None]) -> dict | list[dict]:
     values = {
         "full_name": row.get("full_name") or "",
