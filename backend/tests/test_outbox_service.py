@@ -11,8 +11,8 @@ from sqlalchemy.pool import StaticPool
 from app.core.celery_app import celery_app
 from app.models.audience_import_job import AudienceImportJob
 from app.models.audience_import_upload import AudienceImportUpload
-from app.models.governance import CampaignExecution
 from app.models.base import Base
+from app.models.governance import CampaignExecution
 from app.models.organization import Organization
 from app.models.outbox_event import OutboxEvent
 from app.models.user import User
@@ -258,12 +258,13 @@ def test_outbox_dispatches_mock_execution_to_campaign_worker(outbox_db):
         )
 
     published = []
+    def publish_execution(received_execution, received_org, received_event):
+        published.append((received_execution, received_org, received_event))
+
     result = publish_pending_outbox_events(
         factory,
         lambda *_args: None,
-        publish_execution_task=lambda received_execution, received_org, received_event: (
-            published.append((received_execution, received_org, received_event))
-        ),
+        publish_execution_task=publish_execution,
     )
 
     assert result == 1
