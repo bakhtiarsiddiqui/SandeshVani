@@ -132,14 +132,18 @@ context before tenant-owned queries, verifies the private file size and
 SHA-256, and commits bounded chunks (default 500 rows) with progress counters.
 A lease and worker token prevent overlapping workers from processing the same
 job. Transient worker and broker failures are retried with bounded attempts.
-Row errors store only safe field, code, and generic message details; submitted
-contact values are never copied into error records.
+Each validation issue is stored as one record containing only the
+source row number, allowlisted `field_name`, and stable `error_code`. Rejected
+cell values and raw validation messages are never persisted. Multiple issue
+records may refer to the same row; the job's `error_rows` counter counts
+rejected source rows rather than issue records.
 
 Poll `GET /api/v1/audiences/imports/{job_id}` for status and progress. Read
-paginated validation failures from
-`GET /api/v1/audiences/imports/{job_id}/errors`. Duplicate identity resolution
-remains AUD-04 and is intentionally not performed by this worker. Audience
-import processing does not call communication providers.
+issues from `GET /api/v1/audiences/imports/{job_id}/errors?limit=&cursor=`.
+The opaque cursor orders by `(row_number, id)` so pagination does not skip
+additional issues for a row. Duplicate identity resolution remains AUD-04
+and is intentionally not performed by this worker. Audience import processing
+does not call communication providers.
 
 ## Local Authentication Email
 
