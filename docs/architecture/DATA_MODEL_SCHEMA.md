@@ -47,7 +47,7 @@ Proposed: `id`, `organization_id`, normalized invitee identifier, token hash, in
 ## 3. Audience and eligibility entities
 
 ### `audience_members`
-`id`, `organization_id`, `external_reference`, `full_name`, encrypted email/phone or channel contact points, keyed lookup hashes, `preferred_language`, district/state, validated attributes JSONB, status, timestamps.
+`id`, `organization_id`, `external_reference`, `full_name`, encrypted email/phone or channel contact points, keyed lookup hashes, `preferred_language`, district/state, validated attributes JSONB, status, timestamps. AUD-04 adds tenant-scoped partial unique indexes on `lower(trim(email))` and `trim(phone)`, including inactive records. The same identity key may be reused by another organization.
 
 ### `consent_records`
 `id`, `organization_id`, `audience_member_id`, `channel`, `purpose`, `status`, `source`, `notice_version`, `recorded_at`, `withdrawn_at`, `evidence_reference`. Preserve history; define legal basis and retention policy before production use.
@@ -59,7 +59,7 @@ Proposed: `id`, `organization_id`, normalized invitee identifier, token hash, in
 `id`, `organization_id`, `name`, `filter_definition` JSONB, `created_by`, timestamps. Grammar is allowlisted and type-checked; never compile user JSON into arbitrary SQL.
 
 ### `audience_import_jobs` / `audience_import_job_errors`
-An audience import job references one same-tenant upload and stores its uploader, status, total/processed/imported/rejected source-row counters, chunk size, retry count, worker-token lease, safe terminal error code and lifecycle timestamps.
+An audience import job references one same-tenant upload and stores its uploader, status, total/processed/imported/validation-error/duplicate source-row counters, chunk size, retry count, worker-token lease, safe terminal error code and lifecycle timestamps. Enforce `processed_rows = imported_rows + error_rows + duplicate_rows`.
 
 Each validation issue is stored as a separate error row containing `organization_id`, `job_id`, logical CSV `row_number`, nullable allowlisted `field_name`, stable `error_code`, and `created_at`. Multiple issue records may share one source row. The composite lookup index is `(organization_id, job_id, row_number, id)` to support stable cursor pagination. Never store rejected cell values or raw Pydantic validation messages in these records. The job's rejected-row counter counts each invalid source row once, regardless of the number of field issues.
 
