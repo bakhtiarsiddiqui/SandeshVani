@@ -108,7 +108,13 @@ async def test_audience_crud_and_filters(
     listed = await async_client.get(
         "/api/v1/audiences",
         headers=headers,
-        params={"status": "active", "district": "meerut", "state_code": "IN-UP", "city": "MEERUT", "language": "hi"},
+        params={
+            "status": "active",
+            "district": "meerut",
+            "state_code": "IN-UP",
+            "city": "MEERUT",
+            "language": "hi",
+        },
     )
     assert listed.status_code == 200, listed.text
     assert listed.json()["data"][0]["id"] == member["id"]
