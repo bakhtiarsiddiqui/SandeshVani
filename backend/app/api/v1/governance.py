@@ -9,7 +9,6 @@ from app.api.deps import (
     AuthContext,
     TenantContext,
     get_current_user,
-    get_tenant_context,
     require_permissions,
     verify_csrf,
     verify_origin,
@@ -20,6 +19,7 @@ from app.models.governance import (
     CampaignExecution,
     CampaignVersion,
     ChannelDelivery,
+    ExecutionRecipient,
 )
 from app.schemas.governance import (
     ApprovalDecisionCreate,
@@ -34,7 +34,6 @@ from app.schemas.governance import (
     SegmentPreviewRequest,
     SegmentPreviewResponse,
     SegmentVersionCreate,
-    SimpleMessageResponse,
     SuppressionEventCreate,
     TemplateCreate,
     TemplateVersionCreate,
@@ -456,7 +455,10 @@ async def get_campaign_execution_analytics(
             .where(
                 ChannelDelivery.organization_id == tenant_ctx.organization.id,
                 ChannelDelivery.recipient_id.in_(
-                    select(ExecutionRecipientId.execution_id)
+                    select(ExecutionRecipient.id).where(
+                        ExecutionRecipient.organization_id == tenant_ctx.organization.id,
+                        ExecutionRecipient.execution_id == execution_id,
+                    )
                 ),
             )
             .group_by(ChannelDelivery.channel, ChannelDelivery.status)
