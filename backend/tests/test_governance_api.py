@@ -149,7 +149,10 @@ async def test_governance_workflow_requires_evidence_and_independent_approval(
     version_id = segment_version.json()["id"]
     preview = await async_client.post(
         f"/api/v1/governance/segments/{segment_id}/preview",
-        headers={"Authorization": f"Bearer {owner['access_token']}", "X-Organization-ID": organization_id},
+        headers={
+            "Authorization": f"Bearer {owner['access_token']}",
+            "X-Organization-ID": organization_id,
+        },
         json={"version_id": version_id},
     )
     assert preview.status_code == 200, preview.text
@@ -167,7 +170,10 @@ async def test_governance_workflow_requires_evidence_and_independent_approval(
         json={
             "variants": {
                 "email": {
-                    "en": {"subject": "Dengue prevention", "body": "Remove standing water."},
+                    "en": {
+                        "subject": "Dengue prevention",
+                        "body": "Remove standing water.",
+                    },
                     "hi": {"subject": "डेंगू से बचाव", "body": "जमा पानी हटाएँ।"},
                 }
             }
@@ -217,7 +223,10 @@ async def test_governance_workflow_requires_evidence_and_independent_approval(
     # prohibit that user from approving their own submitted version.
     role_list = await async_client.get(
         f"/api/v1/organizations/{organization_id}/roles",
-        headers={"Authorization": f"Bearer {owner['access_token']}", "X-Organization-ID": organization_id},
+        headers={
+            "Authorization": f"Bearer {owner['access_token']}",
+            "X-Organization-ID": organization_id,
+        },
     )
     assert role_list.status_code == 200, role_list.text
     approver_role = next(
@@ -225,7 +234,10 @@ async def test_governance_workflow_requires_evidence_and_independent_approval(
     )
     member_list = await async_client.get(
         f"/api/v1/organizations/{organization_id}/members",
-        headers={"Authorization": f"Bearer {owner['access_token']}", "X-Organization-ID": organization_id},
+        headers={
+            "Authorization": f"Bearer {owner['access_token']}",
+            "X-Organization-ID": organization_id,
+        },
     )
     assert member_list.status_code == 200, member_list.text
     owner_membership = next(
@@ -265,7 +277,10 @@ async def test_governance_workflow_requires_evidence_and_independent_approval(
     decision = await async_client.post(
         f"/api/v1/governance/campaigns/{campaign_id}/versions/{campaign_version_id}/approval",
         headers=approver_headers,
-        json={"decision": "approved", "rationale": "Reviewed the exact submitted content."},
+        json={
+            "decision": "approved",
+            "rationale": "Reviewed the exact submitted content.",
+        },
     )
     assert decision.status_code == 201, decision.text
     assert decision.json()["version_hash"] == content_hash
@@ -280,7 +295,10 @@ async def test_governance_workflow_requires_evidence_and_independent_approval(
 
     analytics = await async_client.get(
         f"/api/v1/governance/executions/{execution.json()['id']}/analytics",
-        headers={"Authorization": f"Bearer {owner['access_token']}", "X-Organization-ID": organization_id},
+        headers={
+            "Authorization": f"Bearer {owner['access_token']}",
+            "X-Organization-ID": organization_id,
+        },
     )
     assert analytics.status_code == 200, analytics.text
     assert analytics.json()["simulated"] is True
@@ -289,7 +307,10 @@ async def test_governance_workflow_requires_evidence_and_independent_approval(
 
     audit = await async_client.get(
         "/api/v1/governance/audit",
-        headers={"Authorization": f"Bearer {owner['access_token']}", "X-Organization-ID": organization_id},
+        headers={
+            "Authorization": f"Bearer {owner['access_token']}",
+            "X-Organization-ID": organization_id,
+        },
     )
     assert audit.status_code == 200, audit.text
     actions = {row["action"] for row in audit.json()["data"]}
