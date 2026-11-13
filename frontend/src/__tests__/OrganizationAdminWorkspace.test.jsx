@@ -43,7 +43,7 @@ describe("OrganizationAdminWorkspace", () => {
     await screen.findByText("Meera Singh");
     await user.click(screen.getByRole("button", { name: "Add existing account" }));
     await user.type(screen.getByLabelText("Registered account email"), "new.member@example.org");
-    await user.click(screen.getByLabelText("Approver"));
+    await user.click(screen.getByRole("checkbox", { name: /Approver/ }));
     await user.click(screen.getByRole("button", { name: "Add to organization" }));
     await waitFor(() => expect(post).toHaveBeenCalledWith("/organizations/org-1/members", {
       email: "new.member@example.org", role_ids: ["role-approver"],
