@@ -92,8 +92,8 @@ def test_worker_processes_bounded_chunks_and_records_safe_row_errors(import_db):
     content = (
         b"full_name,email,phone,preferred_language,district\n"
         b"Asha Sharma,ASHA@example.org,,hi,Meerut\n"
+        b"Broken Input,not-an-email,,fr,Agra\n"
         b"No Contact,,,,Agra\n"
-        b"Broken Email,not-an-email,,en,Agra\n"
         b"Rahul Verma,,+919876543210,en,Agra\n"
     )
     organization_id, _, job_id = _seed_job(
@@ -128,11 +128,18 @@ def test_worker_processes_bounded_chunks_and_records_safe_row_errors(import_db):
     assert len(members) == 2
     assert {member.email for member in members if member.email} == {"asha@example.org"}
     assert {member.phone for member in members if member.phone} == {"+919876543210"}
-    assert [error.row_number for error in errors] == [3, 4]
-    error_text = str([error.errors for error in errors])
+    assert [
+        (error.row_number, error.field_name, error.error_code) for error in errors
+    ] == [
+        (3, "email", "INVALID_EMAIL"),
+        (3, "preferred_language", "UNSUPPORTED_LANGUAGE"),
+        (4, None, "CONTACT_POINT_REQUIRED"),
+    ]
+    error_text = str(
+        [(error.field_name, error.error_code) for error in errors]
+    )
     assert "not-an-email" not in error_text
     assert "No Contact" not in error_text
-    assert all(error.errors[0]["code"] for error in errors)
 
     # Repeated delivery after completion must not insert the contacts again.
     assert worker.process(job_id, organization_id) == {"status": "not_claimed"}
