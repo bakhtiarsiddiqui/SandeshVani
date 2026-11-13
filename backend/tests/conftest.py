@@ -57,6 +57,13 @@ def auth_recovery_rate_limiter():
 
 
 @pytest.fixture
+def auth_login_rate_limiter():
+    limiter = app.state.auth_login_rate_limiter
+    limiter.clear()
+    return limiter
+
+
+@pytest.fixture
 async def test_db_session() -> AsyncGenerator[AsyncSession, None]:
     engine = create_async_engine(
         TEST_DATABASE_URL,
@@ -85,6 +92,7 @@ async def async_client(
     test_db_session: AsyncSession,
     development_mail_sink,
     auth_recovery_rate_limiter,
+    auth_login_rate_limiter,
 ) -> AsyncGenerator[AsyncClient, None]:
     async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
         yield test_db_session
