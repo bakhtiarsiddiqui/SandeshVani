@@ -135,9 +135,7 @@ def test_worker_processes_bounded_chunks_and_records_safe_row_errors(import_db):
         (3, "preferred_language", "UNSUPPORTED_LANGUAGE"),
         (4, None, "CONTACT_POINT_REQUIRED"),
     ]
-    error_text = str(
-        [(error.field_name, error.error_code) for error in errors]
-    )
+    error_text = str([(error.field_name, error.error_code) for error in errors])
     assert "not-an-email" not in error_text
     assert "No Contact" not in error_text
 
