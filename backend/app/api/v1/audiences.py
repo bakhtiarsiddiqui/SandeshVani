@@ -65,6 +65,16 @@ async def list_audience_members(
             status_code=HTTP_422_UNPROCESSABLE_CONTENT,
             detail="district must not be blank",
         )
+    if state_code is not None and not state_code.strip():
+        raise HTTPException(
+            status_code=HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="state_code must not be blank",
+        )
+    if city is not None and not city.strip():
+        raise HTTPException(
+            status_code=HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="city must not be blank",
+        )
 
     service = AudienceService(session, tenant_ctx.organization.id)
     members, has_more, next_cursor = await service.list_members(
