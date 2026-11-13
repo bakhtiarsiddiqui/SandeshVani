@@ -41,9 +41,9 @@ async def test_governance_workflow_requires_evidence_and_independent_approval(
     development_mail_sink,
 ):
     await _register_and_verify(
-        async_client, "governance-owner@example.test", development_mail_sink
+        async_client, "governance-owner@example.com", development_mail_sink
     )
-    owner = await _login(async_client, "governance-owner@example.test")
+    owner = await _login(async_client, "governance-owner@example.com")
     org_response = await async_client.post(
         "/api/v1/organizations",
         headers={"Authorization": f"Bearer {owner['access_token']}"},
@@ -62,7 +62,7 @@ async def test_governance_workflow_requires_evidence_and_independent_approval(
         headers=owner_headers,
         json={
             "full_name": "Asha Governance",
-            "email": "asha.governance@example.test",
+            "email": "asha.governance@example.com",
             "preferred_language": "hi",
             "state_code": "IN-UP",
             "city": "Meerut",
@@ -257,18 +257,18 @@ async def test_governance_workflow_requires_evidence_and_independent_approval(
     assert self_approval.status_code == 403, self_approval.text
 
     await _register_and_verify(
-        async_client, "independent-approver@example.test", development_mail_sink
+        async_client, "independent-approver@example.com", development_mail_sink
     )
     added = await async_client.post(
         f"/api/v1/organizations/{organization_id}/members",
         headers=owner_headers,
         json={
-            "email": "independent-approver@example.test",
+            "email": "independent-approver@example.com",
             "role_ids": [approver_role["id"]],
         },
     )
     assert added.status_code == 201, added.text
-    approver = await _login(async_client, "independent-approver@example.test")
+    approver = await _login(async_client, "independent-approver@example.com")
     approver_headers = {
         "Authorization": f"Bearer {approver['access_token']}",
         "X-Organization-ID": organization_id,
