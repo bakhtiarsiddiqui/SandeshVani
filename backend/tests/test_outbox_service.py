@@ -11,6 +11,7 @@ from sqlalchemy.pool import StaticPool
 from app.core.celery_app import celery_app
 from app.models.audience_import_job import AudienceImportJob
 from app.models.audience_import_upload import AudienceImportUpload
+from app.models.governance import CampaignExecution
 from app.models.base import Base
 from app.models.organization import Organization
 from app.models.outbox_event import OutboxEvent
@@ -205,3 +206,68 @@ def test_outbox_dispatches_identifier_payload_through_live_redis_worker(outbox_d
     assert event is not None
     assert event.status == "published"
     assert event.published_at is not None
+
+
+def test_outbox_dispatches_mock_execution_to_campaign_worker(outbox_db):
+    _, factory = outbox_db
+    organization_id = uuid.uuid4()
+    user_id = uuid.uuid4()
+    execution_id = uuid.uuid4()
+    event_id = uuid.uuid4()
+    with factory.begin() as session:
+        session.add(
+            Organization(
+                id=organization_id,
+                name="Campaign Outbox Test",
+                slug=f"campaign-outbox-{organization_id.hex[:10]}",
+                status="active",
+            )
+        )
+        session.add(
+            User(
+                id=user_id,
+                email=f"{user_id.hex}@example.org",
+                normalized_email=f"{user_id.hex}@example.org",
+                password_hash="test-hash",
+                full_name="Campaign Actor",
+                status="active",
+            )
+        )
+        session.flush()
+        session.add(
+            CampaignExecution(
+                id=execution_id,
+                organization_id=organization_id,
+                campaign_version_id=uuid.uuid4(),
+                execution_mode="mock",
+                status="queued",
+                initiated_by=user_id,
+            )
+        )
+        session.add(
+            OutboxEvent(
+                id=event_id,
+                organization_id=organization_id,
+                aggregate_type="campaign_execution",
+                aggregate_id=execution_id,
+                event_type="campaign.mock_execute.queued",
+                payload={"execution_id": str(execution_id)},
+                status="pending",
+                attempt_count=0,
+            )
+        )
+
+    published = []
+    result = publish_pending_outbox_events(
+        factory,
+        lambda *_args: None,
+        publish_execution_task=lambda received_execution, received_org, received_event: (
+            published.append((received_execution, received_org, received_event))
+        ),
+    )
+
+    assert result == 1
+    assert published == [(execution_id, organization_id, event_id)]
+    with factory() as session:
+        event = session.get(OutboxEvent, event_id)
+    assert event is not None and event.status == "published"

@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.v1.audiences import router as audiences_router
 from app.api.v1.auth import router as auth_router
+from app.api.v1.governance import router as governance_router
 from app.api.v1.health import router as health_router
 from app.api.v1.organizations import router as organizations_router
 from app.api.v1.platform import router as platform_router
@@ -15,5 +16,6 @@ def create_api_v1_router(settings: Settings | None = None) -> APIRouter:
     router.include_router(auth_router)
     router.include_router(organizations_router)
     router.include_router(audiences_router)
+    router.include_router(governance_router)
     router.include_router(platform_router)
     return router
