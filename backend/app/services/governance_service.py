@@ -11,9 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.audience_member import AudienceMember
 from app.models.governance import (
-    AuditEvent,
     AudienceSegment,
     AudienceSegmentVersion,
+    AuditEvent,
     Campaign,
     CampaignApproval,
     CampaignExecution,
