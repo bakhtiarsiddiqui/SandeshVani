@@ -124,7 +124,9 @@ def publish_pending_outbox_events(
                                 .with_for_update()
                             )
                             if job is not None and job.status not in {
-                                "completed", "completed_with_errors", "failed",
+                                "completed",
+                                "completed_with_errors",
+                                "failed",
                             }:
                                 job.status = "failed"
                                 job.last_error_code = "QUEUE_DELIVERY_FAILED"
