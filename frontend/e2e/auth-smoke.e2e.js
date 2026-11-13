@@ -60,12 +60,17 @@ test('authenticated dashboard remains usable with sandbox-only sample data', asy
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify({
-      user: { id: 'browser-user', email: 'operator@example.test', full_name: 'Browser Operator' },
+      user: { id: 'browser-user', email: 'operator@example.com', full_name: 'Browser Operator' },
       active_organization: { id: 'browser-org', name: 'Browser Test Department', slug: 'browser-test' },
       organizations: [{ id: 'browser-org', name: 'Browser Test Department', slug: 'browser-test', status: 'active' }],
       roles: ['org_admin'],
       permissions: [],
     }),
+  }));
+  await page.route('**/api/v1/platform/me', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ platform_roles: [], platform_permissions: [] }),
   }));
 
   await page.goto('/');
