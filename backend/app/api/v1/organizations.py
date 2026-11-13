@@ -13,7 +13,7 @@ from app.api.deps import (
     verify_csrf,
     verify_origin,
 )
-from app.db.session import get_db
+from app.db.session import get_db, set_tenant_context
 from app.schemas.organization import (
     MemberAddRequest,
     MembershipResponse,
@@ -137,6 +137,8 @@ async def add_organization_member(
         role_ids=data.role_ids,
     )
     await session.commit()
+    # Restore transaction-local RLS context before loading tenant-scoped roles.
+    await set_tenant_context(session, organization_id)
 
     roles = []
     for r_id in data.role_ids:
