@@ -81,21 +81,15 @@ class AuthService:
         t_hash = hash_token(token)
         token_record = await self.session_repo.get_email_token_by_hash(t_hash)
 
-        if not token_record or token_record.used_at is not None:
+        if not token_record or not await self.session_repo.consume_email_token(
+            token_record.id
+        ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid or expired verification token",
             )
 
-        now = datetime.now(UTC)
-        if ensure_utc(token_record.expires_at) < now:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Verification token has expired",
-            )
-
-        # Mark token used and user active
-        await self.session_repo.mark_email_token_used(token_record.id)
+        # The conditional UPDATE makes token consumption atomic across workers.
         await self.user_repo.mark_email_verified(token_record.user_id)
 
         user = await self.user_repo.get_by_id(token_record.user_id)
@@ -172,7 +166,9 @@ class AuthService:
         # Resolve active organization & permissions
         user_orgs = await self.org_repo.get_user_organizations(user.id)
         active_org: Organization | None = user_orgs[0] if user_orgs else None
-        active_roles: list[Role] = []
+        auth_session.active_organization_id = active_org.id if active_org else None
+        await self.session.flush()
+        active_roles: list[Role] =
         effective_permissions: list[str] = []
 
         if active_org:
@@ -296,7 +292,13 @@ class AuthService:
 
         # Resolve active org
         user_orgs = await self.org_repo.get_user_organizations(user.id)
-        active_org = user_orgs[0] if user_orgs else None
+        active_org = next(
+            (org for org in user_orgs if org.id == auth_session.active_organization_id),
+            user_orgs[0] if user_orgs else None,
+        )
+        if auth_session.active_organization_id != (active_org.id if active_org else None):
+            auth_session.active_organization_id = active_org.id if active_org else None
+            await self.session.flush()
 
         new_access_token = create_access_token(
             user_id=str(user.id),
@@ -348,21 +350,15 @@ class AuthService:
         t_hash = hash_token(token)
         token_record = await self.session_repo.get_password_reset_token_by_hash(t_hash)
 
-        if not token_record or token_record.used_at is not None:
+        if not token_record or not await self.session_repo.consume_password_reset_token(
+            token_record.id
+        ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid or expired password reset token",
             )
 
-        now = datetime.now(UTC)
-        if ensure_utc(token_record.expires_at) < now:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password reset token has expired",
-            )
-
-        # Mark token used
-        await self.session_repo.mark_password_reset_token_used(token_record.id)
+        # The conditional UPDATE makes token consumption atomic across workers.
 
         # Update password hash
         new_hash = hash_password(new_password)
