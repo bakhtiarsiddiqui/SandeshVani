@@ -47,16 +47,21 @@ Proposed: `id`, `organization_id`, normalized invitee identifier, token hash, in
 ## 3. Audience and eligibility entities
 
 ### `audience_members`
-`id`, `organization_id`, `external_reference`, `full_name`, encrypted email/phone or channel contact points, keyed lookup hashes, `preferred_language`, district/state, validated attributes JSONB, status, timestamps.
+`id`, `organization_id`, `external_reference`, `full_name`, encrypted email/phone or channel contact points, keyed lookup hashes, `preferred_language`, `district`, optional `state_code` (canonical ISO 3166-2 India State/UT code), optional normalized `city`, validated attributes JSONB, status, timestamps. Retain district separately; do not infer location from phone numbers. State/city are optional and do not introduce geolocation.
 
-### `consent_records`
-`id`, `organization_id`, `audience_member_id`, `channel`, `purpose`, `status`, `source`, `notice_version`, `recorded_at`, `withdrawn_at`, `evidence_reference`. Preserve history; define legal basis and retention policy before production use.
+### `consent_events`
+Append-oriented evidence events: `id`, `organization_id`, `audience_member_id`, protected contact-point reference, `channel`, `purpose`, `event_type` (grant/withdrawal/expiry/correction), `source`, capture method, `notice_version`, consent-template version, `occurred_at`, actor/system source and `evidence_reference`. A withdrawal appends an event; it must not overwrite the original grant. Keep personal-data processing basis separate from channel consent.
+
+### `communication_authority_records`
+Reviewed evidence for a non-consent or exception-based communication basis: sender classification, organization, purpose, jurisdiction, channel, applicable rule/policy, evidence reference, validity interval, reviewer and approval metadata. No generic Boolean bypass; sender/channel/purpose eligibility must be verified.
 
 ### `suppression_entries`
-`id`, `organization_id`, `audience_member_id` or appropriately protected contact lookup, `channel`, `reason`, `created_at`, `expires_at`.
+`id`, `organization_id`, `audience_member_id` or protected contact-point lookup, `channel`, optional `purpose`, `reason`, `source`, `created_at`, `effective_at`, optional `expires_at`. Effective suppression is distinct from consent history and must be checked at execution.
+
+
 
 ### `segments`
-`id`, `organization_id`, `name`, `filter_definition` JSONB, `created_by`, timestamps. Grammar is allowlisted and type-checked; never compile user JSON into arbitrary SQL.
+`id`, `organization_id`, `name`, versioned `filter_definition` JSONB, `created_by`, timestamps. R1 allowlist: status, district, state_code, city, preferred_language, has_email and has_phone. Operators: equals/in for string and enum fields; equals for boolean contact-presence fields. Boolean groups use AND/OR with server-enforced depth, predicate-count and payload limits. Never compile user JSON into arbitrary SQL.
 
 ### `import_jobs` / `import_job_errors`
 Import job stores tenant, creator, file reference, status, row counts and timestamps. Error rows store row number, safe field/error code and recovery metadata; avoid copying unnecessary PII into logs/errors.
@@ -64,10 +69,10 @@ Import job stores tenant, creator, file reference, status, row counts and timest
 ## 4. Campaign and localization entities
 
 ### `campaigns`
-`id`, `organization_id`, `name`, `campaign_type`, `status`, `created_by`, optional schedule fields, timestamps.
+`id`, `organization_id`, `name`, `campaign_type`, `status`, `created_by`, timestamps. R1 execution is manually requested; scheduled/recurring execution is deferred to R3.
 
 ### `campaign_versions`
-`id`, `organization_id`, `campaign_id`, `version_number`, immutable `content_snapshot` JSONB, `content_hash`, `created_by`, `created_at`; unique `(campaign_id, version_number)`.
+`id`, `organization_id`, `campaign_id`, `version_number`, lifecycle state (draft/submitted/approved/changes_requested/superseded), immutable-on-submit `content_snapshot` JSONB, SHA-256 `content_hash`, `created_by`, `submitted_by`, `created_at`; unique `(campaign_id, version_number)`. Submitted/approved versions cannot be mutated; material edits create a new version.
 
 ### `campaign_segments`
 `organization_id`, `campaign_id`, `segment_id`; tenant-safe composite FKs.
@@ -87,7 +92,7 @@ Proposed: variant ID, reviewer, status, notes, reviewed timestamp and version/ha
 ## 5. Governance entities
 
 ### `campaign_approvals`
-`id`, `organization_id`, `campaign_version_id`, `reviewer_id`, `decision`, `rationale`, `decided_at`, reviewed content hash. Approval references exact immutable version/hash. Define quorum and self-approval restrictions before implementation.
+`id`, `organization_id`, `campaign_version_id`, `reviewer_id`, `decision` (approve/request_changes), `rationale`, `decided_at`, reviewed content hash. Approval references exact immutable version/hash. R1 requires at least one independent Approver; the version creator and submitter cannot approve their own version. No emergency bypass.
 
 ### `audit_logs`
 `id`, nullable `organization_id` for controlled platform events, `actor_id`, `action`, `resource_type`, `resource_id`, before/after state JSONB with PII minimization, `ip_address`, `request_id`, `created_at`. Database append-only permissions alone do not make logs tamper-proof; protect export/retention separately.
@@ -130,7 +135,7 @@ Reserved for later provider integration. `organization_id` may not be known at r
 
 - `memberships(organization_id, user_id)` UNIQUE.
 - `membership_roles(membership_id, role_id)` UNIQUE; index by organization and role.
-- Audience `(organization_id, status)`, `(organization_id, district)`, `(organization_id, preferred_language)`.
+- Audience `(organization_id, status)`, `(organization_id, district)`, `(organization_id, preferred_language)`, `(organization_id, state_code)`, and `(organization_id, state_code, lower(city))`.
 - Campaign `(organization_id, status, created_at DESC)`.
 - Versions `(campaign_id, version_number)` UNIQUE.
 - Execution recipients `(campaign_execution_id, eligibility_status)` and unique execution/member.
@@ -148,7 +153,7 @@ Validate indexes with representative query plans and write volume. Do not index 
 - Approved versions and referenced template/content snapshots are immutable.
 - Consent/suppression rechecked immediately before delivery intent/dispatch.
 - Logical delivery idempotency is enforced with database uniqueness, not only task code.
-- Define retention, deletion, legal hold and PII minimization before production data.
+- Define retention, deletion, legal hold and PII minimization before production data. Do not hard-code a universal consent or audience-data retention period.
 
 ## 10. Schema decisions still open
 
