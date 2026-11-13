@@ -76,7 +76,7 @@ def _seed_job(
                 upload_id=upload_id,
                 uploaded_by_id=user_id,
                 status="queued",
-                total_rows=4,
+                total_rows=total_rows,
                 processed_rows=0,
                 imported_rows=0,
                 error_rows=0,
