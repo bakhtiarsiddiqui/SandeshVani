@@ -499,7 +499,9 @@ def downgrade() -> None:
             "delivery_attempts",
         ):
             op.execute(f"DROP TRIGGER IF EXISTS {table}_append_only ON {table}")
-        op.execute("DROP TRIGGER IF EXISTS campaign_versions_immutable ON campaign_versions")
+        op.execute(
+            "DROP TRIGGER IF EXISTS campaign_versions_immutable ON campaign_versions"
+        )
         op.execute("DROP FUNCTION IF EXISTS sandeshvani_guard_campaign_version()")
         op.execute("DROP FUNCTION IF EXISTS sandeshvani_reject_mutation()")
         for table_name in reversed(TENANT_TABLES):
@@ -537,4 +539,6 @@ def downgrade() -> None:
         "localization:read",
         "localization:update",
     ):
-        bind.execute(sa.text("DELETE FROM permissions WHERE code = :code"), {"code": code})
+        bind.execute(
+            sa.text("DELETE FROM permissions WHERE code = :code"), {"code": code}
+        )
