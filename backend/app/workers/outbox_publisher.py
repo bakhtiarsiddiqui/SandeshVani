@@ -10,9 +10,7 @@ from app.workers.outbox_service import publish_pending_outbox_events
 @celery_app.task(name="app.workers.outbox_publisher.publish_pending_outbox")
 def publish_pending_outbox() -> int:
     settings = get_settings()
-    engine, session_factory = create_sync_session_factory(
-        settings.get_database_url()
-    )
+    engine, session_factory = create_sync_session_factory(settings.get_database_url())
 
     def publish(job_id: uuid.UUID, organization_id: uuid.UUID, event_id: uuid.UUID):
         process_audience_import.apply_async(

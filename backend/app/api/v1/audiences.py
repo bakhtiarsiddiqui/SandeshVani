@@ -185,10 +185,7 @@ async def list_audience_import_errors(
     next_after_row_number = errors[-1].row_number if has_more and errors else None
     return AudienceImportErrorsResponse(
         job_id=job_id,
-        data=[
-            AudienceImportRowErrorResponse.model_validate(error)
-            for error in errors
-        ],
+        data=[AudienceImportRowErrorResponse.model_validate(error) for error in errors],
         pagination=AudienceImportErrorsPagination(
             next_after_row_number=next_after_row_number,
             has_more=has_more,

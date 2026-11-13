@@ -19,9 +19,7 @@ def process_audience_import(
     organization_id: str,
 ) -> dict:
     settings = get_settings()
-    engine, session_factory = create_sync_session_factory(
-        settings.get_database_url()
-    )
+    engine, session_factory = create_sync_session_factory(settings.get_database_url())
     worker = AudienceImportWorker(
         session_factory,
         settings.audience_import_storage_dir,

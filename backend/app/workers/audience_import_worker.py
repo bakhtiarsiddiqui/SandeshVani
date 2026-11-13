@@ -81,9 +81,7 @@ def _safe_validation_errors(error: ValidationError) -> list[dict[str, str | None
             code = "CONTACT_POINT_REQUIRED"
             message = "At least one valid email address or phone number is required."
 
-        safe_errors.append(
-            {"field": field, "code": code, "message": message}
-        )
+        safe_errors.append({"field": field, "code": code, "message": message})
 
     return safe_errors or [
         {

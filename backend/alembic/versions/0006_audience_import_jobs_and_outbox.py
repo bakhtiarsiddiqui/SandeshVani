@@ -251,9 +251,7 @@ def downgrade() -> None:
             "audience_import_jobs",
             "outbox_events",
         ):
-            op.execute(
-                f"DROP POLICY IF EXISTS tenant_isolation ON {table_name};"
-            )
+            op.execute(f"DROP POLICY IF EXISTS tenant_isolation ON {table_name};")
             op.execute(f"ALTER TABLE {table_name} DISABLE ROW LEVEL SECURITY;")
 
     op.drop_index(
