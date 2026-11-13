@@ -47,7 +47,7 @@ def _assert_no_existing_duplicates(bind, column_name: str) -> None:
     # organizations is not tenant-RLS-protected in the current schema.
     organization_ids = bind.execute(
         sa.text("SELECT id FROM organizations ORDER BY id")
-    ).scalars()
+    ).scalars().all()
     for organization_id in organization_ids:
         bind.execute(
             sa.text("SELECT set_config('app.current_org', :organization_id, true)"),
