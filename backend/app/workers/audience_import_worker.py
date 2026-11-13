@@ -30,6 +30,8 @@ _ALLOWED_HEADERS = {
     "phone",
     "preferred_language",
     "district",
+    "state_code",
+    "city",
 }
 
 
@@ -80,6 +82,10 @@ def _safe_validation_errors(error: ValidationError) -> list[dict[str, str | None
             code = "UNSUPPORTED_LANGUAGE"
         elif field == "district":
             code = "INVALID_DISTRICT"
+        elif field == "state_code":
+            code = "INVALID_STATE_CODE"
+        elif field == "city":
+            code = "INVALID_CITY"
         else:
             field = None
             code = "INVALID_ROW"
@@ -100,6 +106,8 @@ def _validate_contact_row(row: dict[str, str | None]) -> dict | list[dict]:
         "phone": (row.get("phone") or "").strip() or None,
         "preferred_language": (row.get("preferred_language") or "").strip() or "en",
         "district": (row.get("district") or "").strip() or None,
+        "state_code": (row.get("state_code") or "").strip() or None,
+        "city": (row.get("city") or "").strip() or None,
     }
     try:
         return AudienceMemberCreate.model_validate(values).model_dump()
