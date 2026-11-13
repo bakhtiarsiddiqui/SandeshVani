@@ -360,7 +360,7 @@ def upgrade() -> None:
         CREATE FUNCTION sandeshvani_guard_campaign_version()
         RETURNS trigger
         LANGUAGE plpgsql
-        AS $
+        AS $guard$
         BEGIN
             IF TG_OP = 'DELETE' THEN
                 RAISE EXCEPTION 'campaign versions cannot be deleted';
@@ -380,7 +380,7 @@ def upgrade() -> None:
             END IF;
             RETURN NEW;
         END;
-        $
+        $guard$
         """
     )
     op.execute(
