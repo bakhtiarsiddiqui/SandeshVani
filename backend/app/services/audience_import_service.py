@@ -12,6 +12,7 @@ from fastapi import HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
+from app.db.session import set_tenant_context
 from app.models.audience_import_job import AudienceImportJob
 from app.models.audience_import_upload import AudienceImportUpload
 from app.models.outbox_event import OutboxEvent
@@ -265,6 +266,9 @@ class AudienceImportService:
                 )
             raise
 
+        # COMMIT clears PostgreSQL's transaction-local RLS context. Re-establish
+        # it before refreshing tenant-owned upload/job rows.
+        await set_tenant_context(self.session, self.organization_id)
         await self.session.refresh(record)
         await self.session.refresh(job)
         return record, job
