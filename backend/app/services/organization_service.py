@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import create_access_token
 from app.db.session import set_tenant_context
 from app.models.membership import Membership
+from app.models.auth_session import AuthSession
 from app.models.organization import Organization
 from app.models.role import Role
 from app.repositories.membership_repo import MembershipRepository
@@ -145,6 +146,7 @@ class OrganizationService:
                 detail="Permission 'members:create' required",
             )
 
+        await self.org_repo.lock_for_update(organization_id)
         invitee = await self.user_repo.get_by_normalized_email(email.strip().lower())
         if not invitee:
             raise HTTPException(
@@ -191,6 +193,7 @@ class OrganizationService:
                 detail="Permission 'roles:assign' required",
             )
 
+        await self.org_repo.lock_for_update(organization_id)
         membership = await self.membership_repo.get_membership_by_id(membership_id)
         if not membership or membership.organization_id != organization_id:
             raise HTTPException(
@@ -224,11 +227,30 @@ class OrganizationService:
                 detail="Permission 'roles:assign' required",
             )
 
+        await self.org_repo.lock_for_update(organization_id)
         membership = await self.membership_repo.get_membership_by_id(membership_id)
         if not membership or membership.organization_id != organization_id:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Membership does not belong to this organization",
+            )
+
+        role = await self.role_repo.get_role_by_id(role_id)
+        has_role = any(item.role_id == role_id for item in membership.membership_roles)
+        if (
+            membership.status == "active"
+            and has_role
+            and role is not None
+            and role.scope == "organization"
+            and role.organization_id == organization_id
+            and role.name.casefold() == "organization administrator"
+            and await self.membership_repo.count_active_members_with_role(
+                organization_id, role_id
+            ) <= 1
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The last active Organization Administrator cannot be removed",
             )
 
         removed = await self.membership_repo.remove_role(
@@ -273,6 +295,15 @@ class OrganizationService:
         perms = await self.role_repo.get_permissions_for_roles(
             role_ids, organization_id=target_organization_id
         )
+
+        auth_session = await self.session.get(AuthSession, session_id)
+        if auth_session is None or auth_session.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication session is no longer valid",
+            )
+        auth_session.active_organization_id = target_organization_id
+        await self.session.flush()
 
         new_access_token = create_access_token(
             user_id=str(user_id),
