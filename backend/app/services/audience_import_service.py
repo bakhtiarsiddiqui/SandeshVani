@@ -252,12 +252,20 @@ class AudienceImportService:
             event_type="audience_import.queued",
             payload={"job_id": str(job_id), "upload_id": str(upload_id)},
         )
-        self.session.add_all([record, job, event])
         try:
-            # Flush and load server-generated values before COMMIT.  The
-            # PostgreSQL tenant GUC is transaction-local and is intentionally
-            # cleared by commit; refreshing afterwards would run outside RLS
-            # tenant context and make a successful upload appear to fail.
+            # Flush the upload parent before its import-job child. The
+            # composite tenant/upload foreign key must be satisfied before
+            # PostgreSQL accepts the job row; both writes remain in this
+            # transaction so the transaction-local tenant RLS context stays
+            # active throughout.
+            self.session.add(record)
+            await self.session.flush()
+            self.session.add_all([job, event])
+
+            # Load server-generated values before COMMIT. The PostgreSQL
+            # tenant GUC is transaction-local and is intentionally cleared by
+            # commit; refreshing afterwards would run outside RLS tenant
+            # context and make a successful upload appear to fail.
             await self.session.flush()
             await self.session.refresh(record)
             await self.session.refresh(job)
