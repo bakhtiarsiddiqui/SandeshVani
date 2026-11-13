@@ -5,9 +5,9 @@ from app.models.audience_member import AudienceMember
 from app.models.auth_session import AuthSession
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.governance import (
-    AuditEvent,
     AudienceSegment,
     AudienceSegmentVersion,
+    AuditEvent,
     Campaign,
     CampaignApproval,
     CampaignExecution,
