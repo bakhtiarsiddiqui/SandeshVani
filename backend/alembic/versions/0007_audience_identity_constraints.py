@@ -1,6 +1,6 @@
 """Enforce tenant-scoped audience identity keys and count import duplicates.
 
-Revision ID: 0007_audience_identity_constraints
+Revision ID: 0007_audience_identity
 Revises: 0006_audience_import_jobs
 """
 
