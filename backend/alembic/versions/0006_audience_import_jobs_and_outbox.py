@@ -132,7 +132,8 @@ def upgrade() -> None:
         sa.Column("organization_id", sa.UUID(), nullable=False),
         sa.Column("job_id", sa.UUID(), nullable=False),
         sa.Column("row_number", sa.Integer(), nullable=False),
-        sa.Column("errors", sa.JSON(), nullable=False),
+        sa.Column("field_name", sa.String(length=32), nullable=True),
+        sa.Column("error_code", sa.String(length=80), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -155,17 +156,11 @@ def upgrade() -> None:
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint(
-            "organization_id",
-            "job_id",
-            "row_number",
-            name="uq_audience_import_job_errors_job_row",
-        ),
     )
     op.create_index(
         "ix_audience_import_job_errors_org_job_row",
         "audience_import_job_errors",
-        ["organization_id", "job_id", "row_number"],
+        ["organization_id", "job_id", "row_number", "id"],
         unique=False,
     )
 
