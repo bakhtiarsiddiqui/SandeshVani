@@ -81,6 +81,16 @@ async def _capture_local_auth_message(
             ) from exc
 
 
+def _enforce_auth_login_rate_limit(request: Request, email: str) -> None:
+    limiter = request.app.state.auth_login_rate_limiter
+    client_ip = request.client.host if request.client else "unknown"
+    if not limiter.allow(client_ip, email):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many sign-in attempts. Please try again later.",
+        )
+
+
 def _enforce_auth_recovery_rate_limit(request: Request, email: str) -> None:
     limiter = request.app.state.auth_recovery_rate_limiter
     client_ip = request.client.host if request.client else "unknown"
@@ -203,6 +213,7 @@ async def login(
     session: Annotated[AsyncSession, Depends(get_db)],
     settings: Annotated[Settings, Depends(get_settings)],
 ):
+    _enforce_auth_login_rate_limit(request, data.email)
     service = AuthService(session)
     ip = request.client.host if request.client else None
     ua = request.headers.get("user-agent")
