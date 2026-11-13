@@ -19,6 +19,7 @@ from app.core.security import (
 from app.models.organization import Organization
 from app.models.role import Role
 from app.models.user import User
+from app.repositories.login_attempt_repo import LoginAttemptRepository
 from app.repositories.membership_repo import MembershipRepository
 from app.repositories.organization_repo import OrganizationRepository
 from app.repositories.role_repo import RoleRepository
@@ -79,26 +80,17 @@ class AuthService:
     async def verify_email(self, token: str) -> User:
         """Verify user's email address using the opaque token."""
         t_hash = hash_token(token)
-        token_record = await self.session_repo.get_email_token_by_hash(t_hash)
-
-        if not token_record or token_record.used_at is not None:
+        # The conditional UPDATE is the single-use gate: concurrent requests
+        # race on one row, and exactly one receives its user id.
+        user_id = await self.session_repo.consume_email_token_by_hash(t_hash)
+        if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid or expired verification token",
             )
 
-        now = datetime.now(UTC)
-        if ensure_utc(token_record.expires_at) < now:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Verification token has expired",
-            )
-
-        # Mark token used and user active
-        await self.session_repo.mark_email_token_used(token_record.id)
-        await self.user_repo.mark_email_verified(token_record.user_id)
-
-        user = await self.user_repo.get_by_id(token_record.user_id)
+        await self.user_repo.mark_email_verified(user_id)
+        user = await self.user_repo.get_by_id(user_id)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
@@ -129,13 +121,36 @@ class AuthService:
     ) -> dict[str, Any]:
         """Authenticate user, create session, and issue access token."""
         normalized_email = email.strip().lower()
-        user = await self.user_repo.get_by_normalized_email(normalized_email)
+        settings = get_settings()
+        login_limits = LoginAttemptRepository(self.session, settings.csrf_secret)
+        email_key = login_limits.key_hash("email", normalized_email)
+        ip_key = login_limits.key_hash("ip", ip_address) if ip_address else None
+        keys = [key for key in (email_key, ip_key) if key]
+        counts = await login_limits.get_counts(
+            keys, settings.auth_login_rate_window_seconds
+        )
+        if counts.get(email_key, 0) >= settings.auth_login_email_limit or (
+            ip_key is not None and counts.get(ip_key, 0) >= settings.auth_login_ip_limit
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many login attempts. Try again later.",
+                headers={"Retry-After": str(settings.auth_login_rate_window_seconds)},
+            )
 
+        user = await self.user_repo.get_by_normalized_email(normalized_email)
         if not user or not verify_password(password, user.password_hash):
+            await login_limits.record_failure(
+                keys, settings.auth_login_rate_window_seconds
+            )
+            # Persist the failure counter even though this request returns 401.
+            await self.session.commit()
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password",
             )
+
+        await login_limits.clear(keys)
 
         # Check account status
         if user.status == "pending_verification":
@@ -172,6 +187,8 @@ class AuthService:
         # Resolve active organization & permissions
         user_orgs = await self.org_repo.get_user_organizations(user.id)
         active_org: Organization | None = user_orgs[0] if user_orgs else None
+        auth_session.selected_organization_id = active_org.id if active_org else None
+        await self.session.flush()
         active_roles: list[Role] = []
         effective_permissions: list[str] = []
 
@@ -294,9 +311,23 @@ class AuthService:
                 detail="User account is no longer active",
             )
 
-        # Resolve active org
+        # Restore the organization explicitly selected for this session. If
+        # the user is no longer an active member, persist a safe fallback.
         user_orgs = await self.org_repo.get_user_organizations(user.id)
-        active_org = user_orgs[0] if user_orgs else None
+        active_org = next(
+            (
+                organization
+                for organization in user_orgs
+                if organization.id == auth_session.selected_organization_id
+            ),
+            None,
+        )
+        if active_org is None:
+            active_org = user_orgs[0] if user_orgs else None
+            auth_session.selected_organization_id = (
+                active_org.id if active_org else None
+            )
+            await self.session.flush()
 
         new_access_token = create_access_token(
             user_id=str(user.id),
@@ -346,27 +377,15 @@ class AuthService:
     async def confirm_password_reset(self, token: str, new_password: str) -> None:
         """Confirm password reset and revoke all active sessions."""
         t_hash = hash_token(token)
-        token_record = await self.session_repo.get_password_reset_token_by_hash(t_hash)
-
-        if not token_record or token_record.used_at is not None:
+        user_id = await self.session_repo.consume_password_reset_token_by_hash(t_hash)
+        if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid or expired password reset token",
             )
 
-        now = datetime.now(UTC)
-        if ensure_utc(token_record.expires_at) < now:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password reset token has expired",
-            )
-
-        # Mark token used
-        await self.session_repo.mark_password_reset_token_used(token_record.id)
-
-        # Update password hash
+        # Token consumption, password replacement and session revocation share
+        # the request transaction and roll back together on any failure.
         new_hash = hash_password(new_password)
-        await self.user_repo.update_password(token_record.user_id, new_hash)
-
-        # Revoke all existing sessions for security
-        await self.session_repo.revoke_all_user_sessions(token_record.user_id)
+        await self.user_repo.update_password(user_id, new_hash)
+        await self.session_repo.revoke_all_user_sessions(user_id)

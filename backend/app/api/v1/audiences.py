@@ -190,9 +190,12 @@ async def create_audience_member(
         values=data.model_dump(),
         actor_user_id=auth_ctx.user.id,
     )
-    await session.commit()
+    # Materialize the response while the transaction-local tenant context is active.
+    await session.flush()
     await session.refresh(member)
-    return AudienceMemberResponse.model_validate(member)
+    response = AudienceMemberResponse.model_validate(member)
+    await session.commit()
+    return response
 
 
 @router.get("/{audience_id}", response_model=AudienceMemberResponse)
@@ -233,6 +236,9 @@ async def update_audience_member(
         values=data.model_dump(exclude_unset=True),
         actor_user_id=auth_ctx.user.id,
     )
-    await session.commit()
+    # Materialize the response while the transaction-local tenant context is active.
+    await session.flush()
     await session.refresh(member)
-    return AudienceMemberResponse.model_validate(member)
+    response = AudienceMemberResponse.model_validate(member)
+    await session.commit()
+    return response

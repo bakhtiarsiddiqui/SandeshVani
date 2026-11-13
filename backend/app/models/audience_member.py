@@ -57,6 +57,16 @@ class AudienceMember(Base, UUIDPrimaryKeyMixin, TimestampMixin):
             "preferred_language",
         ),
         Index(
+            "ix_audience_members_org_city",
+            "organization_id",
+            "city",
+        ),
+        Index(
+            "ix_audience_members_org_state_code",
+            "organization_id",
+            "state_code",
+        ),
+        Index(
             "uq_audience_members_org_email_identity",
             "organization_id",
             text("lower(trim(email))"),
@@ -86,6 +96,8 @@ class AudienceMember(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         String(12), default="en", nullable=False
     )
     district: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    state_code: Mapped[str | None] = mapped_column(String(2), nullable=True)
+    city: Mapped[str | None] = mapped_column(String(120), nullable=True)
     status: Mapped[str] = mapped_column(
         String(20), default="active", nullable=False, index=True
     )

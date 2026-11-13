@@ -98,9 +98,9 @@ async def test_csv_upload_is_tenant_scoped_and_stored_privately(
     )
     organization = await _create_org(async_client, token, "csv-upload-org")
     csv_content = (
-        b"full_name,email,phone,preferred_language,district\r\n"
-        b"Asha Sharma,asha@example.org,+919876543210,hi,Meerut\r\n"
-        b"Rahul Verma,rahul@example.org,,en,Agra\r\n"
+        b"full_name,email,phone,preferred_language,district,state_code,city\r\n"
+        b"Asha Sharma,asha@example.org,+919876543210,hi,Meerut,up,Meerut\r\n"
+        b"Rahul Verma,rahul@example.org,,en,Agra,up,Agra\r\n"
     )
 
     response = await async_client.post(

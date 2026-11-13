@@ -1,10 +1,14 @@
+import os
+import threading
 import uuid
 
 import pytest
+from celery.contrib.testing.worker import start_worker
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.core.celery_app import celery_app
 from app.models.audience_import_job import AudienceImportJob
 from app.models.audience_import_upload import AudienceImportUpload
 from app.models.base import Base
@@ -134,3 +138,70 @@ def test_outbox_dead_letters_after_bounded_publish_failures(outbox_db):
     assert event.last_error_code == "BROKER_PUBLISH_FAILED"
     assert job.status == "failed"
     assert job.last_error_code == "QUEUE_DELIVERY_FAILED"
+
+
+_REDIS_TASK_NAME = "tests.capture_audience_import_identifiers"
+_REDIS_TASK_RECEIVED = threading.Event()
+_REDIS_TASK_PAYLOAD: dict[str, str] = {}
+
+
+@celery_app.task(name=_REDIS_TASK_NAME)
+def _capture_audience_import_identifiers(
+    job_id: str, organization_id: str, event_id: str
+) -> None:
+    _REDIS_TASK_PAYLOAD.update(
+        job_id=job_id,
+        organization_id=organization_id,
+        event_id=event_id,
+    )
+    _REDIS_TASK_RECEIVED.set()
+
+
+@pytest.mark.skipif(
+    not os.getenv("SANDESHVANI_REDIS_TEST_URL"),
+    reason="SANDESHVANI_REDIS_TEST_URL is not configured",
+)
+def test_outbox_dispatches_identifier_payload_through_live_redis_worker(outbox_db):
+    _, factory = outbox_db
+    organization_id, job_id, event_id = _seed_pending_event(factory)
+    broker_url = os.environ["SANDESHVANI_REDIS_TEST_URL"]
+    queue_name = f"audience-import-smoke-{uuid.uuid4().hex}"
+    _REDIS_TASK_RECEIVED.clear()
+    _REDIS_TASK_PAYLOAD.clear()
+    celery_app.conf.update(broker_url=broker_url)
+
+    def publish(received_job_id, received_org_id, received_event_id):
+        celery_app.send_task(
+            _REDIS_TASK_NAME,
+            args=[
+                str(received_job_id),
+                str(received_org_id),
+                str(received_event_id),
+            ],
+            task_id=str(received_event_id),
+            queue=queue_name,
+        )
+
+    assert "publish-pending-outbox-events" in celery_app.conf.beat_schedule
+
+    with start_worker(
+        celery_app,
+        pool="solo",
+        queues=[queue_name],
+        perform_ping_check=False,
+        loglevel="ERROR",
+    ):
+        published = publish_pending_outbox_events(factory, publish)
+        assert published == 1
+        assert _REDIS_TASK_RECEIVED.wait(timeout=10)
+
+    assert _REDIS_TASK_PAYLOAD == {
+        "job_id": str(job_id),
+        "organization_id": str(organization_id),
+        "event_id": str(event_id),
+    }
+    with factory() as session:
+        event = session.get(OutboxEvent, event_id)
+    assert event is not None
+    assert event.status == "published"
+    assert event.published_at is not None

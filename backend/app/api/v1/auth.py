@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import AuthContext, get_current_user, verify_origin
 from app.core.config import Settings, get_settings
 from app.core.dev_mail_delivery import LocalEmailDeliveryError, deliver_local_auth_email
+from app.core.resend_email import ResendEmailDeliveryError, deliver_resend_auth_email
 from app.db.session import get_db
 from app.schemas.auth import (
     AuthMeResponse,
@@ -29,17 +30,17 @@ from app.services.organization_service import OrganizationService
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-def require_local_auth_token_delivery(
+def require_auth_email_delivery(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> None:
-    if not settings.is_local_mail_sink_enabled:
+    if not settings.is_auth_email_delivery_configured:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Email delivery is not configured.",
         )
 
 
-async def _capture_local_auth_message(
+async def _deliver_auth_message(
     request: Request,
     settings: Settings,
     recipient: str,
@@ -47,6 +48,22 @@ async def _capture_local_auth_message(
     token: str | None,
     lifetime_seconds: int,
 ) -> None:
+    if not settings.is_local_mail_sink_enabled:
+        try:
+            await deliver_resend_auth_email(
+                settings=settings,
+                recipient=recipient,
+                purpose=purpose,
+                token=token,
+                lifetime_seconds=lifetime_seconds,
+            )
+        except ResendEmailDeliveryError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Email delivery is temporarily unavailable. Please try again.",
+            ) from exc
+        return
+
     sink = getattr(request.app.state, "development_mail_sink", None)
     if sink is None:
         raise HTTPException(
@@ -121,7 +138,7 @@ def _clear_refresh_cookie(response: Response, settings: Settings) -> None:
     "/register",
     response_model=RegisterResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(verify_origin), Depends(require_local_auth_token_delivery)],
+    dependencies=[Depends(verify_origin), Depends(require_auth_email_delivery)],
 )
 async def register(
     data: RegisterRequest,
@@ -136,7 +153,7 @@ async def register(
         full_name=data.full_name,
     )
     await session.commit()
-    await _capture_local_auth_message(
+    await _deliver_auth_message(
         request,
         settings,
         data.email,
@@ -168,7 +185,7 @@ async def verify_email(
 @router.post(
     "/resend-verification",
     response_model=AuthMessageResponse,
-    dependencies=[Depends(verify_origin), Depends(require_local_auth_token_delivery)],
+    dependencies=[Depends(verify_origin), Depends(require_auth_email_delivery)],
 )
 async def resend_verification(
     data: ResendVerificationRequest,
@@ -180,7 +197,7 @@ async def resend_verification(
     service = AuthService(session)
     token = await service.resend_verification(email=data.email)
     await session.commit()
-    await _capture_local_auth_message(
+    await _deliver_auth_message(
         request, settings, data.email, "email-verification", token, 24 * 60 * 60
     )
     return AuthMessageResponse(
@@ -356,7 +373,7 @@ async def select_org(
         session_id=auth_ctx.session_id,
         target_organization_id=data.organization_id,
     )
-    return {
+    response = {
         "access_token": result["access_token"],
         "token_type": "bearer",
         "active_organization": OrganizationResponse.model_validate(
@@ -365,12 +382,14 @@ async def select_org(
         "roles": [RoleResponse.model_validate(r) for r in result["roles"]],
         "permissions": result["permissions"],
     }
+    await session.commit()
+    return response
 
 
 @router.post(
     "/password-recovery",
     response_model=AuthMessageResponse,
-    dependencies=[Depends(verify_origin), Depends(require_local_auth_token_delivery)],
+    dependencies=[Depends(verify_origin), Depends(require_auth_email_delivery)],
 )
 async def password_recovery(
     data: PasswordRecoveryRequest,
@@ -382,7 +401,7 @@ async def password_recovery(
     service = AuthService(session)
     token = await service.request_password_reset(data.email)
     await session.commit()
-    await _capture_local_auth_message(
+    await _deliver_auth_message(
         request, settings, data.email, "password-reset", token, 60 * 60
     )
     return AuthMessageResponse(

@@ -34,14 +34,22 @@ class Settings(BaseSettings):
     dev_mail_smtp_username: str = ""
     dev_mail_smtp_password: str = ""
     dev_mail_from: str = "no-reply@sandeshvani.local"
+    # Production transactional email (Resend)
+    resend_api_key: str = ""
+    auth_email_from: str = ""
+    frontend_base_url: str = "https://sandeshvani.vercel.app"
     auth_recovery_email_limit: int = Field(default=5, gt=0)
     auth_recovery_ip_limit: int = Field(default=30, gt=0)
     auth_recovery_rate_window_seconds: int = Field(default=900, gt=0)
+    auth_login_email_limit: int = Field(default=5, gt=0)
+    auth_login_ip_limit: int = Field(default=30, gt=0)
+    auth_login_rate_window_seconds: int = Field(default=900, gt=0)
     audience_import_storage_dir: Path = Path("./var/private/audience-imports")
     audience_import_max_bytes: int = Field(default=25 * 1024 * 1024, gt=0)
     audience_import_max_rows: int = Field(default=100_000, gt=0)
     audience_import_chunk_size: int = Field(default=500, gt=0, le=5000)
     audience_import_worker_lease_seconds: int = Field(default=120, gt=0, le=3600)
+    audience_import_retention_days: int = Field(default=30, gt=0, le=3650)
     api_v1_prefix: str = "/api/v1"
     version: str = "0.1.0"
 
@@ -172,6 +180,16 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "ALLOWED_ORIGINS must contain exact HTTPS origins in production"
                 )
+
+    @property
+    def is_auth_email_delivery_configured(self) -> bool:
+        if self.is_local_mail_sink_enabled:
+            return True
+        return bool(
+            self.resend_api_key.strip()
+            and self.auth_email_from.strip()
+            and self.frontend_base_url.startswith("https://")
+        )
 
     @property
     def is_local_development(self) -> bool:

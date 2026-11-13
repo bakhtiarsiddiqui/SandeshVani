@@ -136,17 +136,18 @@ async def add_organization_member(
         email=data.email,
         role_ids=data.role_ids,
     )
-    await session.commit()
 
+    # Build the entire response before commit while the transaction-local
+    # tenant context is still active. Role and user lookups after COMMIT would
+    # execute without the RLS organization setting.
     roles = []
     for r_id in data.role_ids:
-        r = await service.role_repo.get_role_by_id(r_id)
-        if r:
-            roles.append(RoleResponse.model_validate(r))
+        role = await service.role_repo.get_role_by_id(r_id)
+        if role:
+            roles.append(RoleResponse.model_validate(role))
 
     user = await service.user_repo.get_by_id(membership.user_id)
-
-    return MembershipResponse(
+    response = MembershipResponse(
         id=membership.id,
         organization_id=membership.organization_id,
         user_id=membership.user_id,
@@ -155,6 +156,8 @@ async def add_organization_member(
         user=UserResponse.model_validate(user) if user else None,
         roles=roles,
     )
+    await session.commit()
+    return response
 
 
 @router.get(

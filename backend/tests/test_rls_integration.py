@@ -1109,7 +1109,6 @@ async def test_migration_upgrade_downgrade(pg_setup):
                 assert "CREATE UNIQUE INDEX" in index["indexdef"]
                 assert "organization_id" in index["indexdef"]
                 assert "WHERE" in index["indexdef"]
-
         finally:
             await verify_conn.close()
 

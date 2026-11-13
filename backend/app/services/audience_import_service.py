@@ -6,6 +6,7 @@ import logging
 import os
 import tempfile
 import uuid
+from datetime import UTC, datetime, timedelta
 from pathlib import Path, PurePosixPath
 
 from fastapi import HTTPException, UploadFile
@@ -24,6 +25,8 @@ _ALLOWED_HEADERS = {
     "phone",
     "preferred_language",
     "district",
+    "state_code",
+    "city",
 }
 _ALLOWED_CONTENT_TYPES = {
     "application/csv",
@@ -227,6 +230,8 @@ class AudienceImportService:
             byte_size=len(content),
             row_count=row_count,
             sha256=checksum,
+            retention_expires_at=datetime.now(UTC)
+            + timedelta(days=self.settings.audience_import_retention_days),
         )
         job = AudienceImportJob(
             id=job_id,
@@ -247,8 +252,23 @@ class AudienceImportService:
             event_type="audience_import.queued",
             payload={"job_id": str(job_id), "upload_id": str(upload_id)},
         )
-        self.session.add_all([record, job, event])
         try:
+            # Flush the upload parent before its import-job child. The
+            # composite tenant/upload foreign key must be satisfied before
+            # PostgreSQL accepts the job row; both writes remain in this
+            # transaction so the transaction-local tenant RLS context stays
+            # active throughout.
+            self.session.add(record)
+            await self.session.flush()
+            self.session.add_all([job, event])
+
+            # Load server-generated values before COMMIT. The PostgreSQL
+            # tenant GUC is transaction-local and is intentionally cleared by
+            # commit; refreshing afterwards would run outside RLS tenant
+            # context and make a successful upload appear to fail.
+            await self.session.flush()
+            await self.session.refresh(record)
+            await self.session.refresh(job)
             await self.session.commit()
         except Exception:
             await self.session.rollback()
@@ -265,6 +285,4 @@ class AudienceImportService:
                 )
             raise
 
-        await self.session.refresh(record)
-        await self.session.refresh(job)
         return record, job

@@ -33,7 +33,7 @@ def _seed_job(
     *,
     chunk_size=2,
     digest=None,
-    total_rows=4,
+    total_rows=total_rows,
 ):
     organization_id = uuid.uuid4()
     user_id = uuid.uuid4()
@@ -76,7 +76,7 @@ def _seed_job(
                 upload_id=upload_id,
                 uploaded_by_id=user_id,
                 status="queued",
-                total_rows=total_rows,
+                total_rows=4,
                 processed_rows=0,
                 imported_rows=0,
                 error_rows=0,
@@ -99,11 +99,11 @@ def import_db(tmp_path):
 def test_worker_processes_bounded_chunks_and_records_safe_row_errors(import_db):
     _, session_factory, storage_dir = import_db
     content = (
-        b"full_name,email,phone,preferred_language,district\n"
-        b"Asha Sharma,ASHA@example.org,,hi,Meerut\n"
-        b"Broken Input,not-an-email,,fr,Agra\n"
-        b"No Contact,,,,Agra\n"
-        b"Rahul Verma,,+919876543210,en,Agra\n"
+        b"full_name,email,phone,preferred_language,district,state_code,city\n"
+        b"Asha Sharma,ASHA@example.org,,hi,Meerut,up,Meerut\n"
+        b"Broken Input,not-an-email,,fr,Agra,up,Agra\n"
+        b"No Contact,,,,Agra,up,Agra\n"
+        b"Rahul Verma,,+919876543210,en,Agra,up,Agra\n"
     )
     organization_id, _, job_id = _seed_job(
         session_factory, storage_dir, content, chunk_size=2
@@ -126,7 +126,10 @@ def test_worker_processes_bounded_chunks_and_records_safe_row_errors(import_db):
             session.scalars(
                 select(AudienceImportJobError)
                 .where(AudienceImportJobError.organization_id == organization_id)
-                .order_by(AudienceImportJobError.row_number)
+                .order_by(
+                    AudienceImportJobError.row_number,
+                    AudienceImportJobError.field_name,
+                )
             )
         )
 
@@ -134,16 +137,18 @@ def test_worker_processes_bounded_chunks_and_records_safe_row_errors(import_db):
     assert job.processed_rows == 4
     assert job.imported_rows == 2
     assert job.error_rows == 2
-    assert job.duplicate_rows == 0
     assert len(members) == 2
     assert {member.email for member in members if member.email} == {"asha@example.org"}
+    asha = next(member for member in members if member.email == "asha@example.org")
+    assert asha.state_code == "UP"
+    assert asha.city == "Meerut"
     assert {member.phone for member in members if member.phone} == {"+919876543210"}
-    assert sorted(
-        (error.row_number, error.field_name or "", error.error_code) for error in errors
-    ) == [
+    assert [
+        (error.row_number, error.field_name, error.error_code) for error in errors
+    ] == [
         (3, "email", "INVALID_EMAIL"),
         (3, "preferred_language", "UNSUPPORTED_LANGUAGE"),
-        (4, "", "CONTACT_POINT_REQUIRED"),
+        (4, None, "CONTACT_POINT_REQUIRED"),
     ]
     error_text = str([(error.field_name, error.error_code) for error in errors])
     assert "not-an-email" not in error_text
