@@ -6,8 +6,8 @@ from typing import Any
 
 from sqlalchemy import and_, func, or_
 
-from app.models.audience_member import AudienceMember
 from app.core.geography import INDIA_STATE_UT_CODES
+from app.models.audience_member import AudienceMember
 
 MAX_DEPTH = 5
 MAX_PREDICATES = 20
