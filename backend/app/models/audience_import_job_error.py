@@ -2,14 +2,13 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    JSON,
     CheckConstraint,
     DateTime,
     ForeignKey,
     ForeignKeyConstraint,
     Index,
     Integer,
-    UniqueConstraint,
+    String,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -32,17 +31,12 @@ class AudienceImportJobError(Base, UUIDPrimaryKeyMixin):
             name="fk_audience_import_job_errors_tenant_job",
             ondelete="CASCADE",
         ),
-        UniqueConstraint(
-            "organization_id",
-            "job_id",
-            "row_number",
-            name="uq_audience_import_job_errors_job_row",
-        ),
         Index(
             "ix_audience_import_job_errors_org_job_row",
             "organization_id",
             "job_id",
             "row_number",
+            "id",
         ),
     )
 
@@ -52,7 +46,8 @@ class AudienceImportJobError(Base, UUIDPrimaryKeyMixin):
     )
     job_id: Mapped[uuid.UUID] = mapped_column(nullable=False)
     row_number: Mapped[int] = mapped_column(Integer, nullable=False)
-    errors: Mapped[list[dict]] = mapped_column(JSON, nullable=False)
+    field_name: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    error_code: Mapped[str] = mapped_column(String(80), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
