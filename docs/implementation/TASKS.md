@@ -40,6 +40,7 @@
 - [ ] AUD-02 CSV upload validation and controlled storage (P0)
 - [ ] AUD-03 Import job, chunked worker and row errors (P0)
 - [ ] AUD-04 Duplicate identity policy and tests (P0)
+- [ ] AUD-07 Add optional state_code/city fields, list filters, CSV columns and tenant-scoped indexes (P0; after canonical AUD-03 migration is selected)
 - [ ] AUD-05 Allowlisted segment grammar and preview (P0)
 - [ ] CONS-01 Consent history by channel/purpose (P0)
 - [ ] CONS-02 Suppression model and execution-time checks (P0)
