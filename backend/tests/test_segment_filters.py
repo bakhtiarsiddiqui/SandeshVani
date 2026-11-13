@@ -66,10 +66,7 @@ def test_segment_filter_rejects_excessive_depth_and_predicate_count():
     leaf = {"field": "status", "operator": "eq", "value": "active"}
     too_many = {
         "op": "and",
-        "children": [
-            {"op": "and", "children": [leaf, leaf, leaf]}
-            for _ in range(7)
-        ],
+        "children": [{"op": "and", "children": [leaf, leaf, leaf]} for _ in range(7)],
     }
     with pytest.raises(SegmentFilterError):
         validate_segment_filter(too_many)
