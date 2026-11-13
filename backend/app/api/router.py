@@ -2,8 +2,8 @@ from fastapi import APIRouter
 
 from app.api.v1.audiences import router as audiences_router
 from app.api.v1.auth import router as auth_router
-from app.api.v1.health import router as health_router
 from app.api.v1.governance import router as governance_router
+from app.api.v1.health import router as health_router
 from app.api.v1.organizations import router as organizations_router
 from app.core.config import Settings, get_settings
 
