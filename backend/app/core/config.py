@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     audience_import_max_rows: int = Field(default=100_000, gt=0)
     audience_import_chunk_size: int = Field(default=500, gt=0, le=5000)
     audience_import_worker_lease_seconds: int = Field(default=120, gt=0, le=3600)
+    audience_import_retention_days: int = Field(default=30, gt=0, le=3650)
     api_v1_prefix: str = "/api/v1"
     version: str = "0.1.0"
 
