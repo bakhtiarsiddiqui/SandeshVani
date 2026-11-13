@@ -313,17 +313,12 @@ class MockCampaignWorker:
                     session.add_all(new_recipients)
                     session.flush()
                     recipient_map.update(
-                        {
-                            row.audience_member_id: row.id
-                            for row in new_recipients
-                        }
+                        {row.audience_member_id: row.id for row in new_recipients}
                     )
                     execution.eligible_recipients += len(new_recipients)
                 new_deliveries = 0
                 for channel, channel_ids in eligible_by_channel.items():
-                    recipient_ids = [
-                        recipient_map[item] for item in channel_ids
-                    ]
+                    recipient_ids = [recipient_map[item] for item in channel_ids]
                     if not recipient_ids:
                         continue
                     existing_delivery_ids = set(
