@@ -17,7 +17,6 @@ from app.core.config import Settings, get_settings
 from app.core.http_status import HTTP_422_UNPROCESSABLE_CONTENT
 from app.db.session import get_db
 from app.models.audience_import_job import AudienceImportJob
-from app.models.audience_import_job_error import AudienceImportJobError
 from app.schemas.audience import (
     AudienceMemberCreate,
     AudienceMemberListResponse,
