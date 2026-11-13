@@ -8,8 +8,10 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 
 from app.core.config import Settings, get_settings
+from app.db.session import set_tenant_context
 from app.main import create_app
 from app.models.audience_import_job import AudienceImportJob
+from app.models.audience_import_job_error import AudienceImportJobError
 from app.models.audience_import_upload import AudienceImportUpload
 from app.models.outbox_event import OutboxEvent
 
@@ -362,3 +364,113 @@ async def test_upload_body_limit_applies_to_chunked_multipart_requests():
         )
 
     assert response.status_code == 413
+
+
+@pytest.mark.asyncio
+async def test_import_error_cursor_paginates_multiple_issues_on_same_row(
+    async_client,
+    test_app,
+    development_mail_sink,
+    test_db_session,
+    tmp_path,
+    monkeypatch,
+):
+    _override_upload_settings(monkeypatch, tmp_path, test_app)
+    token, csrf = await _register_login(
+        async_client, "csv-errors-cursor@example.org", development_mail_sink
+    )
+    organization = await _create_org(async_client, token, "csv-errors-cursor-org")
+    organization_id = uuid.UUID(organization["id"])
+    upload = await async_client.post(
+        "/api/v1/audiences/imports",
+        headers=_tenant_headers(token, organization["id"], csrf),
+        files={
+            "file": (
+                "contacts.csv",
+                b"full_name,email\nAsha,asha@example.org\n",
+                "text/csv",
+            )
+        },
+    )
+    assert upload.status_code == 202, upload.text
+    job_id = uuid.UUID(upload.json()["job_id"])
+
+    await set_tenant_context(test_db_session, organization_id)
+    test_db_session.add_all(
+        [
+            AudienceImportJobError(
+                id=uuid.UUID(int=1),
+                organization_id=organization_id,
+                job_id=job_id,
+                row_number=2,
+                field_name="email",
+                error_code="INVALID_EMAIL",
+            ),
+            AudienceImportJobError(
+                id=uuid.UUID(int=2),
+                organization_id=organization_id,
+                job_id=job_id,
+                row_number=2,
+                field_name="preferred_language",
+                error_code="UNSUPPORTED_LANGUAGE",
+            ),
+            AudienceImportJobError(
+                id=uuid.UUID(int=3),
+                organization_id=organization_id,
+                job_id=job_id,
+                row_number=3,
+                field_name="phone",
+                error_code="INVALID_PHONE",
+            ),
+        ]
+    )
+    await test_db_session.commit()
+
+    first = await async_client.get(
+        f"/api/v1/audiences/imports/{job_id}/errors",
+        headers=_tenant_headers(token, organization["id"], csrf),
+        params={"limit": 1},
+    )
+    assert first.status_code == 200, first.text
+    first_payload = first.json()
+    assert [
+        (item["row_number"], item["field_name"], item["error_code"])
+        for item in first_payload["data"]
+    ] == [(2, "email", "INVALID_EMAIL")]
+    cursor = first_payload["pagination"]["next_cursor"]
+    assert cursor is not None
+
+    second = await async_client.get(
+        f"/api/v1/audiences/imports/{job_id}/errors",
+        headers=_tenant_headers(token, organization["id"], csrf),
+        params={"limit": 1, "cursor": cursor},
+    )
+    assert second.status_code == 200, second.text
+    second_payload = second.json()
+    assert [
+        (item["row_number"], item["field_name"], item["error_code"])
+        for item in second_payload["data"]
+    ] == [(2, "preferred_language", "UNSUPPORTED_LANGUAGE")]
+    next_cursor = second_payload["pagination"]["next_cursor"]
+    assert next_cursor is not None
+
+    third = await async_client.get(
+        f"/api/v1/audiences/imports/{job_id}/errors",
+        headers=_tenant_headers(token, organization["id"], csrf),
+        params={"limit": 1, "cursor": next_cursor},
+    )
+    assert third.status_code == 200, third.text
+    third_payload = third.json()
+    assert [
+        (item["row_number"], item["field_name"], item["error_code"])
+        for item in third_payload["data"]
+    ] == [(3, "phone", "INVALID_PHONE")]
+    assert third_payload["pagination"]["has_more"] is False
+    assert third_payload["pagination"]["next_cursor"] is None
+
+    malformed = await async_client.get(
+        f"/api/v1/audiences/imports/{job_id}/errors",
+        headers=_tenant_headers(token, organization["id"], csrf),
+        params={"cursor": "not-a-valid-cursor"},
+    )
+    assert malformed.status_code == 422
