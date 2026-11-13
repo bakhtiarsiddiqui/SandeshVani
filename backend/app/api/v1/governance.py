@@ -28,8 +28,8 @@ from app.schemas.governance import (
     CampaignCreate,
     CampaignExecutionResponse,
     CampaignVersionCreate,
-    ProcessingBasisEventCreate,
     ChannelConsentEventCreate,
+    ProcessingBasisEventCreate,
     SegmentCreate,
     SegmentPreviewRequest,
     SegmentPreviewResponse,
@@ -456,7 +456,8 @@ async def get_campaign_execution_analytics(
                 ChannelDelivery.organization_id == tenant_ctx.organization.id,
                 ChannelDelivery.recipient_id.in_(
                     select(ExecutionRecipient.id).where(
-                        ExecutionRecipient.organization_id == tenant_ctx.organization.id,
+                        ExecutionRecipient.organization_id
+                        == tenant_ctx.organization.id,
                         ExecutionRecipient.execution_id == execution_id,
                     )
                 ),
