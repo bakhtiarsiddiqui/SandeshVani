@@ -74,6 +74,18 @@ Create/update requests require the existing organization-scoped `audiences:creat
 
 Fields in this CRUD slice: `full_name` (required), `email` (optional), `phone` (optional, E.164), `preferred_language` (`en` or `hi` in the current MVP registry), `district` (optional), and `status` (`active` or `inactive`). At least one contact point (email or phone) is required. Email is normalized to lowercase.
 
+### Accepted audience location extension — pending implementation
+
+The product owner has approved two optional location attributes for the R1 audience contract:
+
+- state_code: canonical ISO 3166-2 India State/UT code, validated against a controlled registry (for example, IN-UP).
+- city: normalized optional city/locality display value; matching is case-insensitive and city filters should be scoped by state_code where appropriate.
+- district remains a separate optional field. Do not infer location from phone numbers, collect GPS coordinates or geocode contacts.
+
+The future CRUD contract will accept and return state_code and city, and the list endpoint will add exact/in filters for state_code and city. The CSV import contract will add state_code and city headers when AUD-03 processing is selected and its schema is upgraded.
+
+**Not implemented on this revision:** current SQLAlchemy model, Pydantic schemas, list filters, file-level CSV header validator and frontend forms still do not accept these two fields. Do not describe them as live until a unique Alembic migration, backend tests, OpenAPI update and frontend integration are complete. The location migration must follow the canonical AUD-03 migration; PRs #18 and #19 are alternatives.
+ 
 Duplicate identity matching is intentionally not enforced yet: the product's duplicate policy is still open and must be resolved before CSV import/deduplication. This CRUD slice does not implement CSV imports, segments, consent, suppression, exports or audit-event history. The record stores creator/last-updater references, which are metadata rather than an append-only audit log.
 
 Collection response:
