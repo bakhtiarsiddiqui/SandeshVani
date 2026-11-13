@@ -82,7 +82,9 @@ class AudienceMemberCreate(BaseModel):
             return None
         normalized = value.strip().upper()
         if normalized not in INDIA_STATE_UT_CODES:
-            raise ValueError("state_code must be a valid India State / UT ISO 3166-2 code")
+            raise ValueError(
+                "state_code must be a valid India State / UT ISO 3166-2 code"
+            )
         return normalized
 
     @field_validator("city")
@@ -153,7 +155,9 @@ class AudienceMemberUpdate(BaseModel):
             return None
         normalized = value.strip().upper()
         if normalized not in INDIA_STATE_UT_CODES:
-            raise ValueError("state_code must be a valid India State / UT ISO 3166-2 code")
+            raise ValueError(
+                "state_code must be a valid India State / UT ISO 3166-2 code"
+            )
         return normalized
 
     @field_validator("city")
