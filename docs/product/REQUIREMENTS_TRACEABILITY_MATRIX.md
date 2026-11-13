@@ -35,6 +35,7 @@
 | FR-017 | Suppression entries block prohibited channel delivery. | R1 | Suppression tests at execution. |
 | FR-018 | Audience exports are permissioned, safe and audited. | R1 | Export authorization/formula-injection tests. |
 | FR-019 | Audience records support channel-specific contact points. | R1 | Contact validation and delivery eligibility tests. |
+| FR-059 | Audience records support optional State/UT and city fields for segmentation. | R1 | State/UT code validation; city normalization; CRUD/import/list/segment tests; state-scoped city filtering. |
 | FR-020 | Audience, consent and suppression changes are auditable. | R1 | Audit coverage tests. |
 | FR-021 | Users create and manage campaign drafts. | R1 | Campaign CRUD/state tests. |
 | FR-022 | Campaigns target one or more eligible segments. | R1 | Segment association and preview tests. |
