@@ -40,8 +40,8 @@ def _email_content(
         return subject, plain_message, f"<p>{plain_message}</p>"
 
     link = (
-        f"{settings.frontend_base_url.rstrip('/')}/?"
-        f"{parameter}={quote(token, safe='')}"
+        f"{settings.frontend_base_url.rstrip('/')}/?{parameter}="
+        f"{quote(token, safe='')}"
     )
     minutes = max(1, lifetime_seconds // 60)
     text = (
