@@ -1,5 +1,5 @@
-import uuid
 from datetime import UTC, datetime
+import uuid
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -263,7 +263,9 @@ class OrganizationService:
             if active_admins <= 1:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
-                    detail="The last active organization administrator cannot be removed",
+                    detail=(
+                        "The last active organization administrator cannot be removed"
+                    ),
                 )
 
         removed = await self.membership_repo.remove_role(
