@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "0007_audience_identity_constraints"
+revision: str = "0007_audience_identity"
 down_revision: str | None = "0006_audience_import_jobs"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
