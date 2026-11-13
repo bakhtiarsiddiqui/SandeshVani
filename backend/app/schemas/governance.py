@@ -3,8 +3,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.schemas.audience import INDIA_STATE_UT_CODES
-
 Channel = Literal["email", "sms", "whatsapp", "push"]
 Language = Literal["en", "hi"]
 BasisCode = Literal[
@@ -83,7 +81,9 @@ def validate_content_variants(variants: dict[str, dict[str, Any]]) -> None:
     allowed_channels = {"email", "sms", "whatsapp", "push"}
     allowed_languages = {"en", "hi"}
     if not variants or set(variants) - allowed_channels:
-        raise ValueError("variants must contain only supported communication channels")
+        raise ValueError(
+            "variants must contain only supported communication channels"
+        )
     for channel, language_variants in variants.items():
         if not isinstance(language_variants, dict) or not language_variants:
             raise ValueError(f"{channel} must contain explicit language variants")
@@ -93,7 +93,9 @@ def validate_content_variants(variants: dict[str, dict[str, Any]]) -> None:
             if language not in allowed_languages:
                 raise ValueError("Unsupported content language")
             if not isinstance(content, (str, dict)):
-                raise ValueError("Each channel/language variant must be text or an object")
+                raise ValueError(
+                    "Each channel/language variant must be text or an object"
+                )
             if isinstance(content, str) and not content.strip():
                 raise ValueError("Content variants must not be blank")
             if isinstance(content, dict) and not content:
