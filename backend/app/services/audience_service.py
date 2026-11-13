@@ -49,7 +49,10 @@ class AudienceService:
         if matches:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="An audience contact with one or more supplied identifiers already exists",
+                detail=(
+                "An audience contact with one or more supplied "
+                "identifiers already exists"
+            ),
             )
 
     async def _raise_concurrent_identity_conflict(
@@ -71,7 +74,10 @@ class AudienceService:
             raise error
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="An audience contact with one or more supplied identifiers already exists",
+            detail=(
+                "An audience contact with one or more supplied "
+                "identifiers already exists"
+            ),
         ) from error
 
     async def create_member(
