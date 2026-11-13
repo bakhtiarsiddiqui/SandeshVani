@@ -31,8 +31,10 @@ export const registerAuthFailureCallback = (callback) => {
   authFailureCallback = callback;
 };
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "/api/v1").replace(/\/+$/, "");
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "/api/v1",
+  baseURL: API_BASE_URL,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
@@ -73,7 +75,6 @@ const processQueue = (error, token = null) => {
 
 apiClient.interceptors.response.use(
   (response) => {
-    // If response carries CSRF token in header, update in memory
     const csrfHeader = response.headers["x-csrf-token"];
     if (csrfHeader) {
       setCsrfToken(csrfHeader);
@@ -83,9 +84,9 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Do not attempt refresh on auth endpoints themselves
     if (
       error.response?.status === 401 &&
+      originalRequest &&
       !originalRequest._retry &&
       !originalRequest.url?.includes("/auth/login") &&
       !originalRequest.url?.includes("/auth/refresh") &&
@@ -107,7 +108,7 @@ apiClient.interceptors.response.use(
 
       try {
         const refreshResponse = await axios.post(
-          "/api/v1/auth/refresh",
+          `${API_BASE_URL}/auth/refresh`,
           {},
           { withCredentials: true }
         );
@@ -136,4 +137,3 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
-
