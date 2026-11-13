@@ -117,11 +117,11 @@ The 202 response contains the upload UUID, organization UUID, byte size, row cou
 ### AUD-03 — Asynchronous import processing
 
 - `GET /audiences/imports/{job_id}` returns tenant-scoped job status, total/processed/imported/error row counts, chunk size, safe terminal error code, and lifecycle timestamps. It requires `audiences:read`.
-- `GET /audiences/imports/{job_id}/errors?limit=&after_row_number=` returns paginated row-level validation errors. It requires `audiences:read`; limits are 1–100 (default 50).
+- `GET /audiences/imports/{job_id}/errors?limit=&cursor=` returns paginated field-level validation issues. It requires `audiences:read`; limits are 1–100 (default 50). The opaque cursor is ordered by `(row_number, id)`, so multiple issues for the same CSV row are not skipped.
 - The outbox publisher scans PostgreSQL outbox rows and dispatches only job and organization identifiers to Celery over Redis. Raw CSV contents and contact values never enter the queue.
 - The worker verifies the private file byte size and SHA-256 before processing. It uses a lease/worker token and a bounded number of rows per transaction (default 500, configurable with `AUDIENCE_IMPORT_CHUNK_SIZE`).
 - Job statuses are `queued`, `processing`, `completed`, `completed_with_errors`, and `failed`. Progress counters are checkpointed with each committed chunk.
-- Row numbers are logical CSV row numbers: header is row 1, the first nonblank data row is row 2, and blank lines are ignored. Each error includes only a safe field, stable error code, and generic message; submitted values are not copied into error records.
+- Row numbers are logical CSV row numbers: header is row 1, the first nonblank data row is row 2, and blank lines are ignored. Each issue stores only an allowlisted `field_name` and stable `error_code`; rejected values and raw validation messages are not persisted. Multiple issue records may share a row number. The job's `error_rows` counter counts rejected source rows, not issue records.
 - Transient worker failures are retried. Expired worker leases can be reclaimed; redelivery of a completed job is a no-op. Outbox publication retries are bounded and eventually dead-letter.
 - Valid rows are created using the same AUD-01 contact schema. Duplicate identity resolution remains AUD-04 and is intentionally not performed here.
 
