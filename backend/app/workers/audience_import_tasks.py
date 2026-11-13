@@ -100,7 +100,10 @@ def cleanup_expired_audience_files(
                     select(AudienceImportUpload)
                     .join(
                         AudienceImportJob,
-                        (AudienceImportJob.organization_id == AudienceImportUpload.organization_id)
+                        (
+                            AudienceImportJob.organization_id
+                            == AudienceImportUpload.organization_id
+                        )
                         & (AudienceImportJob.upload_id == AudienceImportUpload.id),
                     )
                     .where(
