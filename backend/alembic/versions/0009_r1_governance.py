@@ -360,7 +360,7 @@ def upgrade() -> None:
         CREATE FUNCTION sandeshvani_guard_campaign_version()
         RETURNS trigger
         LANGUAGE plpgsql
-        AS $$
+        AS $
         BEGIN
             IF TG_OP = 'DELETE' THEN
                 RAISE EXCEPTION 'campaign versions cannot be deleted';
@@ -380,10 +380,14 @@ def upgrade() -> None:
             END IF;
             RETURN NEW;
         END;
-        $$;
+        $
+        """
+    )
+    op.execute(
+        """
         CREATE TRIGGER campaign_versions_immutable
         BEFORE UPDATE OR DELETE ON campaign_versions
-        FOR EACH ROW EXECUTE FUNCTION sandeshvani_guard_campaign_version();
+        FOR EACH ROW EXECUTE FUNCTION sandeshvani_guard_campaign_version()
         """
     )
 
