@@ -139,8 +139,7 @@ def test_worker_processes_bounded_chunks_and_records_safe_row_errors(import_db):
     assert {member.email for member in members if member.email} == {"asha@example.org"}
     assert {member.phone for member in members if member.phone} == {"+919876543210"}
     assert sorted(
-        (error.row_number, error.field_name or "", error.error_code)
-        for error in errors
+        (error.row_number, error.field_name or "", error.error_code) for error in errors
     ) == [
         (3, "email", "INVALID_EMAIL"),
         (3, "preferred_language", "UNSUPPORTED_LANGUAGE"),
