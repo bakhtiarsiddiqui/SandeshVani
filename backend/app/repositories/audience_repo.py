@@ -111,6 +111,8 @@ class AudienceRepository:
         search: str | None = None,
         status: str | None = None,
         district: str | None = None,
+        state_code: str | None = None,
+        city: str | None = None,
         language: str | None = None,
     ) -> tuple[list[AudienceMember], bool, str | None]:
         stmt = select(AudienceMember).where(
@@ -140,6 +142,10 @@ class AudienceRepository:
             stmt = stmt.where(
                 func.lower(AudienceMember.district) == district.strip().lower()
             )
+        if state_code:
+            stmt = stmt.where(AudienceMember.state_code == state_code.upper())
+        if city:
+            stmt = stmt.where(func.lower(AudienceMember.city) == city.strip().lower())
         if language:
             stmt = stmt.where(AudienceMember.preferred_language == language)
 
