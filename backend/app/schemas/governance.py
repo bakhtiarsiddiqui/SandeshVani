@@ -128,7 +128,8 @@ class CampaignVersionCreate(BaseModel):
             missing = set(self.languages) - set(self.rendered_variants[channel])
             if missing:
                 raise ValueError(
-                    f"Missing explicit language variant for {channel}: {sorted(missing)}"
+                    f"Missing explicit language variant for {channel}: "
+                    f"{sorted(missing)}"
                 )
         return self
 
