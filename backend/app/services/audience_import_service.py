@@ -6,6 +6,7 @@ import logging
 import os
 import tempfile
 import uuid
+from datetime import UTC, datetime, timedelta
 from pathlib import Path, PurePosixPath
 
 from fastapi import HTTPException, UploadFile
@@ -229,6 +230,8 @@ class AudienceImportService:
             byte_size=len(content),
             row_count=row_count,
             sha256=checksum,
+            retention_expires_at=datetime.now(UTC)
+            + timedelta(days=self.settings.audience_import_retention_days),
         )
         job = AudienceImportJob(
             id=job_id,
