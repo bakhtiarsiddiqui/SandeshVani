@@ -12,10 +12,12 @@ import OrgSelect from "./pages/OrgSelect";
 import Overview from "./pages/Overview";
 import AuthLayout from "./components/fx/AuthLayout";
 import {
-  AnalyticsWorkspace, ApprovalsWorkspace, AudienceWorkspace, CampaignManagerWorkspace,
-  CommunicationWorkspace, ConsentWorkspace, DistributionWorkspace, OrganizationAdminWorkspace,
-  OrganizationSettingsWorkspace, PlatformAdministrationWorkspace, SegmentsWorkspace, AuditWorkspace,
+  AnalyticsWorkspace, ApprovalsWorkspace, CampaignManagerWorkspace, CommunicationWorkspace,
+  ConsentWorkspace, DistributionWorkspace, OrganizationSettingsWorkspace,
+  PlatformAdministrationWorkspace, SegmentsWorkspace, AuditWorkspace,
 } from "./pages/workspaces/RoleWorkspaces";
+import AudienceWorkspace from "./pages/workspaces/AudienceWorkspace";
+import OrganizationAdminWorkspace from "./pages/workspaces/OrganizationAdminWorkspace";
 import { canAccessWorkspace, getDefaultWorkspace, hasPlatformRole, getVisibleNavigation } from "./utils/workspaceAccess";
 
 const ROUTES = { LOGIN: "login", REGISTER: "register", VERIFY_EMAIL: "verify-email", FORGOT_PASSWORD: "forgot-password", RESET_PASSWORD: "reset-password", ORG_SELECT: "org-select", DASHBOARD: "dashboard" };
@@ -46,7 +48,7 @@ function Dashboard({ onNavigateOrgSelect }) {
   }, [permissions, platformRoles]);
   const displayRoles = [...(platformRoles || []), ...(roles || [])];
   return <AppShell activeNav={selected} onNavigate={navigate} navItems={navItems} headerActions={selected === "overview" ? null : actions} organizationName={activeOrg?.name || "Platform workspace"} roles={displayRoles}>
-    {selected === "overview" ? <Overview actions={actions} /> : Workspace ? <ProtectedRoute><Workspace permissions={permissions} roles={roles} platformRoles={platformRoles} /></ProtectedRoute> : <Overview actions={actions} />}
+    {selected === "overview" ? <Overview actions={actions} /> : Workspace ? <ProtectedRoute><Workspace key={(activeOrg?.id || "platform") + ":" + selected} permissions={permissions} roles={roles} platformRoles={platformRoles} organizationId={activeOrg?.id} /></ProtectedRoute> : <Overview actions={actions} />}
   </AppShell>;
 }
 
