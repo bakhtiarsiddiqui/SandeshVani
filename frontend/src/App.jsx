@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { AuthProvider, useAuth } from "./context";
 import AppShell from "./components/layout/AppShell";
 import Button from "./components/ui/Button";
@@ -84,6 +84,26 @@ function AppRouter() {
   });
 
   const navigate = useCallback((target) => setRoute(target), []);
+
+  // Remove one-time auth tokens from the address bar after capturing them.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    let changed = false;
+    for (const key of ["verify_token", "reset_token"]) {
+      if (params.has(key)) {
+        params.delete(key);
+        changed = true;
+      }
+    }
+    if (changed) {
+      const query = params.toString();
+      const nextUrl = query
+        ? `${window.location.pathname}?${query}${window.location.hash}`
+        : `${window.location.pathname}${window.location.hash}`;
+      window.history.replaceState({}, document.title, nextUrl);
+    }
+  }, []);
 
   // Auth is loading — show nothing (AuthProvider shows loading state via isLoading)
   if (isLoading) {
