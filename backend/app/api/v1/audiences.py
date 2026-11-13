@@ -26,12 +26,13 @@ from app.schemas.audience import (
     AudiencePagination,
 )
 from app.schemas.audience_import import (
+    AudienceImportErrorResponse,
     AudienceImportErrorsPagination,
     AudienceImportErrorsResponse,
     AudienceImportJobResponse,
-    AudienceImportRowErrorResponse,
     AudienceImportUploadResponse,
 )
+from app.services.audience_import_job_service import AudienceImportJobService
 from app.services.audience_import_service import AudienceImportService
 from app.services.audience_service import AudienceService
 
@@ -151,48 +152,23 @@ async def list_audience_import_errors(
     ],
     session: Annotated[AsyncSession, Depends(get_db)],
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
-    after_row_number: Annotated[int | None, Query(ge=2)] = None,
+    cursor: Annotated[str | None, Query(max_length=512)] = None,
 ):
-    organization_id = tenant_ctx.organization.id
-    job = await session.scalar(
-        select(AudienceImportJob).where(
-            AudienceImportJob.organization_id == organization_id,
-            AudienceImportJob.id == job_id,
-        )
+    service = AudienceImportJobService(session, tenant_ctx.organization.id)
+    errors, has_more, next_cursor = await service.list_errors(
+        job_id=job_id,
+        limit=limit,
+        cursor=cursor,
     )
-    if job is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Audience import job not found",
-        )
-
-    statement = select(AudienceImportJobError).where(
-        AudienceImportJobError.organization_id == organization_id,
-        AudienceImportJobError.job_id == job_id,
-    )
-    if after_row_number is not None:
-        statement = statement.where(
-            AudienceImportJobError.row_number > after_row_number
-        )
-    result = await session.scalars(
-        statement.order_by(AudienceImportJobError.row_number).limit(limit + 1)
-    )
-    errors = list(result.all())
-    has_more = len(errors) > limit
-    if has_more:
-        errors = errors[:limit]
-
-    next_after_row_number = errors[-1].row_number if has_more and errors else None
     return AudienceImportErrorsResponse(
         job_id=job_id,
-        data=[AudienceImportRowErrorResponse.model_validate(error) for error in errors],
+        data=[AudienceImportErrorResponse.model_validate(error) for error in errors],
         pagination=AudienceImportErrorsPagination(
-            next_after_row_number=next_after_row_number,
+            next_cursor=next_cursor,
             has_more=has_more,
             limit=limit,
         ),
     )
-
 
 @router.post(
     "",
