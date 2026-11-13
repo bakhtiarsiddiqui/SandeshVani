@@ -178,6 +178,28 @@ raw development tokens. The sink is process-local and is cleared on backend
 restart. This development transport is not a production email provider.
 
 Production configuration must not enable the local sink or Mailpit transport.
-A production transactional email provider, sender-domain verification (SPF,
-DKIM, and DMARC), retry handling, and delivery monitoring remain a separate
-production-readiness task.
+The Resend production adapter is implemented below. Activating it still requires
+verified sender-domain DNS records, deployment secrets, and delivery monitoring.
+
+
+## Production transactional email (Resend)
+
+Production registration, verification resend, and password recovery use the Resend
+Email API. Configure these environment variables on the backend service:
+
+```dotenv
+RESEND_API_KEY=re_...
+AUTH_EMAIL_FROM=SandeshVani <no-reply@your-verified-domain.example>
+FRONTEND_BASE_URL=https://sandeshvani.vercel.app
+```
+
+Verify the sender domain in Resend and publish the exact SPF/DKIM DNS records it
+provides before using a sender address on that domain. Do not use the local
+Mailpit sender in production. The API key must be stored as a secret in the
+hosting provider, never in source control or frontend environment variables.
+
+Verification links use `/?verify_token=...`; password-reset links use
+`/?reset_token=...`. Tokens remain opaque, single-use, expiring, and stored
+hashed in PostgreSQL. Provider failures return a generic temporary-unavailability
+response; the user can request a fresh verification email after delivery is
+restored. Transient Resend/network failures are retried once.

@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     dev_mail_smtp_username: str = ""
     dev_mail_smtp_password: str = ""
     dev_mail_from: str = "no-reply@sandeshvani.local"
+    # Production transactional email (Resend)
+    resend_api_key: str = ""
+    auth_email_from: str = ""
+    frontend_base_url: str = "https://sandeshvani.vercel.app"
     auth_recovery_email_limit: int = Field(default=5, gt=0)
     auth_recovery_ip_limit: int = Field(default=30, gt=0)
     auth_recovery_rate_window_seconds: int = Field(default=900, gt=0)
@@ -176,6 +180,16 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "ALLOWED_ORIGINS must contain exact HTTPS origins in production"
                 )
+
+    @property
+    def is_auth_email_delivery_configured(self) -> bool:
+        if self.is_local_mail_sink_enabled:
+            return True
+        return bool(
+            self.resend_api_key.strip()
+            and self.auth_email_from.strip()
+            and self.frontend_base_url.startswith("https://")
+        )
 
     @property
     def is_local_development(self) -> bool:
