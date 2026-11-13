@@ -5,7 +5,6 @@ databases:
     postgresMajorVersion: "18"
     databaseName: sandeshvani_preview_db
     user: sandeshvani_preview_db_user
-    diskSizeGB: 1
 
 services:
   - type: web
