@@ -58,8 +58,10 @@ Proposed: `id`, `organization_id`, normalized invitee identifier, token hash, in
 ### `segments`
 `id`, `organization_id`, `name`, `filter_definition` JSONB, `created_by`, timestamps. Grammar is allowlisted and type-checked; never compile user JSON into arbitrary SQL.
 
-### `import_jobs` / `import_job_errors`
-Import job stores tenant, creator, file reference, status, row counts and timestamps. Error rows store row number, safe field/error code and recovery metadata; avoid copying unnecessary PII into logs/errors.
+### `audience_import_jobs` / `audience_import_job_errors`
+An audience import job references one same-tenant upload and stores its uploader, status, total/processed/imported/rejected source-row counters, chunk size, retry count, worker-token lease, safe terminal error code and lifecycle timestamps.
+
+Each validation issue is stored as a separate error row containing `organization_id`, `job_id`, logical CSV `row_number`, nullable allowlisted `field_name`, stable `error_code`, and `created_at`. Multiple issue records may share one source row. The composite lookup index is `(organization_id, job_id, row_number, id)` to support stable cursor pagination. Never store rejected cell values or raw Pydantic validation messages in these records. The job's rejected-row counter counts each invalid source row once, regardless of the number of field issues.
 
 ## 4. Campaign and localization entities
 
