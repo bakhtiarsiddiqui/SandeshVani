@@ -2,10 +2,10 @@
 
 Revision ID: 0009_r1_governance
 Revises: 0008_sess_org_aud_loc
+"""
 
 # Declarative schema DDL is intentionally kept together in this migration.
 # ruff: noqa: E501
-"""
 
 import uuid
 from collections.abc import Sequence
