@@ -11,11 +11,11 @@
 The merged visual direction is Gunmetal Blue / Warm Concrete / Saffron Gold, with Mukta for Latin and Devanagari text.
 
 Current tokens:
-- Gunmetal Blue: \`#1B2029\`, \`#222833\`, \`#2B3240\`, \`#3A4352\`.
-- Warm Concrete: \`#B9B3A8\`.
-- Saffron Gold: \`#FFB800\`; lighter accent \`#FFD166\`.
-- Foreground: \`#E8E4DC\`.
-- DaisyUI theme: \`sandeshvani\`.
+- Gunmetal Blue: `#1B2029`, `#222833`, `#2B3240`, `#3A4352`.
+- Warm Concrete: `#B9B3A8`.
+- Saffron Gold: `#FFB800`; lighter accent `#FFD166`.
+- Foreground: `#E8E4DC`.
+- DaisyUI theme: `sandeshvani`.
 - Typography: Mukta via Fontsource; retain readable fallback stacks.
 
 The dashboard Overview, shared shell/components, auth pages, organization-selection styling and decorative sign-in scene were merged by PR #14. Three.js is decorative, not a product workflow requirement. Preserve reduced-motion handling, error fallback, keyboard focus, responsive behaviour and accessible labels.
@@ -84,4 +84,4 @@ Target WCAG AA contrast. Maintain keyboard navigation, visible focus, labels/err
 
 ## 8. Component and dependency policy
 
-Reuse existing shared components in \`frontend/src/components\`. Do not add another component library or form/chart framework unless a real requirement cannot be served with current patterns and the change is approved. Third-party branding/assets require license review.
+Reuse existing shared components in `frontend/src/components`. Do not add another component library or form/chart framework unless a real requirement cannot be served with current patterns and the change is approved. Third-party branding/assets require license review.

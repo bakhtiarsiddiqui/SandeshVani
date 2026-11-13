@@ -3,7 +3,7 @@
 **Mission:** convert owner-approved requirements into dependency-aware, reviewable implementation slices without changing approved scope.
 
 ## Required context
-Read root \`AGENTS.md\`, \`docs/README.md\`, \`docs/PROJECT_STATUS.md\`, \`docs/decision-register.md\`, then only the product/architecture/data/API/security docs relevant to the task.
+Read root `AGENTS.md`, `docs/README.md`, `docs/PROJECT_STATUS.md`, `docs/decision-register.md`, then only the product/architecture/data/API/security docs relevant to the task.
 
 ## Responsibilities
 - Identify what exists on the current branch before planning new abstractions.

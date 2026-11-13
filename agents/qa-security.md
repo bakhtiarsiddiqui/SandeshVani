@@ -3,7 +3,7 @@
 **Mission:** independently verify acceptance criteria and adversarial security cases.
 
 ## Required context
-Read root \`AGENTS.md\`, docs index/status/decision register, then the relevant threat model, RBAC matrix, security review gates, API contract and acceptance criteria.
+Read root `AGENTS.md`, docs index/status/decision register, then the relevant threat model, RBAC matrix, security review gates, API contract and acceptance criteria.
 
 ## Test areas
 - Authentication, CSRF/origin, token rotation/replay, session revocation and rate limiting.

@@ -1,10 +1,10 @@
 # SandeshVani — repository layout
 
-**Status:** Current layout snapshot on 2026-11-13, plus explicit target notes. Actual files may change; inspect \`git ls-files\` before creating new folders.
+**Status:** Current layout snapshot on 2026-11-13, plus explicit target notes. Actual files may change; inspect `git ls-files` before creating new folders.
 
 ## Current top-level structure
 
-\`\`\`text
+```text
 SandeshVani/
 ├── .github/
 │   ├── agents/
@@ -38,11 +38,11 @@ SandeshVani/
 ├── AGENTS.md                # Repository-wide agent instructions (added in docs migration)
 ├── README.md                # Project overview (added in docs migration)
 └── SandeshVani_AI_Handoff.md
-\`\`\`
+```
 
 ## Implementation boundary
 
-The \`backend/app/api/v1\` routes on the reviewed main baseline cover health, auth, organizations and audiences. Campaign, consent, segment, template, approval, audit, distribution and analytics packages/routes are future work even though target docs mention them.
+The `backend/app/api/v1` routes on the reviewed main baseline cover health, auth, organizations and audiences. Campaign, consent, segment, template, approval, audit, distribution and analytics packages/routes are future work even though target docs mention them.
 
 Celery/Redis worker and transactional outbox code are not present on reviewed main; they appear in competing AUD-03 pull requests only.
 

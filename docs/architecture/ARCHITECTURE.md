@@ -6,7 +6,7 @@
 
 ## 1. Current implementation snapshot
 
-The reviewed \`main\` baseline is a React/JavaScript/Vite frontend and a FastAPI/Python backend using PostgreSQL, SQLAlchemy 2.x and Alembic. The implemented backend domains are authentication, organization/membership/role management and audience contact CRUD plus secure CSV upload validation/storage.
+The reviewed `main` baseline is a React/JavaScript/Vite frontend and a FastAPI/Python backend using PostgreSQL, SQLAlchemy 2.x and Alembic. The implemented backend domains are authentication, organization/membership/role management and audience contact CRUD plus secure CSV upload validation/storage.
 
 The main tree does not yet contain campaign, consent, segment, template, approval, audit-event, delivery, analytics or Celery worker domains. The Overview dashboard contains hard-coded sample data. The async worker/outbox architecture described below is a selected target and is under competing draft PR review.
 
@@ -27,7 +27,7 @@ Use a **modular monolith**: one FastAPI application with clear domain modules. W
 
 ## 4. Target logical architecture
 
-\`\`\`mermaid
+```mermaid
 flowchart TB
   USER[Organization Users] --> WEB[React SPA]
   WEB --> API[FastAPI REST API]
@@ -60,7 +60,7 @@ flowchart TB
   MOCK --> PUSH[Mock Push]
   WORKER --> DB
   ANALYTICS --> DB
-\`\`\`
+```
 
 **Implementation caveat:** only identity/organization/RBAC and audience CRUD/upload portions currently exist on main. Redis, Celery, outbox and the product modules shown in the diagram are future work.
 
@@ -71,22 +71,22 @@ flowchart TB
 - Selected target background processing: Celery + Redis and a PostgreSQL transactional outbox; not merged into main in the reviewed snapshot.
 - Intended local orchestration: Docker Compose; root Compose file not present in the reviewed tree.
 
-Do not describe React Router, Recharts, React Hook Form, Zod or other previously proposed UI libraries as selected dependencies. See \`TECH_STACK_DECISIONS.md\`.
+Do not describe React Router, Recharts, React Hook Form, Zod or other previously proposed UI libraries as selected dependencies. See `TECH_STACK_DECISIONS.md`.
 
 ## 6. Backend module boundaries
 
 Target module areas:
-- \`identity\`: users, authentication, sessions and recovery.
-- \`organizations\`: organizations, memberships and role assignments.
-- \`audiences\`: contacts and controlled CSV upload/import.
-- \`consent\`: consent evidence and suppression.
-- \`segments\`: allowlisted filter definitions and preview.
-- \`campaigns\`: drafts, state transitions and immutable versions.
-- \`templates\` / \`localization\`: versioned reusable content and language variants.
-- \`approvals\` / \`audit\`: reviewer decisions and append-oriented events.
-- \`distribution\`: recipient snapshots, mock adapters, delivery state and retry.
-- \`analytics\`: tenant-scoped aggregates.
-- \`ai_engine\`: deferred, human-reviewed suggestions only.
+- `identity`: users, authentication, sessions and recovery.
+- `organizations`: organizations, memberships and role assignments.
+- `audiences`: contacts and controlled CSV upload/import.
+- `consent`: consent evidence and suppression.
+- `segments`: allowlisted filter definitions and preview.
+- `campaigns`: drafts, state transitions and immutable versions.
+- `templates` / `localization`: versioned reusable content and language variants.
+- `approvals` / `audit`: reviewer decisions and append-oriented events.
+- `distribution`: recipient snapshots, mock adapters, delivery state and retry.
+- `analytics`: tenant-scoped aggregates.
+- `ai_engine`: deferred, human-reviewed suggestions only.
 
 Only identity/organizations and audiences currently have implemented API modules. The module list above is a target boundary, not a claim that these packages exist.
 
@@ -94,7 +94,7 @@ Only identity/organizations and audiences currently have implemented API modules
 
 Target: Browser → FastAPI → authenticate session → resolve requested/active organization through verified membership → aggregate roles/permissions in that organization → authorize resource and workflow state → tenant-scoped service/repository → PostgreSQL with transaction-local RLS context.
 
-A client-supplied organization ID is a selector, not proof of access. Every tenant-owned operation must verify membership and resource ownership. The runtime DB role must not own tenant tables and must not have \`BYPASSRLS\`.
+A client-supplied organization ID is a selector, not proof of access. Every tenant-owned operation must verify membership and resource ownership. The runtime DB role must not own tenant tables and must not have `BYPASSRLS`.
 
 ## 8. Target major data flows
 

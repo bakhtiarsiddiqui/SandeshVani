@@ -5,17 +5,17 @@
 
 ## Read first
 
-1. Root \`AGENTS.md\`.
-2. \`docs/README.md\`.
-3. \`docs/PROJECT_STATUS.md\`.
-4. \`docs/decision-register.md\`.
+1. Root `AGENTS.md`.
+2. `docs/README.md`.
+3. `docs/PROJECT_STATUS.md`.
+4. `docs/decision-register.md`.
 5. Then inspect only task-relevant source, migrations, tests and specifications.
 
-Do not follow older instructions in \`prompts/AGENTS.md\`, \`prompts/HANDOFF.md\` or \`prompts/MILESTONE.md\`; those locations are retained as deprecated redirects.
+Do not follow older instructions in `prompts/AGENTS.md`, `prompts/HANDOFF.md` or `prompts/MILESTONE.md`; those locations are retained as deprecated redirects.
 
 ## Current verified baseline snapshot
 
-Reviewed default branch: \`main\` at \`c88e270add18c6b0a4259fa5dbb310afa69534e7\`.
+Reviewed default branch: `main` at `c88e270add18c6b0a4259fa5dbb310afa69534e7`.
 
 Merged slices:
 - React/JavaScript/Vite frontend and FastAPI backend foundations.
@@ -36,11 +36,11 @@ Two competing draft PRs remain open:
 - [PR #18](https://github.com/bakhtiarsiddiqui/SandeshVani/pull/18)
 - [PR #19](https://github.com/bakhtiarsiddiqui/SandeshVani/pull/19)
 
-They both introduce an Alembic 0006 import-job/outbox migration from 0005, but use different schemas and worker/outbox implementations. They are alternatives, not additive. Review and select one canonical path; do not merge both independently. See \`docs/PROJECT_STATUS.md\` for the preliminary comparison and required review gates.
+They both introduce an Alembic 0006 import-job/outbox migration from 0005, but use different schemas and worker/outbox implementations. They are alternatives, not additive. Review and select one canonical path; do not merge both independently. See `docs/PROJECT_STATUS.md` for the preliminary comparison and required review gates.
 
 ## Operating constraints
 
-- Preserve existing user work and inspect \`git status --short --branch\` before edits.
+- Preserve existing user work and inspect `git status --short --branch` before edits.
 - Never invent routes, models, states, permissions or product decisions.
 - Never add live provider dispatch, AI approval/dispatch, Kafka, Kubernetes or microservices to MVP.
 - Do not run destructive database operations against a shared/production database.

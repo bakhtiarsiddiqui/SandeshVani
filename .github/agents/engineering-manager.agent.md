@@ -6,12 +6,12 @@ user-invocable: true
 ---
 
 ## Authoritative Project Context
-- Read root \`AGENTS.md\` first, then \`docs/README.md\`, \`docs/PROJECT_STATUS.md\`, and \`docs/decision-register.md\`.
-- Treat the \`prompts/\` pack as historical/deprecated, not as active instructions. Do not follow the former \`prompts/AGENTS.md\` or five-day \`MILESTONE.md\`.
+- Read root `AGENTS.md` first, then `docs/README.md`, `docs/PROJECT_STATUS.md`, and `docs/decision-register.md`.
+- Treat the `prompts/` pack as historical/deprecated, not as active instructions. Do not follow the former `prompts/AGENTS.md` or five-day `MILESTONE.md`.
 - The dated project status is a snapshot. Verify current branch/source/migrations/tests and current PR state before relying on it.
 - Requirements, target architecture, logical schemas, UI specs and old execution ledgers do not prove implementation. Current source, migrations, generated OpenAPI, tests and CI evidence establish what exists.
 - The current main baseline has auth/organization/tenant foundations and audience CRUD/file upload. The Overview dashboard is sample data. Campaign, consent, segments, approvals, audit stream, mock distribution and live analytics are not implemented. Celery/Redis/outbox are target architecture, not merged on main.
-- AUD-03 PRs #18 and #19 are competing draft alternatives. Do not merge both or plan dependent work on an assumed winner; see \`docs/PROJECT_STATUS.md\`.
+- AUD-03 PRs #18 and #19 are competing draft alternatives. Do not merge both or plan dependent work on an assumed winner; see `docs/PROJECT_STATUS.md`.
 
 You are the technical lead, software architect, repository maintainer, quality gatekeeper, and Git release coordinator for SandeshVani. Keep the project maintainable, architecturally consistent, tested, documented, and safely version-controlled.
 

@@ -1,14 +1,14 @@
 # SandeshVani — implementation roadmap
 
-**Status:** Current dependency-aware plan, reconciled against reviewed \`main\` on 2026-11-13.  
-**Baseline:** \`c88e270add18c6b0a4259fa5dbb310afa69534e7\`.  
+**Status:** Current dependency-aware plan, reconciled against reviewed `main` on 2026-11-13.  
+**Baseline:** `c88e270add18c6b0a4259fa5dbb310afa69534e7`.  
 **Principle:** finish the governed data workflow before expanding into campaign execution, integrations or AI.
 
 ## Stage 0 — Engineering and security foundations
 
 **Status: substantially implemented.**
 
-Current repository includes React/Vite and FastAPI bootstraps, PostgreSQL configuration, Alembic migrations \`0001\`–\`0005\`, CI workflows, backend/frontend test suites, auth/token lifecycle, organization/membership/RBAC foundations and forced-RLS policies. P0.2/P0.3/P0.4 ledgers record completion. Remaining setup and operational gaps are tracked below; do not re-open completed foundations without a defect or new requirement.
+Current repository includes React/Vite and FastAPI bootstraps, PostgreSQL configuration, Alembic migrations `0001`–`0005`, CI workflows, backend/frontend test suites, auth/token lifecycle, organization/membership/RBAC foundations and forced-RLS policies. P0.2/P0.3/P0.4 ledgers record completion. Remaining setup and operational gaps are tracked below; do not re-open completed foundations without a defect or new requirement.
 
 ## Stage 1 — Audience foundation
 
@@ -88,4 +88,4 @@ Deferred: provider-specific adapters, secret management, signed webhooks/replay 
 - Do not start a later stage while its data, permission, API or state-machine dependency is undecided.
 - Stabilise contracts before frontend/backend parallelism.
 - Estimates are not commitments. Re-estimate after acceptance criteria and workload are defined.
-- Synchronize this roadmap with \`TASKS.md\`, \`PROJECT_STATUS.md\`, API docs and actual GitHub issue/PR state.
+- Synchronize this roadmap with `TASKS.md`, `PROJECT_STATUS.md`, API docs and actual GitHub issue/PR state.

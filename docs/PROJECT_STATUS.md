@@ -1,7 +1,7 @@
 # SandeshVani — Project status
 
 **Snapshot date:** 2026-11-13  
-**Repository baseline reviewed:** \`main\` at \`c88e270add18c6b0a4259fa5dbb310afa69534e7\`  
+**Repository baseline reviewed:** `main` at `c88e270add18c6b0a4259fa5dbb310afa69534e7`  
 **Purpose:** factual implementation snapshot and dependency-aware next-work list.
 
 > This is a dated repository inspection, not a claim that tests were re-run on this date. Re-check the current branch, source, migrations, CI and open PRs before relying on it after the snapshot date.
@@ -19,9 +19,9 @@ Do not describe the dashboard as live analytics or any future workflow as implem
 | Frontend bootstrap | React/JavaScript/Vite app, Tailwind/DaisyUI, tests/build scripts | Implemented |
 | Visual system | Gunmetal/Saffron DaisyUI theme, Mukta font, shared components and auth styling merged by PR #14 | Implemented |
 | Sign-in visual effects | Three.js decorative scene and pointer effects; nonessential to auth | Implemented, decorative only |
-| Auth foundation | Registration, verification, login, refresh, logout/logout-all, recovery/reset and session/token handling in \`backend/app/api/v1/auth.py\` and services | Implemented; review tests for current branch |
+| Auth foundation | Registration, verification, login, refresh, logout/logout-all, recovery/reset and session/token handling in `backend/app/api/v1/auth.py` and services | Implemented; review tests for current branch |
 | Security configuration | P0.2 execution ledger records completion of JWT, cookies, CSRF/origin, CORS and startup validation | Ledger says complete; production deployment configuration still required |
-| Tenant/organization security | Organization discovery/switching, membership, multi-role association, tenant context and RLS migrations \`0001\`–\`0003\`; see P0.3/P0.4 records | Implemented foundation; ledgers contain historical verification |
+| Tenant/organization security | Organization discovery/switching, membership, multi-role association, tenant context and RLS migrations `0001`–`0003`; see P0.3/P0.4 records | Implemented foundation; ledgers contain historical verification |
 | Audience contact CRUD | Create, list, retrieve and update endpoints; merged by PR #16 | Implemented |
 | CSV file-level upload | CSV format/headers/row structure, size and row limits, private storage and tenant-scoped upload metadata; merged by PR #17 | Implemented upload only; does not import contacts |
 
@@ -53,10 +53,10 @@ These remain planned requirements, not current capabilities. The PRD and UI spec
 
 As of this snapshot, two competing draft pull requests remain open:
 
-- [PR #18 — asynchronous CSV import](https://github.com/bakhtiarsiddiqui/SandeshVani/pull/18), branch \`feat/audience-import-processing\`.
-- [PR #19 — asynchronous CSV import](https://github.com/bakhtiarsiddiqui/SandeshVani/pull/19), branch \`feat/audience-csv-processing\`.
+- [PR #18 — asynchronous CSV import](https://github.com/bakhtiarsiddiqui/SandeshVani/pull/18), branch `feat/audience-import-processing`.
+- [PR #19 — asynchronous CSV import](https://github.com/bakhtiarsiddiqui/SandeshVani/pull/19), branch `feat/audience-csv-processing`.
 
-They both create an Alembic \`0006_audience_import_jobs\` revision from migration \`0005_audience_import_uploads\`, but their worker, schema, outbox and error models differ. They are alternatives, not additive changes. Do not merge both independently or treat either as merged/implemented.
+They both create an Alembic `0006_audience_import_jobs` revision from migration `0005_audience_import_uploads`, but their worker, schema, outbox and error models differ. They are alternatives, not additive changes. Do not merge both independently or treat either as merged/implemented.
 
 Preliminary review direction (not an approved merge decision):
 - PR #18 has a persisted job lease/worker token and a more explicit outbox claim, retry and dead-letter lifecycle.
@@ -85,5 +85,5 @@ Organization onboarding/invitation policy; audience identity uniqueness and dedu
 
 - PR #14, #16 and #17 are merged and explain the current UI, audience CRUD and upload slices.
 - P0.2/P0.3/P0.4 execution ledgers preserve past verification results; they are not a current test run.
-- The current main tree contains migrations \`0001\` through \`0005\`. No migration 0006 is merged in this snapshot.
+- The current main tree contains migrations `0001` through `0005`. No migration 0006 is merged in this snapshot.
 - Update this file only when implementation/PR state changes and link the evidence. Do not use unchecked task boxes or design mockups as completion evidence.

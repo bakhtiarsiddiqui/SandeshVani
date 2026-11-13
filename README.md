@@ -3,14 +3,14 @@
 SandeshVani (संदेशवाणी) is a multi-tenant institutional/public-awareness communication platform.
 
 **Working tagline:** Har zaroori baat, har zaroori insaan tak.  
-**Working domain:** \`sandeshvani.in\` (selected/intended; domain registration and legal clearance are not verified).  
+**Working domain:** `sandeshvani.in` (selected/intended; domain registration and legal clearance are not verified).  
 **Historical codename:** CivicReach.
 
 ## Development status
 
 The repository currently contains working foundations for authentication, organization membership and role management, PostgreSQL tenant isolation, audience contact CRUD, secure CSV upload validation/storage, and the initial frontend shell/theme/dashboard prototype.
 
-It is **not yet a complete campaign or communication platform**. Campaigns, consent/suppression, segmentation, approvals, audit workflows, mock delivery execution and real analytics are not implemented on the reviewed \`main\` baseline. The dashboard uses demonstration data.
+It is **not yet a complete campaign or communication platform**. Campaigns, consent/suppression, segmentation, approvals, audit workflows, mock delivery execution and real analytics are not implemented on the reviewed `main` baseline. The dashboard uses demonstration data.
 
 See [current project status](docs/PROJECT_STATUS.md) before planning or claiming feature work.
 
@@ -19,7 +19,7 @@ See [current project status](docs/PROJECT_STATUS.md) before planning or claiming
 - Frontend: React, JavaScript, Vite, Tailwind CSS 3, DaisyUI 4, Axios.
 - Backend: Python, FastAPI, Pydantic, SQLAlchemy 2.x, Alembic.
 - Database: PostgreSQL.
-- Selected future worker architecture: Celery + Redis with PostgreSQL transactional outbox; not yet integrated on the reviewed \`main\` baseline.
+- Selected future worker architecture: Celery + Redis with PostgreSQL transactional outbox; not yet integrated on the reviewed `main` baseline.
 
 ## Start here
 

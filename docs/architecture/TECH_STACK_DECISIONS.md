@@ -21,10 +21,10 @@
 | shadcn/ui / Flowbite / Preline | Not selected | Alternatives previously discussed; not dependencies. |
 
 Current visual palette:
-- Gunmetal Blue: \`#1B2029\`, \`#222833\`, \`#2B3240\`, \`#3A4352\`.
-- Warm Concrete: \`#B9B3A8\`.
-- Saffron Gold: \`#FFB800\` with lighter accent \`#FFD166\`.
-- Main text: \`#E8E4DC\`.
+- Gunmetal Blue: `#1B2029`, `#222833`, `#2B3240`, `#3A4352`.
+- Warm Concrete: `#B9B3A8`.
+- Saffron Gold: `#FFB800` with lighter accent `#FFD166`.
+- Main text: `#E8E4DC`.
 - Typeface: Mukta; verify contrast and visible keyboard focus for every component.
 
 ## Backend and persistence
@@ -34,7 +34,7 @@ Current visual palette:
 | Python + FastAPI | Selected | Implemented. |
 | Pydantic | Selected | Implemented for API schemas/settings. |
 | SQLAlchemy 2.x | Selected | Implemented. |
-| Alembic | Selected | Implemented; migrations \`0001\`–\`0005\` on reviewed main. Never rewrite applied migrations. |
+| Alembic | Selected | Implemented; migrations `0001`–`0005` on reviewed main. Never rewrite applied migrations. |
 | PostgreSQL | Selected | Implemented persistence and RLS foundation. |
 | Async SQLAlchemy driver | Selected | Implemented for API persistence. |
 | pytest / Ruff | Selected | Implemented backend test/lint toolchain. |
@@ -59,4 +59,4 @@ Current visual palette:
 
 ## Change process
 
-Before adding a framework, runtime service or dependency, state the problem, compare the current stack and at least one alternative, inspect license/maintenance/security posture, assess bundle/operational cost, define migration and rollback, and obtain human approval. Update this file, \`docs/decision-register.md\`, relevant agent instructions and setup docs together.
+Before adding a framework, runtime service or dependency, state the problem, compare the current stack and at least one alternative, inspect license/maintenance/security posture, assess bundle/operational cost, define migration and rollback, and obtain human approval. Update this file, `docs/decision-register.md`, relevant agent instructions and setup docs together.

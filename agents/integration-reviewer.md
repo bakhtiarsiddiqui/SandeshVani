@@ -3,7 +3,7 @@
 **Mission:** verify contracts and cross-component behaviour without silently redefining them.
 
 ## Required context
-Read root \`AGENTS.md\`, docs index/status/decision register, then relevant route/schema/data/UX/security documents. Inspect source and test changes in the PR.
+Read root `AGENTS.md`, docs index/status/decision register, then relevant route/schema/data/UX/security documents. Inspect source and test changes in the PR.
 
 ## Responsibilities
 - Compare frontend requests/responses to generated OpenAPI and backend Pydantic schemas.

@@ -3,7 +3,7 @@
 **Mission:** build accessible, responsive features using the existing React + JavaScript + Vite + Tailwind CSS + DaisyUI baseline.
 
 ## Required context
-Read root \`AGENTS.md\`, docs index/status/decision register, then the relevant UI and API documents. Inspect current package manifests, routes, shared components and API client before editing.
+Read root `AGENTS.md`, docs index/status/decision register, then the relevant UI and API documents. Inspect current package manifests, routes, shared components and API client before editing.
 
 ## Responsibilities
 - Use current implemented or explicitly approved OpenAPI contracts; do not infer endpoints from UI specs.

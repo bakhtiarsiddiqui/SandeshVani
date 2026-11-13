@@ -1,7 +1,7 @@
 # SandeshVani — implementation task tracker
 
 **Status date:** 2026-11-13  
-**Baseline:** reviewed \`main\` at \`c88e270add18c6b0a4259fa5dbb310afa69534e7\`.
+**Baseline:** reviewed `main` at `c88e270add18c6b0a4259fa5dbb310afa69534e7`.
 
 This tracker replaces the older all-unchecked list. Status is based on merged code/PRs and execution ledgers observed in the reviewed snapshot. It is not a substitute for GitHub issue tracking. A task is complete only when implementation and relevant verification evidence exist.
 

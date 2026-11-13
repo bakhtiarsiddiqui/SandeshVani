@@ -2,7 +2,7 @@
 
 ## Mandatory context
 
-Every agent reads root \`AGENTS.md\`, then \`docs/README.md\`, \`docs/PROJECT_STATUS.md\` and \`docs/decision-register.md\`. Read only task-relevant specifications after that. The \`prompts/\` pack is archival, not an active source of instructions.
+Every agent reads root `AGENTS.md`, then `docs/README.md`, `docs/PROJECT_STATUS.md` and `docs/decision-register.md`. Read only task-relevant specifications after that. The `prompts/` pack is archival, not an active source of instructions.
 
 ## Tool/role allocation
 
@@ -24,11 +24,11 @@ Tools can change; product names are not role authority. Use the tool selected by
 5. Run focused tests first; QA independently tests acceptance and security boundaries.
 6. Integration reviewer checks API/schema drift, migration ordering and end-to-end behaviour.
 7. Human reviews security-sensitive design, scope, migrations and acceptance.
-8. Merge to protected \`main\` only through the repository's approved PR process.
+8. Merge to protected `main` only through the repository's approved PR process.
 
 ## Coordination rules
 
-- Use \`feature/<name>\`, \`fix/<name>\` and \`docs/<name>\` branches.
+- Use `feature/<name>`, `fix/<name>` and `docs/<name>` branches.
 - Do not have concurrent agents edit the same worktree or migration.
 - Every implementation PR links an issue, lists exact tests and states untested behaviour.
 - Do not split frontend/backend work until route names, Pydantic schemas, error states, permissions and domain state transitions are agreed.
