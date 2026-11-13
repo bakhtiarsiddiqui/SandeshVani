@@ -14,10 +14,10 @@ from pydantic import (
 
 
 INDIA_STATE_UT_CODES = frozenset({
-    "IN-AN", "IN-AP", "IN-AR", "IN-AS", "IN-BR", "IN-CH", "IN-CG",
+    "IN-AN", "IN-AP", "IN-AR", "IN-AS", "IN-BR", "IN-CH", "IN-CT",
     "IN-DH", "IN-DL", "IN-GA", "IN-GJ", "IN-HR", "IN-HP", "IN-JK",
     "IN-JH", "IN-KA", "IN-KL", "IN-LA", "IN-LD", "IN-MP", "IN-MH",
-    "IN-MN", "IN-ML", "IN-MZ", "IN-NL", "IN-OD", "IN-PY", "IN-PB",
+    "IN-MN", "IN-ML", "IN-MZ", "IN-NL", "IN-OR", "IN-PY", "IN-PB",
     "IN-RJ", "IN-SK", "IN-TN", "IN-TG", "IN-TR", "IN-UP", "IN-UT", "IN-WB",
 })
 
