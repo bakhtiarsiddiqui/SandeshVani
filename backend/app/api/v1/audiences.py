@@ -118,6 +118,7 @@ async def upload_audience_csv(
         processed_rows=job.processed_rows,
         imported_rows=job.imported_rows,
         error_rows=job.error_rows,
+        duplicate_rows=job.duplicate_rows,
     )
 
 
