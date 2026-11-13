@@ -1,14 +1,17 @@
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import create_access_token
+from app.core.security import create_access_token, ensure_utc
 from app.db.session import set_tenant_context
 from app.models.membership import Membership
 from app.models.organization import Organization
 from app.models.role import Role
 from app.repositories.membership_repo import MembershipRepository
+from app.repositories.session_repo import SessionRepository
 from app.repositories.organization_repo import OrganizationRepository
 from app.repositories.role_repo import RoleRepository
 from app.repositories.user_repo import UserRepository
@@ -21,6 +24,7 @@ class OrganizationService:
         self.membership_repo = MembershipRepository(session)
         self.role_repo = RoleRepository(session)
         self.user_repo = UserRepository(session)
+        self.session_repo = SessionRepository(session)
 
     async def create_organization(
         self, name: str, slug: str, creator_user_id: uuid.UUID
@@ -231,6 +235,37 @@ class OrganizationService:
                 detail="Membership does not belong to this organization",
             )
 
+        # Serialize administrator-role removals for this organization.
+        # This prevents concurrent requests from both removing the final role.
+        organization_lock = await self.session.execute(
+            select(Organization.id)
+            .where(Organization.id == organization_id)
+            .with_for_update()
+        )
+        if organization_lock.scalar_one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Organization not found",
+            )
+
+        role = await self.role_repo.get_role_by_id(role_id)
+        holds_admin_role = (
+            role is not None
+            and role.organization_id == organization_id
+            and role.scope == "organization"
+            and role.name.strip().casefold() == "organization administrator"
+            and any(item.role_id == role_id for item in membership.membership_roles)
+        )
+        if holds_admin_role:
+            active_admins = await self.membership_repo.count_active_members_with_role(
+                organization_id, role_id
+            )
+            if active_admins <= 1:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="The last active organization administrator cannot be removed",
+                )
+
         removed = await self.membership_repo.remove_role(
             organization_id, membership_id, role_id
         )
@@ -246,6 +281,18 @@ class OrganizationService:
         session_id: uuid.UUID,
         target_organization_id: uuid.UUID,
     ) -> dict:
+        auth_session = await self.session_repo.get_session(session_id)
+        if (
+            auth_session is None
+            or auth_session.user_id != user_id
+            or auth_session.revoked_at is not None
+            or ensure_utc(auth_session.expires_at) <= datetime.now(UTC)
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session has been revoked or expired",
+            )
+
         await set_tenant_context(self.session, target_organization_id)
         membership = await self.membership_repo.get_membership(
             target_organization_id, user_id
@@ -273,6 +320,9 @@ class OrganizationService:
         perms = await self.role_repo.get_permissions_for_roles(
             role_ids, organization_id=target_organization_id
         )
+
+        auth_session.selected_organization_id = target_organization_id
+        await self.session.flush()
 
         new_access_token = create_access_token(
             user_id=str(user_id),
