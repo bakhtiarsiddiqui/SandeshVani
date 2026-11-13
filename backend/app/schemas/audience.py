@@ -1,3 +1,4 @@
+import unicodedata
 import uuid
 from datetime import datetime
 from typing import Literal
@@ -10,6 +11,22 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+
+
+INDIA_STATE_UT_CODES = frozenset({
+    "IN-AN", "IN-AP", "IN-AR", "IN-AS", "IN-BR", "IN-CH", "IN-CG",
+    "IN-DH", "IN-DL", "IN-GA", "IN-GJ", "IN-HR", "IN-HP", "IN-JK",
+    "IN-JH", "IN-KA", "IN-KL", "IN-LA", "IN-LD", "IN-MP", "IN-MH",
+    "IN-MN", "IN-ML", "IN-MZ", "IN-NL", "IN-OD", "IN-PY", "IN-PB",
+    "IN-RJ", "IN-SK", "IN-TN", "IN-TG", "IN-TR", "IN-UP", "IN-UT", "IN-WB",
+})
+
+
+def _normalize_city(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = unicodedata.normalize("NFKC", value).strip()
+    return normalized or None
 
 
 class AudienceMemberCreate(BaseModel):
@@ -25,6 +42,8 @@ class AudienceMemberCreate(BaseModel):
     )
     preferred_language: Literal["en", "hi"] = "en"
     district: str | None = Field(default=None, max_length=150)
+    state_code: str | None = Field(default=None, max_length=8)
+    city: str | None = Field(default=None, max_length=150)
 
     @field_validator("full_name")
     @classmethod
@@ -56,6 +75,21 @@ class AudienceMemberCreate(BaseModel):
         value = value.strip()
         return value or None
 
+    @field_validator("state_code")
+    @classmethod
+    def validate_state_code(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().upper()
+        if normalized not in INDIA_STATE_UT_CODES:
+            raise ValueError("state_code must be a valid India State / UT ISO 3166-2 code")
+        return normalized
+
+    @field_validator("city")
+    @classmethod
+    def normalize_city(cls, value: str | None) -> str | None:
+        return _normalize_city(value)
+
     @model_validator(mode="after")
     def require_contact_point(self):
         if self.email is None and self.phone is None:
@@ -76,6 +110,8 @@ class AudienceMemberUpdate(BaseModel):
     )
     preferred_language: Literal["en", "hi"] | None = None
     district: str | None = Field(default=None, max_length=150)
+    state_code: str | None = Field(default=None, max_length=8)
+    city: str | None = Field(default=None, max_length=150)
     status: Literal["active", "inactive"] | None = None
 
     @field_validator("full_name")
@@ -110,6 +146,21 @@ class AudienceMemberUpdate(BaseModel):
         value = value.strip()
         return value or None
 
+    @field_validator("state_code")
+    @classmethod
+    def validate_state_code(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().upper()
+        if normalized not in INDIA_STATE_UT_CODES:
+            raise ValueError("state_code must be a valid India State / UT ISO 3166-2 code")
+        return normalized
+
+    @field_validator("city")
+    @classmethod
+    def normalize_city(cls, value: str | None) -> str | None:
+        return _normalize_city(value)
+
     @model_validator(mode="after")
     def reject_null_required_fields(self):
         for field_name in ("full_name", "preferred_language", "status"):
@@ -131,6 +182,8 @@ class AudienceMemberResponse(BaseModel):
     phone: str | None
     preferred_language: str
     district: str | None
+    state_code: str | None
+    city: str | None
     status: str
     created_at: datetime
     updated_at: datetime
