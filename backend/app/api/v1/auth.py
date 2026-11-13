@@ -367,6 +367,7 @@ async def select_org(
         session_id=auth_ctx.session_id,
         target_organization_id=data.organization_id,
     )
+    await session.commit()
     return {
         "access_token": result["access_token"],
         "token_type": "bearer",
