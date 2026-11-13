@@ -46,25 +46,23 @@ class AudienceImportJobResponse(BaseModel):
     completed_at: datetime | None
 
 
-class AudienceImportValidationIssue(BaseModel):
-    field: str | None
-    code: str
-    message: str
+class AudienceImportErrorResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
 
-
-class AudienceImportRowErrorResponse(BaseModel):
+    id: uuid.UUID
     row_number: int
-    errors: list[AudienceImportValidationIssue]
+    field_name: str | None
+    error_code: str
     created_at: datetime
 
 
 class AudienceImportErrorsPagination(BaseModel):
-    next_after_row_number: int | None
+    next_cursor: str | None
     has_more: bool
     limit: int
 
 
 class AudienceImportErrorsResponse(BaseModel):
     job_id: uuid.UUID
-    data: list[AudienceImportRowErrorResponse]
+    data: list[AudienceImportErrorResponse]
     pagination: AudienceImportErrorsPagination
