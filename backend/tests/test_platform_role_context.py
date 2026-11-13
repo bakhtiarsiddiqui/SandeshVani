@@ -14,7 +14,7 @@ async def test_platform_context_returns_only_callers_global_assignments(
     test_db_session: AsyncSession,
     development_mail_sink,
 ):
-    email = "platform.operator@example.test"
+    email = "platform.operator@example.com"
     password = "StrongPassword99!"
     registration = await async_client.post(
         "/api/v1/auth/register",
@@ -48,8 +48,8 @@ async def test_platform_context_returns_only_callers_global_assignments(
     )
     other_user = User(
         id=uuid.uuid4(),
-        email="other.operator@example.test",
-        normalized_email="other.operator@example.test",
+        email="other.operator@example.com",
+        normalized_email="other.operator@example.com",
         password_hash="test-hash",
         full_name="Other Operator",
     )
