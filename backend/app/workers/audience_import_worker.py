@@ -7,7 +7,8 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from pydantic import ValidationError
-from sqlalchemy import select, text
+from sqlalchemy import func, or_, select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.audience_import_job import AudienceImportJob
@@ -15,6 +16,10 @@ from app.models.audience_import_job_error import AudienceImportJobError
 from app.models.audience_import_upload import AudienceImportUpload
 from app.models.audience_member import AudienceMember
 from app.schemas.audience import AudienceMemberCreate
+from app.services.audience_identity import (
+    classify_identity_match,
+    is_identity_unique_violation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +105,36 @@ def _validate_contact_row(row: dict[str, str | None]) -> dict | list[dict]:
         return AudienceMemberCreate.model_validate(values).model_dump()
     except ValidationError as error:
         return _safe_validation_errors(error)
+
+
+def _find_duplicate_issue(
+    session: Session,
+    organization_id: uuid.UUID,
+    contact: dict,
+) -> dict[str, str | None] | None:
+    filters = []
+    email = contact.get("email")
+    phone = contact.get("phone")
+    if email:
+        filters.append(
+            func.lower(func.trim(AudienceMember.email)) == email.strip().lower()
+        )
+    if phone:
+        filters.append(func.trim(AudienceMember.phone) == phone.strip())
+    if not filters:
+        return None
+
+    matches = list(
+        session.scalars(
+            select(AudienceMember)
+            .where(
+                AudienceMember.organization_id == organization_id,
+                or_(*filters),
+            )
+            .order_by(AudienceMember.id.asc())
+        ).all()
+    )
+    return classify_identity_match(matches, email=email, phone=phone)
 
 
 def _file_digest(path: Path) -> tuple[int, str]:
@@ -325,6 +360,7 @@ class AudienceImportWorker:
 
                         imported_in_chunk = 0
                         errors_in_chunk = 0
+                        duplicates_in_chunk = 0
                         actor_id = claim["uploaded_by_id"]
                         for row_number, row in batch:
                             validated = _validate_contact_row(row)
@@ -346,19 +382,64 @@ class AudienceImportWorker:
                                 errors_in_chunk += 1
                                 continue
 
-                            session.add(
-                                AudienceMember(
-                                    organization_id=organization_id,
-                                    created_by=actor_id,
-                                    updated_by=actor_id,
-                                    **validated,
-                                )
+                            duplicate_issue = _find_duplicate_issue(
+                                session,
+                                organization_id,
+                                validated,
                             )
+                            if duplicate_issue is not None:
+                                session.add(
+                                    AudienceImportJobError(
+                                        organization_id=organization_id,
+                                        job_id=job_id,
+                                        row_number=row_number,
+                                        field_name=duplicate_issue["field_name"],
+                                        error_code=duplicate_issue["error_code"],
+                                    )
+                                )
+                                duplicates_in_chunk += 1
+                                continue
+
+                            member = AudienceMember(
+                                organization_id=organization_id,
+                                created_by=actor_id,
+                                updated_by=actor_id,
+                                **validated,
+                            )
+                            try:
+                                # A database uniqueness race can occur after the
+                                # pre-check. Isolate the insert so one race does
+                                # not roll back the rest of the bounded chunk.
+                                with session.begin_nested():
+                                    session.add(member)
+                                    session.flush()
+                            except IntegrityError as error:
+                                if not is_identity_unique_violation(error):
+                                    raise
+                                duplicate_issue = _find_duplicate_issue(
+                                    session,
+                                    organization_id,
+                                    validated,
+                                )
+                                if duplicate_issue is None:
+                                    raise
+                                session.add(
+                                    AudienceImportJobError(
+                                        organization_id=organization_id,
+                                        job_id=job_id,
+                                        row_number=row_number,
+                                        field_name=duplicate_issue["field_name"],
+                                        error_code=duplicate_issue["error_code"],
+                                    )
+                                )
+                                duplicates_in_chunk += 1
+                                continue
                             imported_in_chunk += 1
 
                         job.processed_rows += len(batch)
                         job.imported_rows += imported_in_chunk
                         job.error_rows += errors_in_chunk
+                        job.duplicate_rows += duplicates_in_chunk
                         job.lease_expires_at = datetime.now(UTC) + timedelta(
                             seconds=self.lease_seconds
                         )
