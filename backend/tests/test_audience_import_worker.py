@@ -90,11 +90,11 @@ def import_db(tmp_path):
 def test_worker_processes_bounded_chunks_and_records_safe_row_errors(import_db):
     _, session_factory, storage_dir = import_db
     content = (
-        b"full_name,email,phone,preferred_language,district\n"
-        b"Asha Sharma,ASHA@example.org,,hi,Meerut\n"
-        b"Broken Input,not-an-email,,fr,Agra\n"
-        b"No Contact,,,,Agra\n"
-        b"Rahul Verma,,+919876543210,en,Agra\n"
+        b"full_name,email,phone,preferred_language,district,state_code,city\n"
+        b"Asha Sharma,ASHA@example.org,,hi,Meerut,up,Meerut\n"
+        b"Broken Input,not-an-email,,fr,Agra,up,Agra\n"
+        b"No Contact,,,,Agra,up,Agra\n"
+        b"Rahul Verma,,+919876543210,en,Agra,up,Agra\n"
     )
     organization_id, _, job_id = _seed_job(
         session_factory, storage_dir, content, chunk_size=2
@@ -127,6 +127,9 @@ def test_worker_processes_bounded_chunks_and_records_safe_row_errors(import_db):
     assert job.error_rows == 2
     assert len(members) == 2
     assert {member.email for member in members if member.email} == {"asha@example.org"}
+    asha = next(member for member in members if member.email == "asha@example.org")
+    assert asha.state_code == "UP"
+    assert asha.city == "Meerut"
     assert {member.phone for member in members if member.phone} == {"+919876543210"}
     assert [
         (error.row_number, error.field_name, error.error_code) for error in errors
