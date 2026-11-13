@@ -134,6 +134,7 @@ def test_worker_processes_bounded_chunks_and_records_safe_row_errors(import_db):
     assert job.processed_rows == 4
     assert job.imported_rows == 2
     assert job.error_rows == 2
+    assert job.duplicate_rows == 0
     assert len(members) == 2
     assert {member.email for member in members if member.email} == {"asha@example.org"}
     assert {member.phone for member in members if member.phone} == {"+919876543210"}
