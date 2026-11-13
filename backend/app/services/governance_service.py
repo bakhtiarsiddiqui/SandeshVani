@@ -28,12 +28,13 @@ from app.models.outbox_event import OutboxEvent
 from app.schemas.governance import (
     CampaignContentRevisionCreate,
     CampaignVersionCreate,
-    SegmentCreate,
     SegmentVersionCreate,
-    TemplateCreate,
     TemplateVersionCreate,
 )
-from app.services.segment_filters import compile_segment_filter, validate_segment_filter
+from app.services.segment_filters import (
+    compile_segment_filter,
+    validate_segment_filter,
+)
 
 
 def canonical_json(value: dict) -> str:
@@ -234,7 +235,10 @@ class GovernanceService:
             action="segment.version_created",
             entity_type="audience_segment_version",
             entity_id=version.id,
-            event_data={"segment_id": str(segment_id), "version_number": version.version_number},
+            event_data={
+                "segment_id": str(segment_id),
+                "version_number": version.version_number,
+            },
         )
         return version
 
@@ -324,7 +328,10 @@ class GovernanceService:
             action="template.version_created",
             entity_type="message_template_version",
             entity_id=version.id,
-            event_data={"template_id": str(template_id), "version_number": version.version_number},
+            event_data={
+                "template_id": str(template_id),
+                "version_number": version.version_number,
+            },
         )
         return version
 
@@ -404,7 +411,10 @@ class GovernanceService:
                 if missing:
                     raise HTTPException(
                         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                        detail=f"Template version is missing explicit languages for {channel}",
+                        detail=(
+                            "Template version is missing explicit languages "
+                            f"for {channel}"
+                        ),
                     )
 
         current_number = await self.session.scalar(
@@ -449,7 +459,10 @@ class GovernanceService:
             action="campaign.version_created",
             entity_type="campaign_version",
             entity_id=version.id,
-            event_data={"campaign_id": str(campaign_id), "version_number": version.version_number},
+            event_data={
+                "campaign_id": str(campaign_id),
+                "version_number": version.version_number,
+            },
         )
         return version
 
@@ -515,7 +528,10 @@ class GovernanceService:
             action="campaign.content_revision_created",
             entity_type="campaign_version",
             entity_id=version.id,
-            event_data={"campaign_id": str(campaign_id), "source_version_id": str(source.id)},
+            event_data={
+                "campaign_id": str(campaign_id),
+                "source_version_id": str(source.id),
+            },
         )
         return version
 
@@ -553,7 +569,10 @@ class GovernanceService:
             action="campaign.version_submitted",
             entity_type="campaign_version",
             entity_id=version.id,
-            event_data={"campaign_id": str(campaign_id), "content_hash": version.content_hash},
+            event_data={
+                "campaign_id": str(campaign_id),
+                "content_hash": version.content_hash,
+            },
         )
         return version
 
@@ -585,7 +604,10 @@ class GovernanceService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Campaign creator or submitter cannot approve their version",
             )
-        if version_hash != version.content_hash or content_sha256(version.content_snapshot) != version.content_hash:
+        if (
+            version_hash != version.content_hash
+            or content_sha256(version.content_snapshot) != version.content_hash
+        ):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Approval must reference the exact submitted version hash",
@@ -673,7 +695,10 @@ class GovernanceService:
                 aggregate_type="campaign_execution",
                 aggregate_id=execution.id,
                 event_type="campaign.mock_execute.queued",
-                payload={"execution_id": str(execution.id), "campaign_version_id": str(version_id)},
+                payload={
+                    "execution_id": str(execution.id),
+                    "campaign_version_id": str(version_id),
+                },
             )
         )
         await self._audit(
@@ -681,7 +706,10 @@ class GovernanceService:
             action="campaign.mock_execution_queued",
             entity_type="campaign_execution",
             entity_id=execution.id,
-            event_data={"campaign_version_id": str(version_id), "simulated": True},
+            event_data={
+                "campaign_version_id": str(version_id),
+                "simulated": True,
+            },
         )
         await self.session.flush()
         return execution
