@@ -101,7 +101,9 @@ class ChannelConsentEvent(Base, UUIDPrimaryKeyMixin):
     decision: Mapped[str] = mapped_column(String(16), nullable=False)
     evidence_source: Mapped[str] = mapped_column(String(64), nullable=False)
     evidence_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    captured_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     recorded_by: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
@@ -295,9 +297,13 @@ class CampaignVersion(Base, UUIDPrimaryKeyMixin):
             "status IN ('draft', 'submitted', 'approved', 'changes_requested')",
             name="ck_campaign_versions_status",
         ),
-        UniqueConstraint("organization_id", "id", name="uq_campaign_versions_org_id"),
         UniqueConstraint(
-            "organization_id", "campaign_id", "version_number",
+            "organization_id", "id", name="uq_campaign_versions_org_id"
+        ),
+        UniqueConstraint(
+            "organization_id",
+            "campaign_id",
+            "version_number",
             name="uq_campaign_versions_number",
         ),
         ForeignKeyConstraint(
@@ -308,7 +314,10 @@ class CampaignVersion(Base, UUIDPrimaryKeyMixin):
         ),
         ForeignKeyConstraint(
             ["organization_id", "template_version_id"],
-            ["message_template_versions.organization_id", "message_template_versions.id"],
+            [
+                "message_template_versions.organization_id",
+                "message_template_versions.id",
+            ],
             name="fk_campaign_versions_tenant_template_version",
         ),
         ForeignKeyConstraint(
@@ -428,7 +437,9 @@ class CampaignExecution(Base, UUIDPrimaryKeyMixin):
 
     organization_id: Mapped[uuid.UUID] = mapped_column(nullable=False)
     campaign_version_id: Mapped[uuid.UUID] = mapped_column(nullable=False)
-    execution_mode: Mapped[str] = mapped_column(String(8), default="mock", nullable=False)
+    execution_mode: Mapped[str] = mapped_column(
+        String(8), default="mock", nullable=False
+    )
     status: Mapped[str] = mapped_column(String(16), default="queued", nullable=False)
     initiated_by: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
@@ -525,7 +536,8 @@ class DeliveryAttempt(Base, UUIDPrimaryKeyMixin):
     __tablename__ = "delivery_attempts"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('simulated_accepted', 'simulated_delivered', 'failed', 'unknown')",
+            "status IN ('simulated_accepted', 'simulated_delivered', "
+            "'failed', 'unknown')",
             name="ck_delivery_attempts_status",
         ),
         UniqueConstraint(
