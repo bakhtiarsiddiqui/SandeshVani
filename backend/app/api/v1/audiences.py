@@ -15,7 +15,7 @@ from app.api.deps import (
 )
 from app.core.config import Settings, get_settings
 from app.core.http_status import HTTP_422_UNPROCESSABLE_CONTENT
-from app.db.session import get_db
+from app.db.session import get_db, set_tenant_context
 from app.models.audience_import_job import AudienceImportJob
 from app.schemas.audience import (
     AudienceMemberCreate,
@@ -191,6 +191,7 @@ async def create_audience_member(
         actor_user_id=auth_ctx.user.id,
     )
     await session.commit()
+    await set_tenant_context(session, tenant_ctx.organization.id)
     await session.refresh(member)
     return AudienceMemberResponse.model_validate(member)
 
