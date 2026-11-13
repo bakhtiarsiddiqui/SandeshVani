@@ -36,18 +36,12 @@ def _validate_leaf(field: str, operator: str, value: Any) -> None:
             values = [value]
         elif operator == "in":
             if not isinstance(value, list) or not 1 <= len(value) <= 100:
-                raise SegmentFilterError(
-                    "in requires a list of 1 to 100 values"
-                )
+                raise SegmentFilterError("in requires a list of 1 to 100 values")
             values = value
         else:
-            raise SegmentFilterError(
-                "String fields support only eq and in"
-            )
+            raise SegmentFilterError("String fields support only eq and in")
         if any(not isinstance(item, str) or not item.strip() for item in values):
-            raise SegmentFilterError(
-                "String filter values must be non-blank strings"
-            )
+            raise SegmentFilterError("String filter values must be non-blank strings")
         if field == "status" and any(
             item not in {"active", "inactive"} for item in values
         ):
@@ -79,9 +73,7 @@ def validate_segment_filter(ast: dict[str, Any]) -> dict[str, Any]:
     def walk(node: Any, depth: int) -> dict[str, Any]:
         nonlocal predicate_count
         if depth > MAX_DEPTH or not isinstance(node, dict):
-            raise SegmentFilterError(
-                "Segment filter nesting is invalid or too deep"
-            )
+            raise SegmentFilterError("Segment filter nesting is invalid or too deep")
         if set(node) == {"op", "children"}:
             operation = node["op"]
             children = node["children"]
