@@ -299,7 +299,7 @@ async def test_audience_create_update_upload_and_member_role_response_under_post
         assert [role["name"] for role in added.json()["roles"]] == ["Campaign Manager"]
 
         csv_body = (
-            b"full_name,email,state_code,city\\r\\n"
+            b"full_name,email,state_code,city\r\n"
             b"Import RLS,import.rls@example.test,IN-UP,Meerut\\r\\n"
         )
         upload = await client.post(
