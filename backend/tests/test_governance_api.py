@@ -64,7 +64,7 @@ async def test_governance_workflow_requires_evidence_and_independent_approval(
             "full_name": "Asha Governance",
             "email": "asha.governance@example.com",
             "preferred_language": "hi",
-            "state_code": "IN-UP",
+            "state_code": "UP",
             "city": "Meerut",
         },
     )
