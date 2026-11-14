@@ -1,7 +1,8 @@
 """End-to-end PostgreSQL API tests for tenant RLS transaction boundaries.
 
 These tests deliberately run the current full Alembic history and FastAPI
-endpoints as a restricted, non-owner, NOBYPASSRLS application role. They are skipped when
+endpoints as a restricted, non-owner, NOBYPASSRLS application role. They are skipped
+when
 SANDESHVANI_PG_TEST_URL is not configured.
 """
 
