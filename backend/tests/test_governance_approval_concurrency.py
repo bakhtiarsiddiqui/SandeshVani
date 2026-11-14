@@ -78,6 +78,7 @@ async def test_concurrent_approvers_cannot_record_two_decisions_for_one_version(
                     created_by=creator_id,
                 )
             )
+            await session.flush()
             session.add(
                 CampaignVersion(
                     id=version_id,
