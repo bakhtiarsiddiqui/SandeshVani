@@ -19,8 +19,7 @@ def _install_guard(*, compare_jsonb: bool) -> None:
         channels = "NEW.channels::jsonb IS DISTINCT FROM OLD.channels::jsonb"
         languages = "NEW.languages::jsonb IS DISTINCT FROM OLD.languages::jsonb"
         snapshot = (
-            "NEW.content_snapshot::jsonb "
-            "IS DISTINCT FROM OLD.content_snapshot::jsonb"
+            "NEW.content_snapshot::jsonb IS DISTINCT FROM OLD.content_snapshot::jsonb"
         )
     else:
         channels = "NEW.channels IS DISTINCT FROM OLD.channels"
