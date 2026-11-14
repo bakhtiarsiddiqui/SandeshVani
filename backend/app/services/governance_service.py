@@ -587,12 +587,16 @@ class GovernanceService:
         actor_id: uuid.UUID,
     ) -> CampaignApproval:
         campaign = await self._campaign(campaign_id)
+        # Serialize approval decisions for this immutable version. A second
+        # approver waits for the first transaction, then observes its final status.
         version = await self.session.scalar(
-            select(CampaignVersion).where(
+            select(CampaignVersion)
+            .where(
                 CampaignVersion.organization_id == self.organization_id,
                 CampaignVersion.campaign_id == campaign_id,
                 CampaignVersion.id == version_id,
             )
+            .with_for_update()
         )
         if version is None or version.status != "submitted":
             raise HTTPException(
