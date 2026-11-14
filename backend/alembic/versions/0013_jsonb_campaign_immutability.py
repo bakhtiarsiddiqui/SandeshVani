@@ -32,7 +32,8 @@ def _install_guard(*, compare_jsonb: bool) -> None:
                OR NEW.purpose_code IS DISTINCT FROM OLD.purpose_code
                OR NEW.channels{json_cast} IS DISTINCT FROM OLD.channels{json_cast}
                OR NEW.languages{json_cast} IS DISTINCT FROM OLD.languages{json_cast}
-               OR NEW.content_snapshot{json_cast} IS DISTINCT FROM OLD.content_snapshot{json_cast}
+               OR NEW.content_snapshot{json_cast} IS DISTINCT FROM
+                  OLD.content_snapshot{json_cast}
                OR NEW.content_hash IS DISTINCT FROM OLD.content_hash
                OR NEW.template_version_id IS DISTINCT FROM OLD.template_version_id
                OR NEW.segment_version_id IS DISTINCT FROM OLD.segment_version_id
