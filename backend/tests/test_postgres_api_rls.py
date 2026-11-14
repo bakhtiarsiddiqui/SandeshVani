@@ -228,11 +228,11 @@ async def test_postgres_rls_api_paths(
         base_url="http://test",
         headers={"Origin": "http://localhost:5173"},
     ) as client:
-        await _register_and_verify(client, app, "rls-owner@example.test")
+        await _register_and_verify(client, app, "rls-owner@example.com")
         login = await client.post(
             "/api/v1/auth/login",
             json={
-                "email": "rls-owner@example.test",
+                "email": "rls-owner@example.com",
                 "password": "PostgresApiPassword123!",
             },
         )
@@ -266,7 +266,7 @@ async def test_postgres_rls_api_paths(
             headers=headers,
             json={
                 "full_name": "Asha RLS",
-                "email": "asha.rls@example.test",
+                "email": "asha.rls@example.com",
                 "preferred_language": "hi",
                 "state_code": "IN-UP",
                 "city": "Meerut",
@@ -294,12 +294,12 @@ async def test_postgres_rls_api_paths(
             role for role in role_response.json() if role["name"] == "Campaign Manager"
         )
 
-        await _register_and_verify(client, app, "rls-invitee@example.test")
+        await _register_and_verify(client, app, "rls-invitee@example.com")
         added = await client.post(
             f"/api/v1/organizations/{organization_id}/members",
             headers=headers,
             json={
-                "email": "rls-invitee@example.test",
+                "email": "rls-invitee@example.com",
                 "role_ids": [campaign_manager["id"]],
             },
         )
@@ -308,7 +308,7 @@ async def test_postgres_rls_api_paths(
 
         csv_body = (
             b"full_name,email,state_code,city\r\n"
-            b"Import RLS,import.rls@example.test,IN-UP,Meerut\r\n"
+            b"Import RLS,import.rls@example.com,IN-UP,Meerut\r\n"
         )
         upload = await client.post(
             "/api/v1/audiences/imports",
