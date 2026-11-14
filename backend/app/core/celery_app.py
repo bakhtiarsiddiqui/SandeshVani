@@ -9,6 +9,7 @@ celery_app = Celery(
     broker=settings.redis_url,
     include=[
         "app.workers.audience_import_tasks",
+        "app.workers.campaign_distribution_tasks",
         "app.workers.outbox_publisher",
     ],
 )

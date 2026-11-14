@@ -5,6 +5,23 @@ from app.models.audience_member import AudienceMember
 from app.models.auth_login_attempt_window import AuthLoginAttemptWindow
 from app.models.auth_session import AuthSession
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.models.governance import (
+    AudienceSegment,
+    AudienceSegmentVersion,
+    AuditEvent,
+    Campaign,
+    CampaignApproval,
+    CampaignExecution,
+    CampaignVersion,
+    ChannelConsentEvent,
+    ChannelDelivery,
+    DeliveryAttempt,
+    ExecutionRecipient,
+    MessageTemplate,
+    MessageTemplateVersion,
+    ProcessingBasisEvent,
+    SuppressionEvent,
+)
 from app.models.membership import Membership
 from app.models.organization import Organization
 from app.models.outbox_event import OutboxEvent
@@ -23,6 +40,21 @@ from app.models.token import (
 from app.models.user import User
 
 __all__ = [
+    "AudienceSegment",
+    "AudienceSegmentVersion",
+    "AuditEvent",
+    "Campaign",
+    "CampaignApproval",
+    "CampaignExecution",
+    "CampaignVersion",
+    "ChannelConsentEvent",
+    "ChannelDelivery",
+    "DeliveryAttempt",
+    "ExecutionRecipient",
+    "MessageTemplate",
+    "MessageTemplateVersion",
+    "ProcessingBasisEvent",
+    "SuppressionEvent",
     "AudienceImportJob",
     "AudienceImportJobError",
     "AudienceImportUpload",

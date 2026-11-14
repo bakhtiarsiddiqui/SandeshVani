@@ -7,6 +7,7 @@ from sqlalchemy import or_, select, text
 from sqlalchemy.orm import Session
 
 from app.models.audience_import_job import AudienceImportJob
+from app.models.governance import CampaignExecution
 from app.models.organization import Organization
 from app.models.outbox_event import OutboxEvent
 
@@ -28,6 +29,9 @@ def publish_pending_outbox_events(
     batch_size: int = 50,
     lease_seconds: int = 60,
     max_attempts: int = 12,
+    publish_execution_task: (
+        Callable[[uuid.UUID, uuid.UUID, uuid.UUID], None] | None
+    ) = None,
 ) -> int:
     """Publish durable outbox records, claiming them tenant by tenant."""
     with session_factory() as session:
@@ -69,12 +73,22 @@ def publish_pending_outbox_events(
                         event.id,
                         event.aggregate_id,
                         event.attempt_count,
+                        event.event_type,
                     )
                 )
 
-        for event_id, job_id, attempt_count in claimed:
+        for event_id, aggregate_id, attempt_count, event_type in claimed:
             try:
-                publish_import_task(job_id, organization_id, event_id)
+                if event_type == "audience_import.queued":
+                    publish_import_task(aggregate_id, organization_id, event_id)
+                elif event_type == "campaign.mock_execute.queued":
+                    if publish_execution_task is None:
+                        raise RuntimeError(
+                            "Mock execution task publisher is not configured"
+                        )
+                    publish_execution_task(aggregate_id, organization_id, event_id)
+                else:
+                    raise RuntimeError(f"Unsupported outbox event type: {event_type}")
             except Exception:
                 logger.exception(
                     "Outbox publication failed",
@@ -99,24 +113,41 @@ def publish_pending_outbox_events(
                     event.last_error_code = "BROKER_PUBLISH_FAILED"
                     if attempt_count >= max_attempts:
                         event.status = "dead_letter"
-                        job = session.scalar(
-                            select(AudienceImportJob)
-                            .where(
-                                AudienceImportJob.organization_id == organization_id,
-                                AudienceImportJob.id == job_id,
+                        if event_type == "audience_import.queued":
+                            job = session.scalar(
+                                select(AudienceImportJob)
+                                .where(
+                                    AudienceImportJob.organization_id
+                                    == organization_id,
+                                    AudienceImportJob.id == aggregate_id,
+                                )
+                                .with_for_update()
                             )
-                            .with_for_update()
-                        )
-                        if job is not None and job.status not in {
-                            "completed",
-                            "completed_with_errors",
-                            "failed",
-                        }:
-                            job.status = "failed"
-                            job.last_error_code = "QUEUE_DELIVERY_FAILED"
-                            job.completed_at = datetime.now(UTC)
-                            job.worker_token = None
-                            job.lease_expires_at = None
+                            if job is not None and job.status not in {
+                                "completed",
+                                "completed_with_errors",
+                                "failed",
+                            }:
+                                job.status = "failed"
+                                job.last_error_code = "QUEUE_DELIVERY_FAILED"
+                                job.completed_at = datetime.now(UTC)
+                                job.worker_token = None
+                                job.lease_expires_at = None
+                        elif event_type == "campaign.mock_execute.queued":
+                            execution = session.scalar(
+                                select(CampaignExecution)
+                                .where(
+                                    CampaignExecution.organization_id
+                                    == organization_id,
+                                    CampaignExecution.id == aggregate_id,
+                                )
+                                .with_for_update()
+                            )
+                            if (
+                                execution is not None
+                                and execution.status != "completed"
+                            ):
+                                execution.status = "failed"
                     else:
                         event.status = "pending"
                         event.available_at = retry_at

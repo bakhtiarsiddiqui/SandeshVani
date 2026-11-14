@@ -165,6 +165,22 @@ This conservative policy intentionally does not perform fuzzy name matching
 or automatic merges. Shared phone numbers are not supported by this proposed
 uniqueness policy and require owner review before production migration.
 
+## R1 governed communication and mock execution
+
+The R1 governance API stores tenant-scoped processing-basis evidence, channel
+consent and suppression events, immutable segment/template/campaign versions,
+approval decisions, and metadata-only audit events. Segment filters are
+compiled from an allowlisted, validated AST; arbitrary SQL expressions are not
+accepted.
+
+Campaign execution is deliberately mock-only. The worker rechecks the
+purpose-specific processing basis, channel consent, and suppression state for
+each channel before creating simulated delivery and attempt records. It does
+not call email, SMS, WhatsApp, push, or other external delivery providers.
+Simulated acceptance is not provider acceptance or delivery confirmation.
+Provider adapters, credentials, delivery webhooks, and production dispatch
+remain separate work.
+
 ## Local Authentication Email
 
 Local registration, verification resend, and password-recovery messages are

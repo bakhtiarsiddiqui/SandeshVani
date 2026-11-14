@@ -181,6 +181,34 @@ Decision payload example: `{"rationale":"Reviewed the exact submitted version."}
 
 The server must enforce mock mode. No client field may switch R1 to live mode. API deployment must not contain real provider credentials or provider endpoints.
 
+## R1 governance, segments, approvals and mock execution
+
+The R1 implementation exposes the following tenant-scoped routes. Writes
+require the existing CSRF/trusted-origin protections and organization-scoped
+permissions.
+
+- `POST /api/v1/governance/consent/processing-basis`
+- `POST /api/v1/governance/consent/channel-events`
+- `POST /api/v1/governance/consent/suppressions`
+- `POST /api/v1/governance/segments`
+- `POST /api/v1/governance/segments/{segment_id}/versions`
+- `POST /api/v1/governance/segments/{segment_id}/preview`
+- `POST /api/v1/governance/templates`
+- `POST /api/v1/governance/templates/{template_id}/versions`
+- `POST /api/v1/governance/campaigns`
+- `POST /api/v1/governance/campaigns/{campaign_id}/versions`
+- `POST /api/v1/governance/campaigns/{campaign_id}/versions/{version_id}/content-revisions`
+- `POST /api/v1/governance/campaigns/{campaign_id}/versions/{version_id}/submit`
+- `POST /api/v1/governance/campaigns/{campaign_id}/versions/{version_id}/approval`
+- `POST /api/v1/governance/campaigns/{campaign_id}/versions/{version_id}/execute`
+- `GET /api/v1/governance/executions/{execution_id}/analytics`
+- `GET /api/v1/governance/audit`
+
+Campaign execution is fixed to `mock` mode by the database constraint and API.
+The worker revalidates immutable approved content, processing basis, consent,
+and suppression before creating simulated delivery attempts. It never sends
+messages to an external provider.
+
 ## 8. Response and error conventions
 
 Collection example:

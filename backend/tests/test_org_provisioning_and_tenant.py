@@ -499,3 +499,96 @@ async def test_failed_provisioning_rolls_back_entirely(api_session: AsyncSession
             )
     finally:
         app.dependency_overrides.clear()
+
+
+# ---------------------------------------------------------------------------
+# Test 8 — Governance permissions on newly provisioned organization roles
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_newly_provisioned_org_roles_receive_governance_permissions(
+    fk_session: AsyncSession,
+):
+    """Newly provisioned organizations receive the correct governance permissions,
+    preserving the approved separation of duties across system roles."""
+    org = Organization(id=uuid.uuid4(), name="Gov Provision Org", slug="gov-prov-org")
+    fk_session.add(org)
+    await fk_session.flush()
+
+    repo = RoleRepository(fk_session)
+    seeded_roles = await repo.seed_organization_roles(org.id)
+
+    # 1. Organization Administrator has all 7 governance permissions
+    admin_perms = set(
+        await repo.get_permissions_for_roles(
+            [seeded_roles["Organization Administrator"].id], organization_id=org.id
+        )
+    )
+    governance_7 = {
+        "segments:update",
+        "suppression:read",
+        "suppression:update",
+        "templates:update",
+        "campaigns:content:update",
+        "localization:read",
+        "localization:update",
+    }
+    assert governance_7.issubset(admin_perms), (
+        f"Org Admin missing governance permissions: {governance_7 - admin_perms}"
+    )
+
+    # 2. Campaign Manager has segments:update, campaigns:content:update,
+    # and localization:read
+    cm_perms = set(
+        await repo.get_permissions_for_roles(
+            [seeded_roles["Campaign Manager"].id], organization_id=org.id
+        )
+    )
+    assert {
+        "segments:update",
+        "campaigns:content:update",
+        "localization:read",
+    }.issubset(cm_perms)
+    assert not cm_perms.intersection(
+        {
+            "suppression:read",
+            "suppression:update",
+            "templates:update",
+            "localization:update",
+        }
+    )
+
+    # 3. Communication Team has templates:update, campaigns:content:update,
+    # localization:read, localization:update
+    comms_perms = set(
+        await repo.get_permissions_for_roles(
+            [seeded_roles["Communication Team"].id], organization_id=org.id
+        )
+    )
+    assert {
+        "templates:update",
+        "campaigns:content:update",
+        "localization:read",
+        "localization:update",
+    }.issubset(comms_perms)
+    # Communication Team must NOT have campaigns:create or campaigns:update
+    assert "campaigns:create" not in comms_perms
+    assert "campaigns:update" not in comms_perms
+
+    # 4. Approver has no additional governance permissions
+    approver_perms = set(
+        await repo.get_permissions_for_roles(
+            [seeded_roles["Approver"].id], organization_id=org.id
+        )
+    )
+    assert not approver_perms.intersection(governance_7)
+
+    # 5. Idempotent re-seeding does not duplicate or corrupt permissions
+    reseeded_roles = await repo.seed_organization_roles(org.id)
+    reseeded_admin_perms = set(
+        await repo.get_permissions_for_roles(
+            [reseeded_roles["Organization Administrator"].id], organization_id=org.id
+        )
+    )
+    assert reseeded_admin_perms == admin_perms

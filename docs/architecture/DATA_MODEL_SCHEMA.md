@@ -114,6 +114,27 @@ Proposed: variant ID, reviewer, status, notes, reviewed timestamp and version/ha
 ### `webhook_events`
 Reserved for later provider integration. `organization_id` may not be known at receipt time; define trusted provider-account-to-tenant mapping and nullable/global intake model before R3. Unique provider/event identity; verify signature and replay controls before processing.
 
+## Implemented R1 governance schema (migration 0011)
+
+The governance migration creates these tenant-scoped tables, all protected
+by PostgreSQL `ENABLE ROW LEVEL SECURITY`, `FORCE ROW LEVEL SECURITY`, and a
+transaction-local `app.current_org` policy:
+
+- Evidence: `processing_basis_events`, `channel_consent_events`,
+  `suppression_events`.
+- Segments: `audience_segments`, `audience_segment_versions`; versions hold a
+  validated, allowlisted filter AST and canonical hash.
+- Templates: `message_templates`, `message_template_versions`; content
+  versions are immutable and channel/language variants are explicit.
+- Campaign workflow: `campaigns`, `campaign_versions`, `campaign_approvals`.
+  Approval binds to the exact immutable version hash and prohibits self-approval.
+- Audit and execution: `audit_events`, `campaign_executions`,
+  `execution_recipients`, `channel_deliveries`, `delivery_attempts`.
+
+Evidence, approvals, audit events and immutable versions have database-level
+mutation guards. Campaign execution is constrained to `execution_mode='mock'`;
+simulated acceptance must never be interpreted as external provider delivery.
+
 ## 7. Relationships
 
 - Organization 1:N memberships, audience, segments, campaigns, templates, executions and tenant audit records.
