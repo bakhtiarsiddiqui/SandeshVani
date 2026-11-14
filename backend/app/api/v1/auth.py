@@ -373,7 +373,7 @@ async def select_org(
         session_id=auth_ctx.session_id,
         target_organization_id=data.organization_id,
     )
-    return {
+    response = {
         "access_token": result["access_token"],
         "token_type": "bearer",
         "active_organization": OrganizationResponse.model_validate(
@@ -382,6 +382,8 @@ async def select_org(
         "roles": [RoleResponse.model_validate(r) for r in result["roles"]],
         "permissions": result["permissions"],
     }
+    await session.commit()
+    return response
 
 
 @router.post(

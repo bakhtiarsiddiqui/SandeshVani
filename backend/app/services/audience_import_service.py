@@ -6,13 +6,16 @@ import logging
 import os
 import tempfile
 import uuid
+from datetime import UTC, datetime, timedelta
 from pathlib import Path, PurePosixPath
 
 from fastapi import HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
+from app.models.audience_import_job import AudienceImportJob
 from app.models.audience_import_upload import AudienceImportUpload
+from app.models.outbox_event import OutboxEvent
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +25,8 @@ _ALLOWED_HEADERS = {
     "phone",
     "preferred_language",
     "district",
+    "state_code",
+    "city",
 }
 _ALLOWED_CONTENT_TYPES = {
     "application/csv",
@@ -183,7 +188,9 @@ class AudienceImportService:
         self.actor_user_id = actor_user_id
         self.settings = settings
 
-    async def upload_csv(self, upload: UploadFile) -> AudienceImportUpload:
+    async def upload_csv(
+        self, upload: UploadFile
+    ) -> tuple[AudienceImportUpload, AudienceImportJob]:
         try:
             content = await upload.read(self.settings.audience_import_max_bytes + 1)
         finally:
@@ -215,6 +222,7 @@ class AudienceImportService:
                 detail="Audience upload storage is unavailable",
             ) from err
 
+        job_id = uuid.uuid4()
         record = AudienceImportUpload(
             id=upload_id,
             organization_id=self.organization_id,
@@ -222,9 +230,45 @@ class AudienceImportService:
             byte_size=len(content),
             row_count=row_count,
             sha256=checksum,
+            retention_expires_at=datetime.now(UTC)
+            + timedelta(days=self.settings.audience_import_retention_days),
         )
-        self.session.add(record)
+        job = AudienceImportJob(
+            id=job_id,
+            organization_id=self.organization_id,
+            upload_id=upload_id,
+            uploaded_by_id=self.actor_user_id,
+            status="queued",
+            total_rows=row_count,
+            processed_rows=0,
+            imported_rows=0,
+            error_rows=0,
+            chunk_size=self.settings.audience_import_chunk_size,
+        )
+        event = OutboxEvent(
+            organization_id=self.organization_id,
+            aggregate_type="audience_import_job",
+            aggregate_id=job_id,
+            event_type="audience_import.queued",
+            payload={"job_id": str(job_id), "upload_id": str(upload_id)},
+        )
         try:
+            # Flush the upload parent before its import-job child. The
+            # composite tenant/upload foreign key must be satisfied before
+            # PostgreSQL accepts the job row; both writes remain in this
+            # transaction so the transaction-local tenant RLS context stays
+            # active throughout.
+            self.session.add(record)
+            await self.session.flush()
+            self.session.add_all([job, event])
+
+            # Load server-generated values before COMMIT. The PostgreSQL
+            # tenant GUC is transaction-local and is intentionally cleared by
+            # commit; refreshing afterwards would run outside RLS tenant
+            # context and make a successful upload appear to fail.
+            await self.session.flush()
+            await self.session.refresh(record)
+            await self.session.refresh(job)
             await self.session.commit()
         except Exception:
             await self.session.rollback()
@@ -241,5 +285,4 @@ class AudienceImportService:
                 )
             raise
 
-        await self.session.refresh(record)
-        return record
+        return record, job

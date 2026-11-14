@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -133,3 +133,23 @@ class MembershipRepository:
         result = await self.session.execute(stmt)
         await self.session.flush()
         return result.rowcount > 0
+
+    async def count_active_members_with_role(
+        self, organization_id: uuid.UUID, role_id: uuid.UUID
+    ) -> int:
+        """Count active members holding a specific organization role."""
+        stmt = (
+            select(func.count(func.distinct(Membership.id)))
+            .join(
+                MembershipRole,
+                MembershipRole.membership_id == Membership.id,
+            )
+            .where(
+                Membership.organization_id == organization_id,
+                Membership.status == "active",
+                MembershipRole.organization_id == organization_id,
+                MembershipRole.role_id == role_id,
+            )
+        )
+        result = await self.session.execute(stmt)
+        return int(result.scalar_one() or 0)

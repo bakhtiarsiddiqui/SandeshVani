@@ -168,6 +168,23 @@ class SessionRepository:
         )
         return result.scalar_one_or_none()
 
+    async def consume_email_token_by_hash(self, token_hash: str) -> uuid.UUID | None:
+        """Atomically consume a live verification token exactly once."""
+        now = datetime.now(UTC)
+        result = await self.session.execute(
+            update(EmailVerificationToken)
+            .where(
+                EmailVerificationToken.token_hash == token_hash,
+                EmailVerificationToken.used_at.is_(None),
+                EmailVerificationToken.expires_at > now,
+            )
+            .values(used_at=now)
+            .returning(EmailVerificationToken.user_id)
+            .execution_options(synchronize_session=False)
+        )
+        await self.session.flush()
+        return result.scalar_one_or_none()
+
     async def mark_email_token_used(self, token_id: uuid.UUID) -> None:
         await self.session.execute(
             update(EmailVerificationToken)
@@ -202,6 +219,25 @@ class SessionRepository:
                 PasswordResetToken.token_hash == token_hash
             )
         )
+        return result.scalar_one_or_none()
+
+    async def consume_password_reset_token_by_hash(
+        self, token_hash: str
+    ) -> uuid.UUID | None:
+        """Atomically consume a live password-reset token exactly once."""
+        now = datetime.now(UTC)
+        result = await self.session.execute(
+            update(PasswordResetToken)
+            .where(
+                PasswordResetToken.token_hash == token_hash,
+                PasswordResetToken.used_at.is_(None),
+                PasswordResetToken.expires_at > now,
+            )
+            .values(used_at=now)
+            .returning(PasswordResetToken.user_id)
+            .execution_options(synchronize_session=False)
+        )
+        await self.session.flush()
         return result.scalar_one_or_none()
 
     async def mark_password_reset_token_used(self, token_id: uuid.UUID) -> None:

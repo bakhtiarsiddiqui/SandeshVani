@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import (
     CheckConstraint,
@@ -37,6 +37,12 @@ class AudienceImportUpload(Base, UUIDPrimaryKeyMixin):
             "organization_id",
             "created_at",
         ),
+        Index(
+            "ix_audience_import_uploads_org_retention",
+            "organization_id",
+            "retention_expires_at",
+            "file_deleted_at",
+        ),
     )
 
     organization_id: Mapped[uuid.UUID] = mapped_column(
@@ -50,6 +56,14 @@ class AudienceImportUpload(Base, UUIDPrimaryKeyMixin):
     byte_size: Mapped[int] = mapped_column(Integer, nullable=False)
     row_count: Mapped[int] = mapped_column(Integer, nullable=False)
     sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    retention_expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC) + timedelta(days=30),
+        nullable=False,
+    )
+    file_deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

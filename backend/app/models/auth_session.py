@@ -15,6 +15,9 @@ if TYPE_CHECKING:
 class AuthSession(Base, UUIDPrimaryKeyMixin):
     __tablename__ = "auth_sessions"
 
+    selected_organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,

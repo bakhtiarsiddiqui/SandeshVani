@@ -46,8 +46,19 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       SANDESHVANI_PG_TEST_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      SANDESHVANI_REDIS_TEST_URL: redis://localhost:6379/0
+      REDIS_URL: redis://localhost:6379/0
     defaults:
       run:
         working-directory: backend

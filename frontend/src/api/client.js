@@ -106,11 +106,7 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshResponse = await axios.post(
-          "/api/v1/auth/refresh",
-          {},
-          { withCredentials: true }
-        );
+        const refreshResponse = await apiClient.post("/auth/refresh");
         const { access_token, csrf_token } = refreshResponse.data;
         setAccessToken(access_token);
         if (csrf_token) {

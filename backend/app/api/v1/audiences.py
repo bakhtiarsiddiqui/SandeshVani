@@ -2,6 +2,7 @@ import uuid
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
@@ -15,6 +16,7 @@ from app.api.deps import (
 from app.core.config import Settings, get_settings
 from app.core.http_status import HTTP_422_UNPROCESSABLE_CONTENT
 from app.db.session import get_db
+from app.models.audience_import_job import AudienceImportJob
 from app.schemas.audience import (
     AudienceMemberCreate,
     AudienceMemberListResponse,
@@ -22,7 +24,14 @@ from app.schemas.audience import (
     AudienceMemberUpdate,
     AudiencePagination,
 )
-from app.schemas.audience_import import AudienceImportUploadResponse
+from app.schemas.audience_import import (
+    AudienceImportErrorResponse,
+    AudienceImportErrorsPagination,
+    AudienceImportErrorsResponse,
+    AudienceImportJobResponse,
+    AudienceImportUploadResponse,
+)
+from app.services.audience_import_job_service import AudienceImportJobService
 from app.services.audience_import_service import AudienceImportService
 from app.services.audience_service import AudienceService
 
@@ -95,8 +104,70 @@ async def upload_audience_csv(
         actor_user_id=auth_ctx.user.id,
         settings=settings,
     )
-    upload = await service.upload_csv(file)
-    return AudienceImportUploadResponse.model_validate(upload)
+    upload, job = await service.upload_csv(file)
+    return AudienceImportUploadResponse(
+        id=upload.id,
+        organization_id=upload.organization_id,
+        byte_size=upload.byte_size,
+        row_count=upload.row_count,
+        sha256=upload.sha256,
+        created_at=upload.created_at,
+        job_id=job.id,
+        status=job.status,
+        total_rows=job.total_rows,
+        processed_rows=job.processed_rows,
+        imported_rows=job.imported_rows,
+        error_rows=job.error_rows,
+    )
+
+
+@router.get("/imports/{job_id}", response_model=AudienceImportJobResponse)
+async def get_audience_import_job(
+    job_id: uuid.UUID,
+    tenant_ctx: Annotated[
+        TenantContext, Depends(require_permissions("audiences:read"))
+    ],
+    session: Annotated[AsyncSession, Depends(get_db)],
+):
+    job = await session.scalar(
+        select(AudienceImportJob).where(
+            AudienceImportJob.organization_id == tenant_ctx.organization.id,
+            AudienceImportJob.id == job_id,
+        )
+    )
+    if job is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Audience import job not found",
+        )
+    return AudienceImportJobResponse.model_validate(job)
+
+
+@router.get("/imports/{job_id}/errors", response_model=AudienceImportErrorsResponse)
+async def list_audience_import_errors(
+    job_id: uuid.UUID,
+    tenant_ctx: Annotated[
+        TenantContext, Depends(require_permissions("audiences:read"))
+    ],
+    session: Annotated[AsyncSession, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    cursor: Annotated[str | None, Query(max_length=512)] = None,
+):
+    service = AudienceImportJobService(session, tenant_ctx.organization.id)
+    errors, has_more, next_cursor = await service.list_errors(
+        job_id=job_id,
+        limit=limit,
+        cursor=cursor,
+    )
+    return AudienceImportErrorsResponse(
+        job_id=job_id,
+        data=[AudienceImportErrorResponse.model_validate(error) for error in errors],
+        pagination=AudienceImportErrorsPagination(
+            next_cursor=next_cursor,
+            has_more=has_more,
+            limit=limit,
+        ),
+    )
 
 
 @router.post(
@@ -118,9 +189,12 @@ async def create_audience_member(
         values=data.model_dump(),
         actor_user_id=auth_ctx.user.id,
     )
-    await session.commit()
+    # Materialize the response while the transaction-local tenant context is active.
+    await session.flush()
     await session.refresh(member)
-    return AudienceMemberResponse.model_validate(member)
+    response = AudienceMemberResponse.model_validate(member)
+    await session.commit()
+    return response
 
 
 @router.get("/{audience_id}", response_model=AudienceMemberResponse)
@@ -161,6 +235,9 @@ async def update_audience_member(
         values=data.model_dump(exclude_unset=True),
         actor_user_id=auth_ctx.user.id,
     )
-    await session.commit()
+    # Materialize the response while the transaction-local tenant context is active.
+    await session.flush()
     await session.refresh(member)
-    return AudienceMemberResponse.model_validate(member)
+    response = AudienceMemberResponse.model_validate(member)
+    await session.commit()
+    return response

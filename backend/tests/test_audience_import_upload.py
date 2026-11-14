@@ -8,8 +8,12 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 
 from app.core.config import Settings, get_settings
+from app.db.session import set_tenant_context
 from app.main import create_app
+from app.models.audience_import_job import AudienceImportJob
+from app.models.audience_import_job_error import AudienceImportJobError
 from app.models.audience_import_upload import AudienceImportUpload
+from app.models.outbox_event import OutboxEvent
 
 PASSWORD = "CommonPassword123!"
 
@@ -94,9 +98,9 @@ async def test_csv_upload_is_tenant_scoped_and_stored_privately(
     )
     organization = await _create_org(async_client, token, "csv-upload-org")
     csv_content = (
-        b"full_name,email,phone,preferred_language,district\r\n"
-        b"Asha Sharma,asha@example.org,+919876543210,hi,Meerut\r\n"
-        b"Rahul Verma,rahul@example.org,,en,Agra\r\n"
+        b"full_name,email,phone,preferred_language,district,state_code,city\r\n"
+        b"Asha Sharma,asha@example.org,+919876543210,hi,Meerut,up,Meerut\r\n"
+        b"Rahul Verma,rahul@example.org,,en,Agra,up,Agra\r\n"
     )
 
     response = await async_client.post(
@@ -119,6 +123,46 @@ async def test_csv_upload_is_tenant_scoped_and_stored_privately(
     assert payload["row_count"] == 2
     assert payload["sha256"] == hashlib.sha256(csv_content).hexdigest()
     assert payload["created_at"]
+    assert payload["status"] == "queued"
+    assert payload["total_rows"] == 2
+    assert payload["processed_rows"] == 0
+    assert payload["imported_rows"] == 0
+    assert payload["error_rows"] == 0
+
+    job_id = uuid.UUID(payload["job_id"])
+    job = await test_db_session.scalar(
+        select(AudienceImportJob).where(AudienceImportJob.id == job_id)
+    )
+    assert job is not None
+    assert job.organization_id == uuid.UUID(organization["id"])
+    assert job.upload_id == upload_id
+    assert job.status == "queued"
+    assert job.chunk_size == 500
+
+    outbox_event = await test_db_session.scalar(
+        select(OutboxEvent).where(
+            OutboxEvent.organization_id == uuid.UUID(organization["id"]),
+            OutboxEvent.aggregate_id == job_id,
+        )
+    )
+    assert outbox_event is not None
+    assert outbox_event.status == "pending"
+    assert outbox_event.event_type == "audience_import.queued"
+
+    status_response = await async_client.get(
+        f"/api/v1/audiences/imports/{job_id}",
+        headers=_tenant_headers(token, organization["id"], csrf),
+    )
+    assert status_response.status_code == 200, status_response.text
+    assert status_response.json()["status"] == "queued"
+
+    errors_response = await async_client.get(
+        f"/api/v1/audiences/imports/{job_id}/errors",
+        headers=_tenant_headers(token, organization["id"], csrf),
+    )
+    assert errors_response.status_code == 200, errors_response.text
+    assert errors_response.json()["data"] == []
+    assert errors_response.json()["pagination"]["has_more"] is False
 
     stored_path = tmp_path / f"{upload_id.hex}.csv"
     assert stored_path.is_file()
@@ -320,3 +364,113 @@ async def test_upload_body_limit_applies_to_chunked_multipart_requests():
         )
 
     assert response.status_code == 413
+
+
+@pytest.mark.asyncio
+async def test_import_error_cursor_paginates_multiple_issues_on_same_row(
+    async_client,
+    test_app,
+    development_mail_sink,
+    test_db_session,
+    tmp_path,
+    monkeypatch,
+):
+    _override_upload_settings(monkeypatch, tmp_path, test_app)
+    token, csrf = await _register_login(
+        async_client, "csv-errors-cursor@example.org", development_mail_sink
+    )
+    organization = await _create_org(async_client, token, "csv-errors-cursor-org")
+    organization_id = uuid.UUID(organization["id"])
+    upload = await async_client.post(
+        "/api/v1/audiences/imports",
+        headers=_tenant_headers(token, organization["id"], csrf),
+        files={
+            "file": (
+                "contacts.csv",
+                b"full_name,email\nAsha,asha@example.org\n",
+                "text/csv",
+            )
+        },
+    )
+    assert upload.status_code == 202, upload.text
+    job_id = uuid.UUID(upload.json()["job_id"])
+
+    await set_tenant_context(test_db_session, organization_id)
+    test_db_session.add_all(
+        [
+            AudienceImportJobError(
+                id=uuid.UUID(int=1),
+                organization_id=organization_id,
+                job_id=job_id,
+                row_number=2,
+                field_name="email",
+                error_code="INVALID_EMAIL",
+            ),
+            AudienceImportJobError(
+                id=uuid.UUID(int=2),
+                organization_id=organization_id,
+                job_id=job_id,
+                row_number=2,
+                field_name="preferred_language",
+                error_code="UNSUPPORTED_LANGUAGE",
+            ),
+            AudienceImportJobError(
+                id=uuid.UUID(int=3),
+                organization_id=organization_id,
+                job_id=job_id,
+                row_number=3,
+                field_name="phone",
+                error_code="INVALID_PHONE",
+            ),
+        ]
+    )
+    await test_db_session.commit()
+
+    first = await async_client.get(
+        f"/api/v1/audiences/imports/{job_id}/errors",
+        headers=_tenant_headers(token, organization["id"], csrf),
+        params={"limit": 1},
+    )
+    assert first.status_code == 200, first.text
+    first_payload = first.json()
+    assert [
+        (item["row_number"], item["field_name"], item["error_code"])
+        for item in first_payload["data"]
+    ] == [(2, "email", "INVALID_EMAIL")]
+    cursor = first_payload["pagination"]["next_cursor"]
+    assert cursor is not None
+
+    second = await async_client.get(
+        f"/api/v1/audiences/imports/{job_id}/errors",
+        headers=_tenant_headers(token, organization["id"], csrf),
+        params={"limit": 1, "cursor": cursor},
+    )
+    assert second.status_code == 200, second.text
+    second_payload = second.json()
+    assert [
+        (item["row_number"], item["field_name"], item["error_code"])
+        for item in second_payload["data"]
+    ] == [(2, "preferred_language", "UNSUPPORTED_LANGUAGE")]
+    next_cursor = second_payload["pagination"]["next_cursor"]
+    assert next_cursor is not None
+
+    third = await async_client.get(
+        f"/api/v1/audiences/imports/{job_id}/errors",
+        headers=_tenant_headers(token, organization["id"], csrf),
+        params={"limit": 1, "cursor": next_cursor},
+    )
+    assert third.status_code == 200, third.text
+    third_payload = third.json()
+    assert [
+        (item["row_number"], item["field_name"], item["error_code"])
+        for item in third_payload["data"]
+    ] == [(3, "phone", "INVALID_PHONE")]
+    assert third_payload["pagination"]["has_more"] is False
+    assert third_payload["pagination"]["next_cursor"] is None
+
+    malformed = await async_client.get(
+        f"/api/v1/audiences/imports/{job_id}/errors",
+        headers=_tenant_headers(token, organization["id"], csrf),
+        params={"cursor": "not-a-valid-cursor"},
+    )
+    assert malformed.status_code == 422
