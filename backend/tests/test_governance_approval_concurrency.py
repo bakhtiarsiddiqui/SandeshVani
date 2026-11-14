@@ -20,7 +20,9 @@ from app.services.governance_service import GovernanceService, content_sha256
 async def test_concurrent_approvers_cannot_record_two_decisions_for_one_version():
     database_url = os.getenv("SANDESHVANI_PG_TEST_URL")
     if not database_url:
-        pytest.skip("SANDESHVANI_PG_TEST_URL is required for PostgreSQL concurrency test")
+        pytest.skip(
+            "SANDESHVANI_PG_TEST_URL is required for PostgreSQL concurrency test"
+        )
 
     url = make_url(database_url)
     if url.drivername == "postgresql":
