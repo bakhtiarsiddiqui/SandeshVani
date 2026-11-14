@@ -138,6 +138,15 @@ def compile_segment_filter(ast: dict[str, Any]):
             if operator == "eq":
                 return expression == value.lower()
             return expression.in_([item.lower() for item in value])
+        if field == "state_code":
+            state_target = (
+                [item[3:] if item.startswith("IN-") else item for item in value]
+                if isinstance(value, list)
+                else (value[3:] if value.startswith("IN-") else value)
+            )
+            if operator == "eq":
+                return column == state_target
+            return column.in_(state_target)
         if operator == "eq":
             return column == value
         return column.in_(value)

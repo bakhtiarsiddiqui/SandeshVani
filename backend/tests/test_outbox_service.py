@@ -3,6 +3,8 @@ import threading
 import uuid
 
 import pytest
+
+pytest.importorskip("celery")
 from celery.contrib.testing.worker import start_worker
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker

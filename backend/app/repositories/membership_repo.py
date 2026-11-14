@@ -58,9 +58,9 @@ class MembershipRepository:
             .where(Membership.organization_id == organization_id)
             .options(
                 selectinload(Membership.user),
-                selectinload(Membership.membership_roles).selectinload(
-                    MembershipRole.role
-                ),
+                selectinload(Membership.membership_roles)
+                .selectinload(MembershipRole.role)
+                .selectinload(Role.permissions),
             )
         )
         result = await self.session.execute(stmt)
