@@ -15,15 +15,7 @@ depends_on: str | Sequence[str] | None = None
 
 
 def _install_guard(*, compare_jsonb: bool) -> None:
-    if compare_jsonb:
-        channels = "NEW.channels::jsonb IS DISTINCT FROM OLD.channels::jsonb"
-        languages = "NEW.languages::jsonb IS DISTINCT FROM OLD.languages::jsonb"
-        snapshot = "NEW.content_snapshot::jsonb IS DISTINCT FROM OLD.content_snapshot::jsonb"
-    else:
-        channels = "NEW.channels IS DISTINCT FROM OLD.channels"
-        languages = "NEW.languages IS DISTINCT FROM OLD.languages"
-        snapshot = "NEW.content_snapshot IS DISTINCT FROM OLD.content_snapshot"
-
+    json_cast = "::jsonb" if compare_jsonb else ""
     op.execute(
         f"""
         CREATE OR REPLACE FUNCTION sandeshvani_guard_campaign_version()
@@ -38,9 +30,9 @@ def _install_guard(*, compare_jsonb: bool) -> None:
                OR NEW.campaign_id IS DISTINCT FROM OLD.campaign_id
                OR NEW.version_number IS DISTINCT FROM OLD.version_number
                OR NEW.purpose_code IS DISTINCT FROM OLD.purpose_code
-               OR {channels}
-               OR {languages}
-               OR {snapshot}
+               OR NEW.channels{json_cast} IS DISTINCT FROM OLD.channels{json_cast}
+               OR NEW.languages{json_cast} IS DISTINCT FROM OLD.languages{json_cast}
+               OR NEW.content_snapshot{json_cast} IS DISTINCT FROM OLD.content_snapshot{json_cast}
                OR NEW.content_hash IS DISTINCT FROM OLD.content_hash
                OR NEW.template_version_id IS DISTINCT FROM OLD.template_version_id
                OR NEW.segment_version_id IS DISTINCT FROM OLD.segment_version_id
