@@ -1024,6 +1024,21 @@ async def test_migration_upgrade_downgrade(pg_setup):
                 "audience_import_jobs",
                 "audience_import_job_errors",
                 "outbox_events",
+                "processing_basis_events",
+                "channel_consent_events",
+                "suppression_events",
+                "audience_segments",
+                "audience_segment_versions",
+                "message_templates",
+                "message_template_versions",
+                "campaigns",
+                "campaign_versions",
+                "campaign_approvals",
+                "audit_events",
+                "campaign_executions",
+                "execution_recipients",
+                "channel_deliveries",
+                "delivery_attempts",
             )
             for table in protected_tables:
                 row = await verify_conn.fetchrow(
@@ -1047,6 +1062,21 @@ async def test_migration_upgrade_downgrade(pg_setup):
                 "audience_import_jobs",
                 "audience_import_job_errors",
                 "outbox_events",
+                "processing_basis_events",
+                "channel_consent_events",
+                "suppression_events",
+                "audience_segments",
+                "audience_segment_versions",
+                "message_templates",
+                "message_template_versions",
+                "campaigns",
+                "campaign_versions",
+                "campaign_approvals",
+                "audit_events",
+                "campaign_executions",
+                "execution_recipients",
+                "channel_deliveries",
+                "delivery_attempts",
             ):
                 policy = await verify_conn.fetchrow(
                     """
@@ -1078,6 +1108,21 @@ async def test_migration_upgrade_downgrade(pg_setup):
                 "audience_import_jobs",
                 "audience_import_job_errors",
                 "outbox_events",
+                "processing_basis_events",
+                "channel_consent_events",
+                "suppression_events",
+                "audience_segments",
+                "audience_segment_versions",
+                "message_templates",
+                "message_template_versions",
+                "campaigns",
+                "campaign_versions",
+                "campaign_approvals",
+                "audit_events",
+                "campaign_executions",
+                "execution_recipients",
+                "channel_deliveries",
+                "delivery_attempts",
             ):
                 ownership = await verify_conn.fetchrow(
                     """
@@ -1091,6 +1136,39 @@ async def test_migration_upgrade_downgrade(pg_setup):
                 assert ownership["tableowner"] == "sandeshvani_owner", (
                     f"Migration role must own table {table}"
                 )
+
+            # R1 append-only evidence records have database-level mutation guards.
+            for table in (
+                "processing_basis_events",
+                "channel_consent_events",
+                "suppression_events",
+                "audience_segment_versions",
+                "message_template_versions",
+                "campaign_approvals",
+                "audit_events",
+                "delivery_attempts",
+            ):
+                trigger = await verify_conn.fetchrow(
+                    """
+                    SELECT tgname
+                    FROM pg_trigger
+                    WHERE tgrelid = to_regclass($1)
+                      AND tgname = $2
+                      AND NOT tgisinternal;
+                    """,
+                    table,
+                    f"{table}_append_only",
+                )
+                assert trigger is not None, f"Append-only trigger missing for {table}"
+            campaign_trigger = await verify_conn.fetchrow(
+                """
+                SELECT tgname FROM pg_trigger
+                WHERE tgrelid = to_regclass('campaign_versions')
+                  AND tgname = 'campaign_versions_immutable'
+                  AND NOT tgisinternal;
+                """
+            )
+            assert campaign_trigger is not None
 
             # AUD-04 identity keys are enforced by tenant-scoped unique indexes.
             for index_name in (
