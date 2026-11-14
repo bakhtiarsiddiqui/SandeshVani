@@ -133,6 +133,17 @@ async def test_concurrent_approvers_cannot_record_two_decisions_for_one_version(
             assert stored_version.status == "approved"
     finally:
         async with engine.begin() as connection:
+            # Governance evidence is intentionally append-only. Disable only
+            # user triggers inside this cleanup transaction for these isolated
+            # fixture rows, then restore them before the transaction commits.
+            for table in (
+                "campaign_approvals",
+                "campaign_versions",
+                "audit_events",
+            ):
+                await connection.execute(
+                    text(f"ALTER TABLE {table} DISABLE TRIGGER USER")
+                )
             await connection.execute(
                 text("DELETE FROM organizations WHERE id = :organization_id"),
                 {"organization_id": organization_id},
@@ -148,4 +159,12 @@ async def test_concurrent_approvers_cannot_record_two_decisions_for_one_version(
                     "approver_two_id": approver_two_id,
                 },
             )
+            for table in (
+                "campaign_approvals",
+                "campaign_versions",
+                "audit_events",
+            ):
+                await connection.execute(
+                    text(f"ALTER TABLE {table} ENABLE TRIGGER USER")
+                )
         await engine.dispose()
