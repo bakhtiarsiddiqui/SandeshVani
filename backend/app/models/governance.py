@@ -362,8 +362,7 @@ class CampaignApproval(Base, UUIDPrimaryKeyMixin):
         UniqueConstraint(
             "organization_id",
             "campaign_version_id",
-            "decided_by",
-            name="uq_campaign_approvals_reviewer_version",
+            name="uq_campaign_approvals_single_decision",
         ),
         ForeignKeyConstraint(
             ["organization_id", "campaign_version_id"],
