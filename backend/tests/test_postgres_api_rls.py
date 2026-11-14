@@ -268,13 +268,13 @@ async def test_postgres_rls_api_paths(
                 "full_name": "Asha RLS",
                 "email": "asha.rls@example.com",
                 "preferred_language": "hi",
-                "state_code": "IN-UP",
+                "state_code": "up",
                 "city": "Meerut",
             },
         )
         assert created.status_code == 201, created.text
         member_id = created.json()["id"]
-        assert created.json()["state_code"] == "IN-UP"
+        assert created.json()["state_code"] == "UP"
         assert created.json()["city"] == "Meerut"
 
         updated = await client.patch(
@@ -308,7 +308,7 @@ async def test_postgres_rls_api_paths(
 
         csv_body = (
             b"full_name,email,state_code,city\r\n"
-            b"Import RLS,import.rls@example.com,IN-UP,Meerut\r\n"
+            b"Import RLS,import.rls@example.com,up,Meerut\r\n"
         )
         upload = await client.post(
             "/api/v1/audiences/imports",
