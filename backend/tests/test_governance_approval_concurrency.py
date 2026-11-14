@@ -65,6 +65,8 @@ async def test_concurrent_approvers_cannot_record_two_decisions_for_one_version(
                         status="active",
                     )
                 )
+            # Flush referenced tenant and user rows before inserting campaigns.
+            await session.flush()
             session.add(
                 Campaign(
                     id=campaign_id,
