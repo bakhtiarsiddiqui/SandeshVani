@@ -75,7 +75,7 @@ describe("audience API client", () => {
 
   it("normalizes API validation and server errors for display", () => {
     expect(getApiErrorMessage({ response: { data: { detail: "Duplicate contact" } } })).toBe("Duplicate contact");
-    expect(getApiErrorMessage({ response: { data: { detail: [{ msg: "Invalid email" }, { msg: "Required" }] } })).toBe("Invalid email; Required");
+    expect(getApiErrorMessage({ response: { data: { detail: [{ msg: "Invalid email" }, { msg: "Required" }] } } })).toBe("Invalid email; Required");
     expect(getApiErrorMessage(new Error("Network unavailable"))).toBe("Network unavailable");
   });
 });
