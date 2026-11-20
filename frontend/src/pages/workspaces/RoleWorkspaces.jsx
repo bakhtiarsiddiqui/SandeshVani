@@ -316,7 +316,7 @@ export function AudienceWorkspace({ permissions = [] }) {
     { key: "district", header: "District", render: (row) => row.district || row.city || "—" },
     { key: "preferred_language", header: "Language", render: (row) => row.preferred_language === "hi" ? "Hindi" : "English" },
     { key: "status", header: "Status", render: (row) => <StatusBadge status={row.status === "active" ? "approved" : "rejected"} label={row.status} /> },
-    ...(canUpdate ? [{ key: "actions", header: "Actions", render: (row) => <div className="flex flex-wrap gap-2"><Button size="xs" variant="ghost" onClick={() => openEdit(row)}>Edit</Button><Button size="xs" variant="outline" onClick={() => toggleStatus(row)}>{row.status === "active" ? "Deactivate" : "Activate"}</Button></div> }] : []),
+    ...(canUpdate ? [{ key: "actions", header: "Actions", render: (row) => <div className="flex flex-wrap gap-2"><Button size="sm" variant="ghost" onClick={() => openEdit(row)}>Edit</Button><Button size="sm" variant="outline" onClick={() => toggleStatus(row)}>{row.status === "active" ? "Deactivate" : "Activate"}</Button></div> }] : []),
   ];
   const activeOnPage = contacts.filter((contact) => contact.status === "active").length;
 
