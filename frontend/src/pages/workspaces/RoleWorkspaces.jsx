@@ -173,8 +173,17 @@ export function AudienceWorkspace({ permissions = [] }) {
   }, [canRead, filters]);
 
   useEffect(() => {
-    loadContacts(null);
-  }, [loadContacts]);
+    if (!canRead) return undefined;
+    let cancelled = false;
+    listAudienceMembers({ limit: 25 }).then((response) => {
+      if (cancelled) return;
+      setContacts(response.data || []);
+      setPagination(response.pagination || { next_cursor: null, has_more: false, limit: 25 });
+    }).catch((err) => {
+      if (!cancelled) setError(getApiErrorMessage(err));
+    });
+    return () => { cancelled = true; };
+  }, [canRead]);
 
   useEffect(() => {
     if (!importJob || !["queued", "processing"].includes(importJob.status)) return undefined;
