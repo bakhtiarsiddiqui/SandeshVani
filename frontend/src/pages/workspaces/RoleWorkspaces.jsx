@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { createAudienceMember, getAudienceImportJob, getApiErrorMessage, listAudienceImportErrors, listAudienceMembers, updateAudienceMember, uploadAudienceCsv } from "../../api/audiences";
 import PageHeader from "../../components/layout/PageHeader";
 import DataTable from "../../components/ui/DataTable";
 import StatusBadge from "../../components/ui/StatusBadge";
@@ -10,11 +11,6 @@ const CAMPAIGNS = [
   { id: "c2", name: "Vaccination camp schedule", channel: "SMS · Push", audience: "Urban health centres", recipients: "8,200", status: "pending" },
   { id: "c3", name: "Water quality bulletin", channel: "Email", audience: "Ward 4 · Ward 7", recipients: "3,150", status: "approved" },
   { id: "c4", name: "Heatwave safety notice", channel: "SMS · WhatsApp", audience: "Registered residents", recipients: "18,900", status: "rejected" },
-];
-const CONTACTS = [
-  { id: "a1", name: "Meera Singh", email: "meera.singh@example.test", phone: "+919876540001", district: "Meerut", language: "Hindi" },
-  { id: "a2", name: "Arjun Verma", email: "arjun.verma@example.test", phone: "+919876540002", district: "Ghaziabad", language: "English" },
-  { id: "a3", name: "Farah Khan", email: "farah.khan@example.test", phone: "+919876540003", district: "Meerut", language: "Hindi" },
 ];
 const MEMBERS = [
   { id: "m1", name: "Anita Rao", email: "anita.rao@example.test", role: "Organization Administrator", status: "Active" },
@@ -54,7 +50,6 @@ const CAMPAIGN_COLUMNS = [
   { key: "channel", header: "Channels" }, { key: "audience", header: "Audience" }, { key: "recipients", header: "Recipients" },
   { key: "status", header: "Status", render: (row) => <StatusBadge status={row.status} /> },
 ];
-const CONTACT_COLUMNS = [{ key: "name", header: "Contact" }, { key: "email", header: "Email" }, { key: "phone", header: "Phone" }, { key: "district", header: "District" }, { key: "language", header: "Language" }];
 const MEMBER_COLUMNS = [{ key: "name", header: "Member" }, { key: "email", header: "Email" }, { key: "role", header: "Assigned role" }, { key: "status", header: "Status", render: (row) => <StatusBadge status={row.status === "Active" ? "approved" : "pending"} label={row.status} /> }];
 
 export function OrganizationAdminWorkspace({ permissions = [] }) {
@@ -130,16 +125,264 @@ export function ApprovalsWorkspace({ permissions = [] }) {
   </Frame>;
 }
 
+function emptyAudienceForm() {
+  return { full_name: "", email: "", phone: "", preferred_language: "en", district: "", state_code: "UP", city: "" };
+}
+
 export function AudienceWorkspace({ permissions = [] }) {
-  const [contacts, setContacts] = useState(CONTACTS);
-  const [showAdd, setShowAdd] = useState(false);
-  return <Frame title="Audience & Contacts" subtitle="Review tenant-scoped contact records and the validated CSV upload workflow." actions={permissions.includes("audiences:create") ? <Button size="sm" onClick={() => setShowAdd((value) => !value)}>Add contact</Button> : null} stats={[
-    { label: "Contacts", value: 12450, hint: "Illustrative total" }, { label: "Active", value: 11980, hint: "Sample status" }, { label: "Languages", value: 2, hint: "English and Hindi" }, { label: "Import rows", value: 100000, hint: "Upload limit target" },
-  ]}>
-    {showAdd && <DemoCreate title="New contact preview" label="Contact name" onCancel={() => setShowAdd(false)} onSave={(name) => { setContacts((rows) => [{ id: "a" + Date.now(), name, email: "new.contact@example.test", phone: "+919876540099", district: "Meerut", language: "English" }, ...rows]); setShowAdd(false); }} />}
-    <Section title="Contact directory"><DataTable columns={CONTACT_COLUMNS} data={contacts} /></Section>
-    <Section title="CSV import"><div className="rounded-xl border border-base-300 bg-base-100 p-4"><p className="text-sm font-semibold">Secure upload API is available.</p><p className="mt-1 text-xs text-base-content/60">File submission is not wired to this demonstration page yet. The validated upload endpoint is already implemented in the backend.</p><StatusBadge status="mock_sandbox" label="UI integration pending" /></div></Section>
-  </Frame>;
+  const canRead = permissions.includes("audiences:read");
+  const canCreate = permissions.includes("audiences:create");
+  const canUpdate = permissions.includes("audiences:update");
+  const [contacts, setContacts] = useState([]);
+  const [pagination, setPagination] = useState({ next_cursor: null, has_more: false, limit: 25 });
+  const [cursorStack, setCursorStack] = useState([]);
+  const [cursor, setCursor] = useState(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [filters, setFilters] = useState({ search: "", status: "", district: "", language: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [importJob, setImportJob] = useState(null);
+  const [importErrors, setImportErrors] = useState([]);
+  const [errorCursor, setErrorCursor] = useState(null);
+  const [errorHasMore, setErrorHasMore] = useState(false);
+
+  const loadContacts = useCallback(async (nextCursor = null, activeFilters = filters) => {
+    if (!canRead) return;
+    setLoading(true);
+    setError("");
+    try {
+      const params = { limit: 25 };
+      if (nextCursor) params.cursor = nextCursor;
+      Object.entries(activeFilters).forEach(([key, value]) => {
+        if (value) params[key] = value;
+      });
+      const response = await listAudienceMembers(params);
+      setContacts(response.data || []);
+      setPagination(response.pagination || { next_cursor: null, has_more: false, limit: 25 });
+      setCursor(nextCursor);
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }, [canRead, filters]);
+
+  useEffect(() => {
+    if (!canRead) return undefined;
+    let cancelled = false;
+    listAudienceMembers({ limit: 25 }).then((response) => {
+      if (cancelled) return;
+      setContacts(response.data || []);
+      setPagination(response.pagination || { next_cursor: null, has_more: false, limit: 25 });
+    }).catch((err) => {
+      if (!cancelled) setError(getApiErrorMessage(err));
+    });
+    return () => { cancelled = true; };
+  }, [canRead]);
+
+  useEffect(() => {
+    if (!importJob || !["queued", "processing"].includes(importJob.status)) return undefined;
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        const updated = await getAudienceImportJob(importJob.id);
+        if (!cancelled) setImportJob(updated);
+      } catch (err) {
+        if (!cancelled) setUploadError(getApiErrorMessage(err));
+      }
+    }, 2500);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [importJob]);
+
+  useEffect(() => {
+    if (!importJob || !["completed_with_errors", "failed"].includes(importJob.status)) return;
+    let cancelled = false;
+    listAudienceImportErrors(importJob.id, { limit: 50 }).then((response) => {
+      if (cancelled) return;
+      setImportErrors(response.data || []);
+      setErrorCursor(response.pagination?.next_cursor || null);
+      setErrorHasMore(Boolean(response.pagination?.has_more));
+    }).catch((err) => {
+      if (!cancelled) setUploadError(getApiErrorMessage(err));
+    });
+    return () => { cancelled = true; };
+  }, [importJob]);
+
+  const applyFilters = (event) => {
+    event.preventDefault();
+    const next = { ...filters, search: searchInput.trim() };
+    setFilters(next);
+    setCursorStack([]);
+    loadContacts(null, next);
+  };
+
+  const openCreate = () => {
+    setForm({ mode: "create", id: null, values: emptyAudienceForm() });
+    setFormError("");
+  };
+
+  const openEdit = (contact) => {
+    setForm({
+      mode: "edit",
+      id: contact.id,
+      values: {
+        full_name: contact.full_name || "",
+        email: contact.email || "",
+        phone: contact.phone || "",
+        preferred_language: contact.preferred_language || "en",
+        district: contact.district || "",
+        state_code: contact.state_code || "",
+        city: contact.city || "",
+        status: contact.status,
+      },
+    });
+    setFormError("");
+  };
+
+  const saveContact = async (event) => {
+    event.preventDefault();
+    if (!form) return;
+    const payload = { ...form.values };
+    for (const key of ["email", "phone", "district", "state_code", "city"]) {
+      if (!payload[key]) payload[key] = null;
+    }
+    setSaving(true);
+    setFormError("");
+    try {
+      if (form.mode === "create") await createAudienceMember(payload);
+      else await updateAudienceMember(form.id, payload);
+      setForm(null);
+      await loadContacts(cursor);
+    } catch (err) {
+      setFormError(getApiErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleStatus = async (contact) => {
+    try {
+      await updateAudienceMember(contact.id, { status: contact.status === "active" ? "inactive" : "active" });
+      await loadContacts(cursor);
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    }
+  };
+
+  const handleUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    setUploadError("");
+    setImportErrors([]);
+    setErrorCursor(null);
+    try {
+      const accepted = await uploadAudienceCsv(file);
+      setImportJob({ ...accepted, id: accepted.job_id });
+    } catch (err) {
+      setUploadError(getApiErrorMessage(err));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const loadMoreErrors = async () => {
+    if (!errorCursor || !importJob) return;
+    try {
+      const response = await listAudienceImportErrors(importJob.id, { limit: 50, cursor: errorCursor });
+      setImportErrors((rows) => [...rows, ...(response.data || [])]);
+      setErrorCursor(response.pagination?.next_cursor || null);
+      setErrorHasMore(Boolean(response.pagination?.has_more));
+    } catch (err) {
+      setUploadError(getApiErrorMessage(err));
+    }
+  };
+
+  const columns = [
+    { key: "full_name", header: "Contact" },
+    { key: "email", header: "Email", render: (row) => row.email || "—" },
+    { key: "phone", header: "Phone", render: (row) => row.phone || "—" },
+    { key: "district", header: "District", render: (row) => row.district || row.city || "—" },
+    { key: "preferred_language", header: "Language", render: (row) => row.preferred_language === "hi" ? "Hindi" : "English" },
+    { key: "status", header: "Status", render: (row) => <StatusBadge status={row.status === "active" ? "approved" : "rejected"} label={row.status} /> },
+    ...(canUpdate ? [{ key: "actions", header: "Actions", render: (row) => <div className="flex flex-wrap gap-2"><Button size="sm" variant="ghost" onClick={() => openEdit(row)}>Edit</Button><Button size="sm" variant="outline" onClick={() => toggleStatus(row)}>{row.status === "active" ? "Deactivate" : "Activate"}</Button></div> }] : []),
+  ];
+  const activeOnPage = contacts.filter((contact) => contact.status === "active").length;
+
+  if (!canRead) {
+    return <div className="space-y-4"><PageHeader title="Audience & Contacts" subtitle="Tenant-scoped audience directory." breadcrumbs={["Platform", "Audience & Contacts"]} /><div className="alert alert-warning text-sm">Your organization role does not include permission to view audience records.</div></div>;
+  }
+
+  return <div className="space-y-6">
+    <PageHeader title="Audience & Contacts" subtitle="Manage organization-scoped contacts and process validated CSV imports." breadcrumbs={["Platform", "Audience & Contacts"]} actions={canCreate ? <Button size="sm" onClick={openCreate}>Add contact</Button> : null} />
+    <section aria-label="Audience summary" className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-base-300 bg-base-300 lg:grid-cols-3">
+      <StatTile label="Contacts on this page" value={contacts.length} hint="Current result page" />
+      <StatTile label="Active on this page" value={activeOnPage} hint="Current result page" />
+      <StatTile label="Page size" value={pagination.limit || 25} hint={pagination.has_more ? "More records available" : "End of results"} />
+    </section>
+
+    {form && <form onSubmit={saveContact} className="rounded-xl border border-base-300 bg-base-100 p-4 space-y-4">
+      <div className="flex items-center justify-between gap-3"><h2 className="font-semibold">{form.mode === "create" ? "Add audience contact" : "Edit audience contact"}</h2><Button type="button" size="sm" variant="ghost" onClick={() => setForm(null)}>Close</Button></div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {[
+          ["full_name", "Full name", "text", true],
+          ["email", "Email address", "email", false],
+          ["phone", "Phone (+country code)", "tel", false],
+          ["district", "District", "text", false],
+          ["city", "City", "text", false],
+          ["state_code", "State code (e.g. UP)", "text", false],
+        ].map(([key, label, type, required]) => <label key={key} className="form-control"><span className="label-text mb-1 text-xs">{label}</span><input className="input input-bordered input-sm bg-base-100" type={type} required={required} value={form.values[key] ?? ""} onChange={(event) => setForm((current) => ({ ...current, values: { ...current.values, [key]: event.target.value } }))} /></label>)}
+        <label className="form-control"><span className="label-text mb-1 text-xs">Preferred language</span><select className="select select-bordered select-sm bg-base-100" value={form.values.preferred_language} onChange={(event) => setForm((current) => ({ ...current, values: { ...current.values, preferred_language: event.target.value } }))}><option value="en">English</option><option value="hi">Hindi</option></select></label>
+        {form.mode === "edit" && <label className="form-control"><span className="label-text mb-1 text-xs">Status</span><select className="select select-bordered select-sm bg-base-100" value={form.values.status} onChange={(event) => setForm((current) => ({ ...current, values: { ...current.values, status: event.target.value } }))}><option value="active">Active</option><option value="inactive">Inactive</option></select></label>}
+      </div>
+      <p className="text-xs text-base-content/60">At least one contact method (email or phone) is required. Phone numbers must use E.164 format.</p>
+      {formError && <p role="alert" className="text-sm text-error">{formError}</p>}
+      <div className="flex justify-end gap-2"><Button type="button" size="sm" variant="ghost" onClick={() => setForm(null)}>Cancel</Button><Button type="submit" size="sm" disabled={saving}>{saving ? "Saving…" : "Save contact"}</Button></div>
+    </form>}
+
+    <Section title="Contact directory" description="Results are fetched from the active organization's audience API.">
+      <form onSubmit={applyFilters} className="grid gap-2 rounded-xl border border-base-300 bg-base-100 p-3 sm:grid-cols-2 lg:grid-cols-5">
+        <input className="input input-bordered input-sm bg-base-100" aria-label="Search contacts" placeholder="Search name, email or phone" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} />
+        <select className="select select-bordered select-sm bg-base-100" aria-label="Filter by status" value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}><option value="">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select>
+        <input className="input input-bordered input-sm bg-base-100" aria-label="Filter by district" placeholder="District" value={filters.district} onChange={(event) => setFilters((current) => ({ ...current, district: event.target.value }))} />
+        <select className="select select-bordered select-sm bg-base-100" aria-label="Filter by language" value={filters.language} onChange={(event) => setFilters((current) => ({ ...current, language: event.target.value }))}><option value="">All languages</option><option value="en">English</option><option value="hi">Hindi</option></select>
+        <Button type="submit" size="sm" disabled={loading}>{loading ? "Loading…" : "Apply filters"}</Button>
+      </form>
+      <DataTable columns={columns} data={contacts} isLoading={loading} error={error || null} onRetry={() => loadContacts(cursor)} emptyTitle="No audience contacts" emptyDescription="Add a contact or upload a CSV file to populate this organization." />
+      <div className="flex items-center justify-between gap-3 text-xs text-base-content/70">
+        <span>{pagination.has_more ? "More results available" : "End of results"}</span>
+        <div className="flex gap-2"><Button size="sm" variant="outline" disabled={!cursorStack.length || loading} onClick={() => { const previous = cursorStack[cursorStack.length - 1] ?? null; setCursorStack((stack) => stack.slice(0, -1)); loadContacts(previous); }}>Previous</Button><Button size="sm" disabled={!pagination.has_more || !pagination.next_cursor || loading} onClick={() => { setCursorStack((stack) => [...stack, cursor]); loadContacts(pagination.next_cursor); }}>Next</Button></div>
+      </div>
+    </Section>
+
+    <Section title="CSV import" description="Uploads are validated and processed asynchronously by the backend.">
+      <div className="rounded-xl border border-base-300 bg-base-100 p-4 space-y-3">
+        {canCreate ? <label className="flex flex-wrap items-center gap-3"><span className="text-sm font-semibold">Choose CSV file</span><input type="file" accept=".csv,text/csv" disabled={uploading} onChange={handleUpload} className="file-input file-input-bordered file-input-sm max-w-full" /><span className="text-xs text-base-content/60">Up to 25 MiB and 100,000 data rows</span></label> : <p className="text-sm text-base-content/60">Your role does not include permission to upload audience contacts.</p>}
+        {uploading && <p role="status" className="text-sm">Uploading and validating CSV…</p>}
+        {uploadError && <p role="alert" className="text-sm text-error">{uploadError}</p>}
+        {importJob && <div className="space-y-2 border-t border-base-300 pt-3">
+          <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold text-sm">Import job</h3><StatusBadge status={importJob.status === "completed" ? "approved" : importJob.status === "failed" ? "rejected" : "pending"} label={importJob.status.replaceAll("_", " ")} /></div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[["Processed", importJob.processed_rows], ["Imported", importJob.imported_rows], ["Validation errors", importJob.error_rows], ["Duplicates", importJob.duplicate_rows]].map(([label, value]) => <div key={label} className="rounded-lg bg-base-200/60 p-3"><p className="text-xs text-base-content/60">{label}</p><p className="text-lg font-semibold tabular-nums">{value ?? 0}</p></div>)}
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-base-300"><div className="h-full bg-primary transition-all" style={{ width: `${importJob.total_rows ? Math.min(100, (importJob.processed_rows / importJob.total_rows) * 100) : 0}%` }} /></div>
+          <p className="text-xs text-base-content/60">{importJob.processed_rows || 0} of {importJob.total_rows || 0} rows processed · {importJob.last_error_code ? `Last error: ${importJob.last_error_code}` : "No worker error reported"}</p>
+          {importErrors.length > 0 && <div className="space-y-2"><h4 className="text-sm font-semibold">Row-level issues</h4><DataTable columns={[{ key: "row_number", header: "Row" }, { key: "field_name", header: "Field", render: (row) => row.field_name || "—" }, { key: "error_code", header: "Issue code" }]} data={importErrors} /><div className="flex justify-end"><Button size="sm" variant="outline" disabled={!errorHasMore} onClick={loadMoreErrors}>Load more issues</Button></div></div>}
+          {["queued", "processing"].includes(importJob.status) && <p role="status" className="text-xs text-base-content/60">This panel refreshes automatically while the worker processes the file.</p>}
+          {["completed", "completed_with_errors", "failed"].includes(importJob.status) && <div className="flex justify-end"><Button size="sm" variant="outline" onClick={() => { setImportJob(null); setImportErrors([]); loadContacts(null); }}>Dismiss and refresh directory</Button></div>}
+        </div>}
+      </div>
+    </Section>
+  </div>;
 }
 
 export function SegmentsWorkspace({ permissions = [] }) {
