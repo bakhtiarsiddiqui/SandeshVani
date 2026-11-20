@@ -12,11 +12,6 @@ const CAMPAIGNS = [
   { id: "c3", name: "Water quality bulletin", channel: "Email", audience: "Ward 4 · Ward 7", recipients: "3,150", status: "approved" },
   { id: "c4", name: "Heatwave safety notice", channel: "SMS · WhatsApp", audience: "Registered residents", recipients: "18,900", status: "rejected" },
 ];
-const CONTACTS = [
-  { id: "a1", name: "Meera Singh", email: "meera.singh@example.test", phone: "+919876540001", district: "Meerut", language: "Hindi" },
-  { id: "a2", name: "Arjun Verma", email: "arjun.verma@example.test", phone: "+919876540002", district: "Ghaziabad", language: "English" },
-  { id: "a3", name: "Farah Khan", email: "farah.khan@example.test", phone: "+919876540003", district: "Meerut", language: "Hindi" },
-];
 const MEMBERS = [
   { id: "m1", name: "Anita Rao", email: "anita.rao@example.test", role: "Organization Administrator", status: "Active" },
   { id: "m2", name: "Imran Qureshi", email: "imran.qureshi@example.test", role: "Campaign Manager", status: "Active" },
@@ -55,7 +50,6 @@ const CAMPAIGN_COLUMNS = [
   { key: "channel", header: "Channels" }, { key: "audience", header: "Audience" }, { key: "recipients", header: "Recipients" },
   { key: "status", header: "Status", render: (row) => <StatusBadge status={row.status} /> },
 ];
-const CONTACT_COLUMNS = [{ key: "name", header: "Contact" }, { key: "email", header: "Email" }, { key: "phone", header: "Phone" }, { key: "district", header: "District" }, { key: "language", header: "Language" }];
 const MEMBER_COLUMNS = [{ key: "name", header: "Member" }, { key: "email", header: "Email" }, { key: "role", header: "Assigned role" }, { key: "status", header: "Status", render: (row) => <StatusBadge status={row.status === "Active" ? "approved" : "pending"} label={row.status} /> }];
 
 export function OrganizationAdminWorkspace({ permissions = [] }) {
@@ -133,11 +127,6 @@ export function ApprovalsWorkspace({ permissions = [] }) {
 
 function emptyAudienceForm() {
   return { full_name: "", email: "", phone: "", preferred_language: "en", district: "", state_code: "UP", city: "" };
-}
-
-function formatDate(value) {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
 export function AudienceWorkspace({ permissions = [] }) {
