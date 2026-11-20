@@ -289,7 +289,7 @@ export function AudienceWorkspace({ permissions = [] }) {
     setErrorCursor(null);
     try {
       const accepted = await uploadAudienceCsv(file);
-      setImportJob(accepted);
+      setImportJob({ ...accepted, id: accepted.job_id });
     } catch (err) {
       setUploadError(getApiErrorMessage(err));
     } finally {
