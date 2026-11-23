@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/organizations/{{orgId}}/roles"
+method: GET
+headers:
+  X-Organization-ID: "{{orgId}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      const roles = pm.response.json();
+      if (roles.length) pm.environment.set("roleId", roles[0].id);
+    language: text/javascript
+order: 7000

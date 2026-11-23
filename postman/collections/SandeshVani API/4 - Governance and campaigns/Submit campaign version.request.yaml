@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/governance/campaigns/{{campaignId}}/versions/{{campaignVersionId}}/submit"
+method: POST
+headers:
+  Origin: "{{origin}}"
+  X-CSRF-Token: "{{csrfToken}}"
+  X-Organization-ID: "{{orgId}}"
+scripts:
+  - type: afterResponse
+    code: pm.test("Status is one of 200,201", () => pm.expect([200,201]).to.include(pm.response.code));
+    language: text/javascript
+order: 13000

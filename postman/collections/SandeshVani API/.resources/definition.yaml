@@ -1,0 +1,14 @@
+$kind: collection
+description: |-
+  Generated from the FastAPI routes in backend/app/api/v1. Run folders in order 0 -> 5.
+  Writes send Origin + X-CSRF-Token; tenant routes send X-Organization-ID.
+scripts:
+  - type: http:afterResponse
+    code: pm.test("No server errors (5xx)", () => pm.expect(pm.response.code).to.be.below(500));
+    language: text/javascript
+auth:
+  - id: 5db92bb2-8c65-4f81-af41-f7224394b19b
+    type: bearer
+    name: bearer auth
+    credentials:
+      token: "{{accessToken}}"

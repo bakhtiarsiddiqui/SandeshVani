@@ -1,0 +1,11 @@
+$kind: http-request
+name: Malformed X-Organization-ID -> 4xx
+url: "{{baseUrl}}/audiences"
+method: GET
+headers:
+  X-Organization-ID: not-a-uuid
+scripts:
+  - type: afterResponse
+    code: pm.test("Rejected", () => pm.expect(pm.response.code).to.be.within(400, 422));
+    language: text/javascript
+order: 5000

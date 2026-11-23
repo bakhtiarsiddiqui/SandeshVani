@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/organizations"
+method: POST
+headers:
+  Content-Type: application/json
+  Origin: "{{origin}}"
+body:
+  type: json
+  content: |-
+    {
+      "name": "Postman Test Org",
+      "slug": "{{orgSlug}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: pm.variables.set("orgSlug", "pm-" + Date.now());
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 201", () => pm.response.to.have.status(201));
+      pm.environment.set("orgId", pm.response.json().id);
+    language: text/javascript
+order: 1000

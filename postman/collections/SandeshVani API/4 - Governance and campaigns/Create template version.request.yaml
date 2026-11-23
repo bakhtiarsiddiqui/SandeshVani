@@ -1,0 +1,26 @@
+$kind: http-request
+url: "{{baseUrl}}/governance/templates/{{templateId}}/versions"
+method: POST
+headers:
+  Content-Type: application/json
+  Origin: "{{origin}}"
+  X-CSRF-Token: "{{csrfToken}}"
+  X-Organization-ID: "{{orgId}}"
+body:
+  type: json
+  content: |-
+    {
+      "variants": {
+        "sms": {
+          "en": "Hello from SandeshVani",
+          "hi": "SandeshVani se namaste"
+        }
+      }
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 201", () => pm.response.to.have.status(201));
+      pm.environment.set("templateVersionId", pm.response.json().id);
+    language: text/javascript
+order: 9000

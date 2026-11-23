@@ -1,0 +1,13 @@
+$kind: http-request
+name: No token -> 401
+url: "{{baseUrl}}/audiences"
+method: GET
+headers:
+  X-Organization-ID: "{{orgId}}"
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: pm.test("Status is 401", () => pm.response.to.have.status(401));
+    language: text/javascript
+order: 1000

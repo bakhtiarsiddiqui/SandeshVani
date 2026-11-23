@@ -1,0 +1,35 @@
+$kind: http-request
+url: "{{baseUrl}}/governance/campaigns/{{campaignId}}/versions"
+method: POST
+headers:
+  Content-Type: application/json
+  Origin: "{{origin}}"
+  X-CSRF-Token: "{{csrfToken}}"
+  X-Organization-ID: "{{orgId}}"
+body:
+  type: json
+  content: |-
+    {
+      "channels": [
+        "sms"
+      ],
+      "languages": [
+        "en",
+        "hi"
+      ],
+      "segment_version_id": "{{segmentVersionId}}",
+      "template_version_id": "{{templateVersionId}}",
+      "rendered_variants": {
+        "sms": {
+          "en": "Water supply paused 2-4pm",
+          "hi": "Paani aapoorti 2-4 baje band"
+        }
+      }
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 201", () => pm.response.to.have.status(201));
+      pm.environment.set("campaignVersionId", pm.response.json().id);
+    language: text/javascript
+order: 11000

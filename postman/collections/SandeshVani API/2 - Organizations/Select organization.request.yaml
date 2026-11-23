@@ -1,0 +1,20 @@
+$kind: http-request
+description: Run after 'Create organization'. Switches the token to that organization.
+url: "{{baseUrl}}/auth/select-org"
+method: POST
+headers:
+  Content-Type: application/json
+  Origin: "{{origin}}"
+body:
+  type: json
+  content: |-
+    {
+      "organization_id": "{{orgId}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      pm.environment.set("accessToken", pm.response.json().access_token);
+    language: text/javascript
+order: 2000

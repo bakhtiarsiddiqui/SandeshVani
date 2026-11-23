@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/governance/executions/{{executionId}}/analytics"
+method: GET
+headers:
+  X-Organization-ID: "{{orgId}}"
+scripts:
+  - type: beforeRequest
+    code: if (!pm.environment.get("executionId")) { pm.execution.skipRequest(); }
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      pm.test("Marked as simulated", () => pm.expect(pm.response.json().simulated).to.be.true);
+    language: text/javascript
+order: 16000

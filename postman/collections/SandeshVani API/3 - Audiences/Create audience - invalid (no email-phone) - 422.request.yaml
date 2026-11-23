@@ -1,0 +1,20 @@
+$kind: http-request
+name: Create audience - invalid (no email/phone) -> 422
+url: "{{baseUrl}}/audiences"
+method: POST
+headers:
+  Content-Type: application/json
+  Origin: "{{origin}}"
+  X-CSRF-Token: "{{csrfToken}}"
+  X-Organization-ID: "{{orgId}}"
+body:
+  type: json
+  content: |-
+    {
+      "full_name": "No Contact"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test("Status is 422", () => pm.response.to.have.status(422));
+    language: text/javascript
+order: 6000

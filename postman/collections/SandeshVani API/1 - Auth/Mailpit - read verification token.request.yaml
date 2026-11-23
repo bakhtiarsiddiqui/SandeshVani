@@ -1,0 +1,24 @@
+$kind: http-request
+description: Local only. Finds the verify email for this run's user and saves verifyToken.
+url: "{{mailpitUrl}}/api/v1/messages"
+method: GET
+auth:
+  type: noauth
+scripts:
+  - type: beforeRequest
+    code: setTimeout(function () {}, 1000);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      const msgs = pm.response.json().messages || [];
+      const to = pm.environment.get("email").toLowerCase();
+      const m = msgs.find(x => /verify/i.test(x.Subject) && (x.To || []).some(t => (t.Address || "").toLowerCase() === to));
+      pm.test("Verification email found for " + to, () => pm.expect(m).to.exist);
+      if (m) {
+        const match = (m.Snippet || "").match(/token is:\s*(\S+)/);
+        pm.test("Token extracted", () => pm.expect(match).to.not.be.null);
+        if (match) pm.environment.set("verifyToken", match[1]);
+      }
+    language: text/javascript
+order: 3000

@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/governance/campaigns/{{campaignId}}/versions/{{campaignVersionId}}/execute"
+method: POST
+headers:
+  Origin: "{{origin}}"
+  X-CSRF-Token: "{{csrfToken}}"
+  X-Organization-ID: "{{orgId}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is one of 202,409", () => pm.expect([202,409]).to.include(pm.response.code));
+      if (pm.response.code === 202) pm.environment.set("executionId", pm.response.json().id);
+    language: text/javascript
+order: 15000

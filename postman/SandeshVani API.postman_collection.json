@@ -1,0 +1,2488 @@
+{
+  "info": {
+    "_postman_id": "5a680e74-2755-46b2-942b-b8c805e284e8",
+    "name": "SandeshVani API",
+    "description": "Generated from the FastAPI routes in backend/app/api/v1. Run folders in order 0 -> 5.\nWrites send Origin + X-CSRF-Token; tenant routes send X-Organization-ID.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test(\"No server errors (5xx)\", () => pm.expect(pm.response.code).to.be.below(500));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "0 - Health",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Reports healthy\", () => pm.expect(pm.response.json().status).to.eql(\"healthy\"));",
+                  "pm.test(\"Responds under 3s (Render cold starts may exceed this)\", () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1 - Auth",
+      "item": [
+        {
+          "name": "Mailpit - clear inbox",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{mailpitUrl}}/api/v1/messages",
+              "host": [
+                "{{mailpitUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "messages"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Local only. Empties Mailpit so the next verification email is unambiguous."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"full_name\": \"{{fullName}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Generates a fresh email each run, so repeat runs never hit 409 or an unverified old user."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set(\"email\", \"postman.\" + Date.now() + \"@example.com\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mailpit - read verification token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{mailpitUrl}}/api/v1/messages",
+              "host": [
+                "{{mailpitUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "messages"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Local only. Finds the verify email for this run's user and saves verifyToken."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "setTimeout(function () {}, 1000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const msgs = pm.response.json().messages || [];",
+                  "const to = pm.environment.get(\"email\").toLowerCase();",
+                  "const m = msgs.find(x => /verify/i.test(x.Subject) && (x.To || []).some(t => (t.Address || \"\").toLowerCase() === to));",
+                  "pm.test(\"Verification email found for \" + to, () => pm.expect(m).to.exist);",
+                  "if (m) {",
+                  "  const match = (m.Snippet || \"\").match(/token is:\\s*(\\S+)/);",
+                  "  pm.test(\"Token extracted\", () => pm.expect(match).to.not.be.null);",
+                  "  if (match) pm.environment.set(\"verifyToken\", match[1]);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-email",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "verify-email"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{verifyToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Uses {{verifyToken}} saved by the Mailpit request."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test(\"Returns access + CSRF tokens\", () => {",
+                  "  pm.expect(b).to.have.property(\"access_token\");",
+                  "  pm.expect(b).to.have.property(\"csrf_token\");",
+                  "});",
+                  "pm.test(\"Refresh cookie is set\", () => pm.expect(pm.cookies.has(\"sandeshvani_refresh\")).to.be.true);",
+                  "pm.environment.set(\"accessToken\", b.access_token);",
+                  "pm.environment.set(\"csrfToken\", b.csrf_token);",
+                  "if (b.active_organization) pm.environment.set(\"orgId\", b.active_organization.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test(\"Returns the logged-in user\", () => pm.expect(b.user.email).to.eql(pm.environment.get(\"email\").toLowerCase()));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Platform role context",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/platform/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "platform",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh token (uses cookie)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.environment.set(\"accessToken\", b.access_token);",
+                  "pm.environment.set(\"csrfToken\", b.csrf_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Password recovery (generic response)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/password-recovery",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "password-recovery"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2 - Organizations",
+      "item": [
+        {
+          "name": "Create organization",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/organizations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizations"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test Org\",\n  \"slug\": \"{{orgSlug}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"orgSlug\", \"pm-\" + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.environment.set(\"orgId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Select organization",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/select-org",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "select-org"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organization_id\": \"{{orgId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Run after 'Create organization'. Switches the token to that organization."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.environment.set(\"accessToken\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List my organizations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/organizations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizations"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returns an array\", () => pm.expect(pm.response.json()).to.be.an(\"array\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get current organization",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/organizations/current",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizations",
+                "current"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get organization by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/organizations/{{orgId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizations",
+                "{{orgId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List members",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/organizations/{{orgId}}/members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizations",
+                "{{orgId}}",
+                "members"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/organizations/{{orgId}}/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizations",
+                "{{orgId}}",
+                "roles"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const roles = pm.response.json();",
+                  "if (roles.length) pm.environment.set(\"roleId\", roles[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List permissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/organizations/{{orgId}}/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizations",
+                "{{orgId}}",
+                "permissions"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3 - Audiences",
+      "item": [
+        {
+          "name": "Create audience member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audiences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audiences"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Asha Verma\",\n  \"email\": \"asha.{{$timestamp}}@example.com\",\n  \"phone\": \"+919876543210\",\n  \"preferred_language\": \"hi\",\n  \"state_code\": \"UP\",\n  \"district\": \"Meerut\",\n  \"city\": \"Meerut\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.environment.set(\"audienceId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List audience members",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audiences?limit=25",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audiences"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "25"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search audience members",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audiences?limit=10&search=Asha",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audiences"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": "Asha"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get audience member",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audiences/{{audienceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audiences",
+                "{{audienceId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update audience member",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audiences/{{audienceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audiences",
+                "{{audienceId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city\": \"Noida\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"City updated\", () => pm.expect(pm.response.json().city).to.eql(\"Noida\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create audience - invalid (no email/phone) -> 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audiences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audiences"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"No Contact\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create audience - unknown field -> 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audiences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audiences"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Extra\",\n  \"email\": \"x@example.com\",\n  \"hack\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload audience CSV",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audiences/imports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audiences",
+                "imports"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "postman/test-data/audience_sample.csv"
+                }
+              ]
+            },
+            "description": "Pick a CSV file in the Body tab (key 'file'). Needs the worker running to process it."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 202\", () => pm.response.to.have.status(202));",
+                  "const b = pm.response.json();",
+                  "pm.environment.set(\"importJobId\", b.job_id || b.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get import job",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audiences/imports/{{importJobId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audiences",
+                "imports",
+                "{{importJobId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List import errors",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audiences/imports/{{importJobId}}/errors?limit=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audiences",
+                "imports",
+                "{{importJobId}}",
+                "errors"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4 - Governance and campaigns",
+      "item": [
+        {
+          "name": "Processing basis event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governance/consent/processing-basis",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governance",
+                "consent",
+                "processing-basis"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"audience_member_id\": \"{{audienceId}}\",\n  \"purpose_code\": \"civic_updates\",\n  \"event_type\": \"established\",\n  \"basis_code\": \"consent\",\n  \"evidence_source\": \"postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Channel consent event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governance/consent/channel-events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governance",
+                "consent",
+                "channel-events"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"audience_member_id\": \"{{audienceId}}\",\n  \"channel\": \"sms\",\n  \"purpose_code\": \"civic_updates\",\n  \"decision\": \"granted\",\n  \"evidence_source\": \"postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Suppression event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governance/consent/suppressions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governance",
+                "consent",
+                "suppressions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"audience_member_id\": \"{{audienceId}}\",\n  \"channel\": \"email\",\n  \"event_type\": \"suppressed\",\n  \"reason_code\": \"user_request\",\n  \"source_code\": \"postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create segment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governance/segments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governance",
+                "segments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hindi speakers in UP\",\n  \"description\": \"Postman test segment\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.environment.set(\"segmentId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create segment version",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governance/segments/{{segmentId}}/versions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governance",
+                "segments",
+                "{{segmentId}}",
+                "versions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filter_ast\": {\n    \"op\": \"and\",\n    \"children\": [\n      {\n        \"field\": \"preferred_language\",\n        \"operator\": \"eq\",\n        \"value\": \"hi\"\n      },\n      {\n        \"field\": \"state_code\",\n        \"operator\": \"eq\",\n        \"value\": \"IN-UP\"\n      }\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.environment.set(\"segmentVersionId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create segment version - bad filter -> 4xx",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governance/segments/{{segmentId}}/versions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governance",
+                "segments",
+                "{{segmentId}}",
+                "versions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filter_ast\": {\n    \"field\": \"password_hash\",\n    \"operator\": \"eq\",\n    \"value\": \"x\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Non-allowlisted field is rejected\", () => pm.expect(pm.response.code).to.be.within(400, 422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preview segment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governance/segments/{{segmentId}}/preview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governance",
+                "segments",
+                "{{segmentId}}",
+                "preview"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version_id\": \"{{segmentVersionId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"matched_count is a number\", () => pm.expect(pm.response.json().matched_count).to.be.a(\"number\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create template",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governance/templates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governance",
+                "templates"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Welcome\",\n  \"description\": \"Postman template\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.environment.set(\"templateId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create template version",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governance/templates/{{templateId}}/versions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governance",
+                "templates",
+                "{{templateId}}",
+                "versions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"variants\": {\n    \"sms\": {\n      \"en\": \"Hello from SandeshVani\",\n      \"hi\": \"SandeshVani se namaste\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.environment.set(\"templateVersionId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create campaign",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governance/campaigns",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governance",
+                "campaigns"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Water supply notice\",\n  \"objective\": \"Inform residents\",\n  \"purpose_code\": \"civic_updates\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.environment.set(\"campaignId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create campaign version",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governance/campaigns/{{campaignId}}/versions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governance",
+                "campaigns",
+                "{{campaignId}}",
+                "versions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channels\": [\n    \"sms\"\n  ],\n  \"languages\": [\n    \"en\",\n    \"hi\"\n  ],\n  \"segment_version_id\": \"{{segmentVersionId}}\",\n  \"template_version_id\": \"{{templateVersionId}}\",\n  \"rendered_variants\": {\n    \"sms\": {\n      \"en\": \"Water supply paused 2-4pm\",\n      \"hi\": \"Paani aapoorti 2-4 baje band\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.environment.set(\"campaignVersionId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create content revision",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governance/campaigns/{{campaignId}}/versions/{{campaignVersionId}}/content-revisions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governance",
+                "campaigns",
+                "{{campaignId}}",
+                "versions",
+                "{{campaignVersionId}}",
+                "content-revisions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rendered_variants\": {\n    \"sms\": {\n      \"en\": \"Water supply paused 2-4pm today\",\n      \"hi\": \"Aaj 2-4 baje paani band\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit campaign version",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governance/campaigns/{{campaignId}}/versions/{{campaignVersionId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governance",
+                "campaigns",
+                "{{campaignId}}",
+                "versions",
+                "{{campaignVersionId}}",
+                "submit"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is one of 200,201\", () => pm.expect([200,201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approve campaign version",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governance/campaigns/{{campaignId}}/versions/{{campaignVersionId}}/approval",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governance",
+                "campaigns",
+                "{{campaignId}}",
+                "versions",
+                "{{campaignVersionId}}",
+                "approval"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"approved\",\n  \"rationale\": \"Reviewed in Postman run\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Your system may enforce that the approver differs from the submitter (403/409). Approve from a second user to test the happy path."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is one of 201,403,409\", () => pm.expect([201,403,409]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Execute campaign (mock)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governance/campaigns/{{campaignId}}/versions/{{campaignVersionId}}/execute",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governance",
+                "campaigns",
+                "{{campaignId}}",
+                "versions",
+                "{{campaignVersionId}}",
+                "execute"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is one of 202,409\", () => pm.expect([202,409]).to.include(pm.response.code));",
+                  "if (pm.response.code === 202) pm.environment.set(\"executionId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Execution analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governance/executions/{{executionId}}/analytics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governance",
+                "executions",
+                "{{executionId}}",
+                "analytics"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.environment.get(\"executionId\")) { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Marked as simulated\", () => pm.expect(pm.response.json().simulated).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Audit log",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governance/audit?limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governance",
+                "audit"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5 - Security checks (expected failures)",
+      "item": [
+        {
+          "name": "No token -> 401",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audiences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audiences"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing CSRF header -> 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audiences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audiences"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"CSRF\",\n  \"email\": \"csrf@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"Mentions CSRF\", () => pm.expect(pm.response.text().toLowerCase()).to.include(\"csrf\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing Origin header -> 4xx",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audiences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audiences"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"NoOrigin\",\n  \"email\": \"noorigin@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Rejected without Origin\", () => pm.expect(pm.response.code).to.be.within(400, 403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Evil Origin -> 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "https://evil.example"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Organization-ID",
+                "value": "{{orgId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audiences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audiences"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Evil\",\n  \"email\": \"evil@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Malformed X-Organization-ID -> 4xx",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Organization-ID",
+                "value": "not-a-uuid"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audiences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audiences"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Rejected\", () => pm.expect(pm.response.code).to.be.within(400, 422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cross-tenant read (random org id) -> 403/404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Organization-ID",
+                "value": "00000000-0000-4000-8000-000000000000"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/audiences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audiences"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Not allowed to read another tenant\", () => pm.expect([403, 404]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Wrong password -> 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"definitely-wrong\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6 - Logout",
+      "item": [
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Run this last; re-run Login afterwards."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

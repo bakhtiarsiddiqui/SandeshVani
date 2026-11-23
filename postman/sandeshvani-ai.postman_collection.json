@@ -1,0 +1,355 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "SandeshVani AI Campaign Assistant",
+    "description": "Collection for SandeshVani AI Campaign Assistant endpoints (/api/v1/ai/campaigns/...). Tests generation, validation, status retrieval, and human approval gating.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "aiApiKey",
+      "value": "{{AI_SERVICE_API_KEY}}",
+      "type": "string"
+    },
+    {
+      "key": "requestId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 - Generate Drafts (SMS Hindi)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 202\", function () {",
+              "    pm.response.to.have.status(202);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Status is pending_approval\", function () {",
+              "    pm.expect(jsonData.status).to.eql(\"pending_approval\");",
+              "});",
+              "pm.test(\"Draft returned\", function () {",
+              "    pm.expect(jsonData.drafts.length).to.be.above(0);",
+              "    pm.expect(jsonData.drafts[0].channel).to.eql(\"sms\");",
+              "    pm.expect(jsonData.drafts[0].language).to.eql(\"hi\");",
+              "});",
+              "if (jsonData.request_id) {",
+              "    pm.collectionVariables.set(\"requestId\", jsonData.request_id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-API-Key",
+            "value": "{{aiApiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"channel\": \"sms\",\n  \"language\": \"hi\",\n  \"tone\": \"professional\",\n  \"key_facts\": {\n    \"event\": \"Community Health Fair\",\n    \"date\": \"2026-12-15\",\n    \"venue\": \"Gandhi Maidan, Patna\",\n    \"cost\": \"Free\",\n    \"contact\": \"1800-XXX-YYYY\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/ai/campaigns/generate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "ai",
+            "campaigns",
+            "generate"
+          ]
+        }
+      }
+    },
+    {
+      "name": "2 - Generate Drafts (WhatsApp Marathi)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 202\", function () {",
+              "    pm.response.to.have.status(202);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Status is pending_approval\", function () {",
+              "    pm.expect(jsonData.status).to.eql(\"pending_approval\");",
+              "});",
+              "pm.test(\"Channel is whatsapp and language is mr\", function () {",
+              "    pm.expect(jsonData.drafts[0].channel).to.eql(\"whatsapp\");",
+              "    pm.expect(jsonData.drafts[0].language).to.eql(\"mr\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-API-Key",
+            "value": "{{aiApiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"channel\": \"whatsapp\",\n  \"language\": \"mr\",\n  \"tone\": \"friendly\",\n  \"key_facts\": {\n    \"event\": \"Arogya Shibir\",\n    \"date\": \"2026-12-20\",\n    \"venue\": \"Shivaji Park, Pune\",\n    \"cost\": \"Free\",\n    \"contact\": \"020-1234567\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/ai/campaigns/generate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "ai",
+            "campaigns",
+            "generate"
+          ]
+        }
+      }
+    },
+    {
+      "name": "3 - Get Draft by Request ID",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Response contains draft details\", function () {",
+              "    pm.expect(jsonData.request_id).to.eql(pm.collectionVariables.get(\"requestId\"));",
+              "    pm.expect(jsonData.draft.text).to.not.be.empty;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "value": "{{aiApiKey}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/ai/campaigns/{{requestId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "ai",
+            "campaigns",
+            "{{requestId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "4 - Human Approval - Approve Draft",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Status changed to approved\", function () {",
+              "    pm.expect(jsonData.status).to.eql(\"approved\");",
+              "    pm.expect(jsonData.action).to.eql(\"approve\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-API-Key",
+            "value": "{{aiApiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"approve\",\n  \"reviewer_note\": \"Verified facts. Ready for campaign template.\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/ai/campaigns/{{requestId}}/approve",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "ai",
+            "campaigns",
+            "{{requestId}}",
+            "approve"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5 - Re-Approval Fails (Idempotency Guard)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-API-Key",
+            "value": "{{aiApiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"approve\",\n  \"reviewer_note\": \"Attempting to re-approve.\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/ai/campaigns/{{requestId}}/approve",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "ai",
+            "campaigns",
+            "{{requestId}}",
+            "approve"
+          ]
+        }
+      }
+    },
+    {
+      "name": "6 - Missing X-API-Key (Unauthorized)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 401\", function () {",
+              "    pm.response.to.have.status(401);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"channel\": \"sms\",\n  \"language\": \"hi\",\n  \"key_facts\": {\n    \"event\": \"Test\",\n    \"date\": \"2026-12-01\",\n    \"venue\": \"Delhi\",\n    \"cost\": \"Free\",\n    \"contact\": \"1800\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/ai/campaigns/generate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "ai",
+            "campaigns",
+            "generate"
+          ]
+        }
+      }
+    },
+    {
+      "name": "7 - Invalid X-API-Key (Forbidden)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 403\", function () {",
+              "    pm.response.to.have.status(403);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-API-Key",
+            "value": "wrong-secret-token"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"channel\": \"sms\",\n  \"language\": \"hi\",\n  \"key_facts\": {\n    \"event\": \"Test\",\n    \"date\": \"2026-12-01\",\n    \"venue\": \"Delhi\",\n    \"cost\": \"Free\",\n    \"contact\": \"1800\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/ai/campaigns/generate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "ai",
+            "campaigns",
+            "generate"
+          ]
+        }
+      }
+    }
+  ]
+}

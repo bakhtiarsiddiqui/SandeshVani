@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/audiences/{{audienceId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+  Origin: "{{origin}}"
+  X-CSRF-Token: "{{csrfToken}}"
+  X-Organization-ID: "{{orgId}}"
+body:
+  type: json
+  content: |-
+    {
+      "city": "Noida"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      pm.test("City updated", () => pm.expect(pm.response.json().city).to.eql("Noida"));
+    language: text/javascript
+order: 5000

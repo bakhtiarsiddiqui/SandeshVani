@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/governance/campaigns/{{campaignId}}/versions/{{campaignVersionId}}/content-revisions"
+method: POST
+headers:
+  Content-Type: application/json
+  Origin: "{{origin}}"
+  X-CSRF-Token: "{{csrfToken}}"
+  X-Organization-ID: "{{orgId}}"
+body:
+  type: json
+  content: |-
+    {
+      "rendered_variants": {
+        "sms": {
+          "en": "Water supply paused 2-4pm today",
+          "hi": "Aaj 2-4 baje paani band"
+        }
+      }
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test("Status is 201", () => pm.response.to.have.status(201));
+    language: text/javascript
+order: 12000

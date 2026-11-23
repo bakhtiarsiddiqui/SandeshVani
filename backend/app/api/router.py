@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from ai.router import router as ai_router
 from app.api.v1.audiences import router as audiences_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.governance import router as governance_router
@@ -18,4 +19,5 @@ def create_api_v1_router(settings: Settings | None = None) -> APIRouter:
     router.include_router(audiences_router)
     router.include_router(governance_router)
     router.include_router(platform_router)
+    router.include_router(ai_router)
     return router

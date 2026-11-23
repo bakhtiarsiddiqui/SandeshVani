@@ -1,0 +1,21 @@
+$kind: http-request
+name: Evil Origin -> 403
+url: "{{baseUrl}}/audiences"
+method: POST
+headers:
+  Content-Type: application/json
+  Origin: https://evil.example
+  X-CSRF-Token: "{{csrfToken}}"
+  X-Organization-ID: "{{orgId}}"
+body:
+  type: json
+  content: |-
+    {
+      "full_name": "Evil",
+      "email": "evil@example.com"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test("Status is 403", () => pm.response.to.have.status(403));
+    language: text/javascript
+order: 4000

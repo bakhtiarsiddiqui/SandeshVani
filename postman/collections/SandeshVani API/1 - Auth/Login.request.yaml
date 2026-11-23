@@ -1,0 +1,30 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+  Origin: "{{origin}}"
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{email}}",
+      "password": "{{password}}"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      const b = pm.response.json();
+      pm.test("Returns access + CSRF tokens", () => {
+        pm.expect(b).to.have.property("access_token");
+        pm.expect(b).to.have.property("csrf_token");
+      });
+      pm.test("Refresh cookie is set", () => pm.expect(pm.cookies.has("sandeshvani_refresh")).to.be.true);
+      pm.environment.set("accessToken", b.access_token);
+      pm.environment.set("csrfToken", b.csrf_token);
+      if (b.active_organization) pm.environment.set("orgId", b.active_organization.id);
+    language: text/javascript
+order: 5000

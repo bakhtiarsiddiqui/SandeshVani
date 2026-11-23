@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/governance/campaigns"
+method: POST
+headers:
+  Content-Type: application/json
+  Origin: "{{origin}}"
+  X-CSRF-Token: "{{csrfToken}}"
+  X-Organization-ID: "{{orgId}}"
+body:
+  type: json
+  content: |-
+    {
+      "name": "Water supply notice",
+      "objective": "Inform residents",
+      "purpose_code": "civic_updates"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 201", () => pm.response.to.have.status(201));
+      pm.environment.set("campaignId", pm.response.json().id);
+    language: text/javascript
+order: 10000

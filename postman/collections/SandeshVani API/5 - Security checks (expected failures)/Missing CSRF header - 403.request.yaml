@@ -1,0 +1,22 @@
+$kind: http-request
+name: Missing CSRF header -> 403
+url: "{{baseUrl}}/audiences"
+method: POST
+headers:
+  Content-Type: application/json
+  Origin: "{{origin}}"
+  X-Organization-ID: "{{orgId}}"
+body:
+  type: json
+  content: |-
+    {
+      "full_name": "CSRF",
+      "email": "csrf@example.com"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 403", () => pm.response.to.have.status(403));
+      pm.test("Mentions CSRF", () => pm.expect(pm.response.text().toLowerCase()).to.include("csrf"));
+    language: text/javascript
+order: 2000

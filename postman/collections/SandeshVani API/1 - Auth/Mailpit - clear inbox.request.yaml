@@ -1,0 +1,11 @@
+$kind: http-request
+description: Local only. Empties Mailpit so the next verification email is unambiguous.
+url: "{{mailpitUrl}}/api/v1/messages"
+method: DELETE
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: pm.test("Status is 200", () => pm.response.to.have.status(200));
+    language: text/javascript
+order: 1000

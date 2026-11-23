@@ -1,0 +1,11 @@
+$kind: http-request
+name: Cross-tenant read (random org id) -> 403/404
+url: "{{baseUrl}}/audiences"
+method: GET
+headers:
+  X-Organization-ID: 00000000-0000-4000-8000-000000000000
+scripts:
+  - type: afterResponse
+    code: pm.test("Not allowed to read another tenant", () => pm.expect([403, 404]).to.include(pm.response.code));
+    language: text/javascript
+order: 6000

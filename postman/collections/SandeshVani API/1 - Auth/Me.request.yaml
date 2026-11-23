@@ -1,0 +1,11 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/me"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      const b = pm.response.json();
+      pm.test("Returns the logged-in user", () => pm.expect(b.user.email).to.eql(pm.environment.get("email").toLowerCase()));
+    language: text/javascript
+order: 6000

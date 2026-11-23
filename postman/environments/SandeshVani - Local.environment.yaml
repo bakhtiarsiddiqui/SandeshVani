@@ -1,0 +1,42 @@
+name: SandeshVani - Local
+values:
+  - key: baseUrl
+    value: 'http://localhost:8000/api/v1'
+  - key: origin
+    value: 'http://localhost:5173'
+  - key: mailpitUrl
+    value: 'http://127.0.0.1:8025'
+  - key: email
+    value: postman.tester@example.com
+  - key: password
+    value: Str0ng!Passw0rd#2026
+  - key: fullName
+    value: Postman Tester
+  - key: verifyToken
+    value: ''
+  - key: accessToken
+    value: ''
+  - key: csrfToken
+    value: ''
+  - key: orgId
+    value: ''
+  - key: roleId
+    value: ''
+  - key: audienceId
+    value: ''
+  - key: importJobId
+    value: ''
+  - key: segmentId
+    value: ''
+  - key: segmentVersionId
+    value: ''
+  - key: templateId
+    value: ''
+  - key: templateVersionId
+    value: ''
+  - key: campaignId
+    value: ''
+  - key: campaignVersionId
+    value: ''
+  - key: executionId
+    value: ''

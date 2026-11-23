@@ -14,3 +14,6 @@ pyjwt[crypto]>=2.9.0
 python-multipart>=0.0.33
 celery[redis]>=5.4.0
 httpx>=0.28.1
+# AI Campaign Assistant
+langgraph>=0.2.0
+langchain-core>=0.3.0

@@ -1,0 +1,21 @@
+$kind: http-request
+description: Your system may enforce that the approver differs from the submitter (403/409). Approve from a second user to test the happy path.
+url: "{{baseUrl}}/governance/campaigns/{{campaignId}}/versions/{{campaignVersionId}}/approval"
+method: POST
+headers:
+  Content-Type: application/json
+  Origin: "{{origin}}"
+  X-CSRF-Token: "{{csrfToken}}"
+  X-Organization-ID: "{{orgId}}"
+body:
+  type: json
+  content: |-
+    {
+      "decision": "approved",
+      "rationale": "Reviewed in Postman run"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test("Status is one of 201,403,409", () => pm.expect([201,403,409]).to.include(pm.response.code));
+    language: text/javascript
+order: 14000

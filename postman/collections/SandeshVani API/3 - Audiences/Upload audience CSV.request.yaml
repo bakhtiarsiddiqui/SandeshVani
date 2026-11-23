@@ -1,0 +1,28 @@
+$kind: http-request
+description: >-
+  Uploads a CSV file to create an audience import job.
+  The file must have a 'full_name' column plus 'email' and/or 'phone'.
+  Test data is at postman/test-data/audience_sample.csv.
+  In the Postman UI you can select that file in the Body tab (key 'file').
+  The pre-request script dynamically creates the CSV text as a workaround
+  when running via collection Runner without a real file picker.
+url: "{{baseUrl}}/audiences/imports"
+method: POST
+headers:
+  Origin: "{{origin}}"
+  X-CSRF-Token: "{{csrfToken}}"
+  X-Organization-ID: "{{orgId}}"
+body:
+  type: formdata
+  content:
+    - type: file
+      key: file
+      src: postman/test-data/audience_sample.csv
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 202", () => pm.response.to.have.status(202));
+      const b = pm.response.json();
+      pm.environment.set("importJobId", b.job_id || b.id);
+    language: text/javascript
+order: 8000

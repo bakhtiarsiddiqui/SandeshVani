@@ -1,0 +1,20 @@
+$kind: http-request
+name: Missing Origin header -> 4xx
+url: "{{baseUrl}}/audiences"
+method: POST
+headers:
+  Content-Type: application/json
+  X-CSRF-Token: "{{csrfToken}}"
+  X-Organization-ID: "{{orgId}}"
+body:
+  type: json
+  content: |-
+    {
+      "full_name": "NoOrigin",
+      "email": "noorigin@example.com"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test("Rejected without Origin", () => pm.expect(pm.response.code).to.be.within(400, 403));
+    language: text/javascript
+order: 3000
